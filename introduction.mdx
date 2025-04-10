@@ -1,71 +1,35 @@
 ---
-title: Introduction
-description: "Welcome to the home of your new documentation"
+title: Introduction to Vern
+description: "Understand the core concepts of the Vern platform."
 ---
 
-<img
-  className="block dark:hidden"
-  src="/images/hero-light.png"
-  alt="Hero Light"
-/>
-<img
-  className="hidden dark:block"
-  src="/images/hero-dark.png"
-  alt="Hero Dark"
-/>
+> **Note:** These documents are currently a work in progress and are not yet considered production-ready.
 
-## Setting up
-
-The first step to world-class documentation is setting up your editing environments.
+Welcome to Vern! Vern helps you connect different software applications and automate workflows between them. To get started, it's helpful to understand four key concepts:
 
 <CardGroup cols={2}>
-  <Card
-    title="Edit Your Docs"
-    icon="pen-to-square"
-    href="https://mintlify.com/docs/quickstart"
-  >
-    Get your docs set up locally for easy development
+  <Card title="Integrations" icon="link" href="/essentials/integrations">
+    Connect your applications to Vern. Set up integrations via the Vern UI.
   </Card>
-  <Card
-    title="Preview Changes"
-    icon="image"
-    href="https://mintlify.com/docs/development"
-  >
-    Preview your changes before you push to make sure they're perfect
+  <Card title="Tasks" icon="clipboard-list" href="/essentials/tasks">
+    Define specific actions or workflows Vern can perform within an integration.
+    Set up tasks via the Vern UI.
+  </Card>
+  <Card title="Linked Profiles" icon="users" href="/essentials/profiles">
+    Represent specific configurations or user authentications for an
+    integration, created via the API using an Integration ID.
+  </Card>
+  <Card title="Runs" icon="play" href="/essentials/runs">
+    Execute a specific Task, potentially using a Linked Profile for context or
+    authentication. Trigger runs via the API using a Task ID.
   </Card>
 </CardGroup>
 
-## Make it yours
+## How it Fits Together
 
-Update your docs to your brand and add valuable content for the best user conversion.
+1.  You first create an **Integration** for each application you want Vern to connect with (e.g., Salesforce, Slack, Boracle ERP) in the [Vern Dashboard](https://vern.so/integrations).
+2.  Within an Integration, you define **Tasks** that Vern can perform (e.g., "Create Invoice", "Send Notification", "Add Inventory Item") in the [Vern Dashboard](https://vern.so/tasks).
+3.  When a specific user or configuration needs to use an Integration, you create a **Linked Profile** via the API, associating it with the relevant **Integration ID**. This profile securely stores credentials or settings.
+4.  Finally, you trigger a **Run** via the API using the **Task ID** for the action you want to perform. You can optionally provide a **Profile ID** if the task needs specific user context or credentials stored in a Linked Profile.
 
-<CardGroup cols={2}>
-  <Card
-    title="Customize Style"
-    icon="palette"
-    href="https://mintlify.com/docs/settings/global"
-  >
-    Customize your docs to your company's colors and brands
-  </Card>
-  <Card
-    title="Reference APIs"
-    icon="code"
-    href="https://mintlify.com/docs/api-playground/openapi"
-  >
-    Automatically generate endpoints from an OpenAPI spec
-  </Card>
-  <Card
-    title="Add Components"
-    icon="screwdriver-wrench"
-    href="https://mintlify.com/docs/content/components/accordions"
-  >
-    Build interactive features and designs to guide your users
-  </Card>
-  <Card
-    title="Get Inspiration"
-    icon="stars"
-    href="https://mintlify.com/customers"
-  >
-    Check out our showcase of our favorite documentation
-  </Card>
-</CardGroup>
+Ready to get started? Head over to the [Quickstart guide](/quickstart) to set up your first integration and task.

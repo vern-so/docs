@@ -1,107 +1,71 @@
 ---
-title: 'Development'
-description: 'Preview changes locally to update your docs'
+title: "Developing with the Vern API"
+description: "Authenticate and interact with the Vern REST API."
 ---
 
-<Info>
-  **Prerequisite**: Please install Node.js (version 19 or higher) before proceeding. <br />
-  Please upgrade to ```docs.json``` before proceeding and delete the legacy ```mint.json``` file.
-</Info>
+This guide covers the basics of interacting with the Vern API to programmatically manage profiles and trigger runs.
 
-Follow these steps to install and run Mintlify on your operating system:
+## Obtaining API Keys
 
-**Step 1**: Install Mintlify:
+To interact with the Vern API, you need an API key.
 
-<CodeGroup>
+1.  Log in to your Vern account.
+2.  Navigate to the API Keys section in the Vern UI (`https://vern.so/api-keys`).
+3.  Generate a new API key. Treat this key like a password; keep it secure and do not expose it in client-side code.
 
-  ```bash npm
-  npm i -g mintlify
-  ```
+## Authentication
 
-```bash yarn
-yarn global add mintlify
+All API requests must be authenticated using a Bearer token in the `Authorization` header.
+
+```http
+Authorization: Bearer YOUR_VERN_API_KEY
 ```
 
-</CodeGroup>
+Replace `YOUR_VERN_API_KEY` with the key you obtained.
 
-**Step 2**: Navigate to the docs directory (where the `docs.json` file is located) and execute the following command:
+## Making API Requests
+
+The Vern API is a standard REST API that uses JSON for request and response bodies.
+
+Here's an example using `curl` to list your profiles:
 
 ```bash
-mintlify dev
+curl https://api.vern.so/v1/profiles \
+  -H "Authorization: Bearer YOUR_VERN_API_KEY"
 ```
 
-A local preview of your documentation will be available at `http://localhost:3000`.
+Refer to the [Quickstart guide](/quickstart) for examples of creating profiles and runs.
 
-### Custom Ports
+## API Reference
 
-By default, Mintlify uses port 3000. You can customize the port Mintlify runs on by using the `--port` flag. To run Mintlify on port 3333, for instance, use this command:
+For detailed information on all available endpoints, parameters, and response formats, please consult the full [API Reference](/api-reference). (Note: You'll need to create this page or link to your OpenAPI spec).
 
-```bash
-mintlify dev --port 3333
+## Rate Limits
+
+(Add information about API rate limits here if applicable. e.g., The Vern API is subject to rate limits. Please refer to the API Reference for details on current limits.)
+
+## Error Handling
+
+The API uses standard HTTP status codes to indicate success or failure. Common codes include:
+
+- `200 OK`: Request successful.
+- `201 Created`: Resource created successfully.
+- `400 Bad Request`: Invalid request parameters.
+- `401 Unauthorized`: Invalid or missing API key.
+- `403 Forbidden`: API key does not have permission.
+- `404 Not Found`: Resource not found.
+- `429 Too Many Requests`: Rate limit exceeded.
+- `500 Internal Server Error`: An error occurred on Vern's side.
+
+Error responses will typically include a JSON body with more details:
+
+```json
+{
+  "error": {
+    "code": "invalid_parameter",
+    "message": "The provided task_id does not exist."
+  }
+}
 ```
 
-If you attempt to run Mintlify on a port that's already in use, it will use the next available port:
-
-```md
-Port 3000 is already in use. Trying 3001 instead.
-```
-
-## Mintlify Versions
-
-Please note that each CLI release is associated with a specific version of Mintlify. If your local website doesn't align with the production version, please update the CLI:
-
-<CodeGroup>
-
-```bash npm
-npm i -g mintlify@latest
-```
-
-```bash yarn
-yarn global upgrade mintlify
-```
-
-</CodeGroup>
-
-## Validating Links
-
-The CLI can assist with validating reference links made in your documentation. To identify any broken links, use the following command:
-
-```bash
-mintlify broken-links
-```
-
-## Deployment
-
-<Tip>
-  Unlimited editors available under the [Pro
-  Plan](https://mintlify.com/pricing) and above.
-</Tip>
-
-If the deployment is successful, you should see the following:
-
-<Frame>
-  <img src="/images/checks-passed.png" style={{ borderRadius: '0.5rem' }} />
-</Frame>
-
-## Code Formatting
-
-We suggest using extensions on your IDE to recognize and format MDX. If you're a VSCode user, consider the [MDX VSCode extension](https://marketplace.visualstudio.com/items?itemName=unifiedjs.vscode-mdx) for syntax highlighting, and [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) for code formatting.
-
-## Troubleshooting
-
-<AccordionGroup>
-  <Accordion title='Error: Could not load the "sharp" module using the darwin-arm64 runtime'>
-
-    This may be due to an outdated version of node. Try the following:
-    1. Remove the currently-installed version of mintlify: `npm remove -g mintlify`
-    2. Upgrade to Node v19 or higher.
-    3. Reinstall mintlify: `npm install -g mintlify`
-  </Accordion>
-
-  <Accordion title="Issue: Encountering an unknown error">
-  
-    Solution: Go to the root of your device and delete the \~/.mintlify folder. Afterwards, run `mintlify dev` again.
-  </Accordion>
-</AccordionGroup>
-
-Curious about what changed in the CLI version? [Check out the CLI changelog.](https://www.npmjs.com/package/mintlify?activeTab=versions)
+Always check the response body for specific error messages when debugging.

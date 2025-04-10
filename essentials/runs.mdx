@@ -1,0 +1,69 @@
+---
+title: Runs
+description: Execute Tasks with specific inputs and context.
+icon: "play"
+---
+
+Runs represent a specific execution instance of a [Task](/essentials/tasks). When you want Vern to perform an action defined by a Task, you create a Run.
+
+## Purpose of Runs
+
+- **Task Execution:** Trigger the actual performance of a defined Task.
+- **Input Provision:** Provide the specific data (inputs) required by the Task for this particular execution.
+- **Context Specification:** Optionally specify a [Linked Profile](/essentials/profiles) to provide the necessary authentication or configuration context for the execution.
+- **Tracking:** Each Run represents a traceable instance of a workflow execution, allowing you to monitor its status and results.
+
+## Creating Runs
+
+Runs are created programmatically via the Vern REST API, as they typically correspond to real-time events or user actions in your application.
+
+To create a Run, you make a `POST` request to the `/v1/runs` endpoint:
+
+```bash
+curl -X POST https://api.vern.so/v1/runs \
+  -H "Authorization: Bearer YOUR_VERN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task_id": "tsk_ghi456jkl789",      // ID of the Task to execute
+    "profile_id": "prf_xyz789abc123", // Optional: ID of the Profile to use
+    "inputs": {
+      // Input data required by the Task
+      "item_name": "Flux Capacitor",
+      "quantity": 1,
+      "price": 150000
+    }
+  }'
+```
+
+**Key Components:**
+
+- `task_id`: **Required.** Specifies which Task definition to execute.
+- `profile_id`: **Optional.** Specifies which Linked Profile's credentials/configuration to use. If the task requires authentication or specific settings stored in a profile, this is necessary.
+- `inputs`: An object containing the data required by the specified Task. The structure must match the inputs defined when the Task was created in the UI.
+
+## Run ID and Asynchronous Execution
+
+Upon successful submission of a Run creation request, the API immediately returns a response containing a unique **Run ID** (e.g., `run_mno123pqr456`).
+
+**Important:** Vern executes tasks asynchronously. The immediate API response only confirms that the run request was received and queued. It does _not_ mean the task has completed.
+
+The Run ID is used to:
+
+- Check the status of the run (e.g., `pending`, `running`, `succeeded`, `failed`).
+- Retrieve the results or output of the run once it has completed.
+
+You typically need to poll an endpoint like `/v1/runs/{run_id}` or configure webhooks (if available) to be notified of the run's final status and outcome.
+
+## Example: Running "Add Inventory Item"
+
+Using the Boracle ERP example:
+
+- We provide the `task_id` for "Add Inventory Item".
+- We provide the `profile_id` for the specific Boracle ERP user (e.g., John Doe) whose credentials should be used.
+- We provide the `inputs` (`item_name`, `quantity`, `price`) for the item to be added.
+
+Vern receives this, queues the job, uses the credentials from the specified profile to authenticate with Boracle ERP, and executes the logic defined in the task (calling the `/inventory` endpoint with the provided inputs).
+
+## Next Steps
+
+Understanding Runs completes the core workflow: Define connections (**Integrations**), define actions (**Tasks**), manage context/credentials (**Profiles**), and execute actions (**Runs**). Explore the API reference for details on managing and monitoring runs.

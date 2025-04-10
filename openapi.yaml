@@ -1,0 +1,114 @@
+openapi: 3.0.0
+info:
+  title: Vern API
+  version: "1.0.0"
+  description: >
+    The Vern API allows users to create browser agents to perform tasks on their behalf.
+    It supports creating and retrieving task runs.
+servers:
+  - url: https://vern.so/api/v1
+paths:
+  /runs:
+    post:
+      summary: Create a new run
+      description: >
+        Starts a task run. Accepts an optional profile ID, a required task ID, and a flexible inputs object.
+      operationId: createRun
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                profileId:
+                  type: string
+                  description: Optional linked profile ID.
+                taskId:
+                  type: string
+                  description: ID of the task to run.
+                inputs:
+                  type: object
+                  description: Task input parameters (schema depends on task).
+                  additionalProperties: true
+              required:
+                - taskId
+                - inputs
+      responses:
+        "201":
+          description: Run created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunResponse"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+
+  /runs/{id}:
+    get:
+      summary: Get a specific run
+      description: Retrieve a task run by its ID.
+      operationId: getRun
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Run found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Run"
+        "404":
+          description: Run not found
+        "401":
+          description: Unauthorized
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: API_KEY
+
+  schemas:
+    Run:
+      type: object
+      properties:
+        id:
+          type: string
+        profileId:
+          type: string
+        taskId:
+          type: string
+        inputs:
+          type: object
+          additionalProperties: true
+        status:
+          type: string
+      required:
+        - id
+        - taskId
+        - inputs
+        - status
+
+    RunResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        data:
+          type: object
+          additionalProperties: true
+      required:
+        - status
+        - data
