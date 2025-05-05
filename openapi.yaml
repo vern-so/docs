@@ -15,7 +15,7 @@ paths:
         Starts a task run. Accepts a required task ID and a flexible inputs object.
       operationId: createRun
       security:
-        - bearerAuth: []
+        - ApiKeyAuth: []
       requestBody:
         required: true
         content:
@@ -25,7 +25,6 @@ paths:
               properties:
                 taskId:
                   type: string
-                  description: ID of the task to run.
                 inputs:
                   type: object
                   description: Task input parameters (schema depends on task).
@@ -39,7 +38,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RunResponse"
+                $ref: "#/components/schemas/CreateRunResponse"
         "400":
           description: Bad request
         "401":
@@ -51,7 +50,7 @@ paths:
       description: Retrieve a task run by its ID.
       operationId: getRun
       security:
-        - bearerAuth: []
+        - ApiKeyAuth: []
       parameters:
         - name: id
           in: path
@@ -64,7 +63,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Run"
+                $ref: "#/components/schemas/GetRunResponse"
         "404":
           description: Run not found
         "401":
@@ -72,10 +71,10 @@ paths:
 
 components:
   securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: API_KEY
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
 
   schemas:
     Run:
@@ -83,20 +82,54 @@ components:
       properties:
         id:
           type: string
-        taskId:
+        task:
           type: string
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
         inputs:
           type: object
           additionalProperties: true
-        status:
-          type: string
+        response:
+          description: Task output (if available)
+          nullable: true
       required:
         - id
-        - taskId
-        - inputs
+        - task
         - status
+        - created_at
+        - inputs
+
+    CreateRunResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        queued_at:
+          type: string
+          format: date-time
+        inputs:
+          type: object
+          additionalProperties: true
+      required:
+        - id
+        - queued_at
+        - inputs
+
+    GetRunResponse:
+      allOf:
+        - $ref: "#/components/schemas/Run"
 
     RunResponse:
+      # Deprecated, kept for backward compatibility
       type: object
       properties:
         status:

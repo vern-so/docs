@@ -34,10 +34,6 @@ const vern = Vern({ apiKey: "YOUR_API_KEY" });
 ### Running Tasks
 
 ```typescript
-// Call a task directly
-const run = await vern.getCarDetails({ registration: "YLG19A" });
-
-// Or use the explicit createRun method
 const run = await vern.createRun({
   taskId: "getCarDetails",
   inputs: { registration: "YLG19A" },
@@ -50,13 +46,13 @@ Alternatively, you can use the REST API directly.
 
 ### Authentication
 
-All API requests must be authenticated using a Bearer token in the `Authorization` header.
+All API requests must be authenticated using an `x-api-key` header:
 
 ```http
-Authorization: Bearer YOUR_VERN_API_KEY
+x-api-key: YOUR_API_KEY
 ```
 
-Replace `YOUR_VERN_API_KEY` with the key you obtained.
+Replace `YOUR_API_KEY` with the key you obtained.
 
 ### Making API Requests
 
@@ -66,7 +62,7 @@ Here's an example of creating a run:
 
 ```bash
 curl -X POST https://vern.so/api/v1/runs \
-  -H "Authorization: Bearer YOUR_VERN_API_KEY" \
+  -H "x-api-key: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "taskId": "getCarDetails",

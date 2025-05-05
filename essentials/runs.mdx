@@ -24,10 +24,7 @@ import Vern from "vern";
 // Initialize the SDK
 const vern = Vern({ apiKey: "YOUR_API_KEY" });
 
-// Method 1: Call a task directly (if your task is named "getCarDetails")
-const run = await vern.getCarDetails({ registration: "YLG19A" });
-
-// Method 2: Use the explicit createRun method
+// Use the explicit createRun method
 const run = await vern.createRun({
   taskId: "getCarDetails",
   inputs: { registration: "YLG19A" },
@@ -38,7 +35,7 @@ const run = await vern.createRun({
 
 ```bash
 curl -X POST https://vern.so/api/v1/runs \
-  -H "Authorization: Bearer YOUR_VERN_API_KEY" \
+  -H "x-api-key: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "taskId": "getCarDetails",
@@ -70,7 +67,7 @@ The Run ID is used to:
 You can poll for run completion using our SDK:
 
 ```typescript
-async function pollRunUntilComplete(runId, interval = 2000) {
+async function pollRunUntilComplete(runId, interval = 10000) {
   while (true) {
     const runDetails = await vern.getRun(runId);
     if (runDetails.status === "completed") {

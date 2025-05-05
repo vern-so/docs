@@ -48,19 +48,7 @@ const vern = Vern({ apiKey: "YOUR_API_KEY" });
 
 ## 4. Run a Task
 
-You can run a task in two ways:
-
-### Option 1: Call the task directly
-
-If your task is named `getCarDetails`, you can call it directly:
-
-```typescript
-const run = await vern.getCarDetails({ registration: "YLG19A" });
-```
-
-### Option 2: Use the createRun method
-
-Alternatively, use the explicit `createRun` method:
+You can run a task using the explicit `createRun` method:
 
 ```typescript
 const run = await vern.createRun({
@@ -69,24 +57,12 @@ const run = await vern.createRun({
 });
 ```
 
-**Example response to creating a run:**
-
-```json
-{
-  "run_id": "29c47376-03b4-4402-84c8-4d2a555b1a4a",
-  "queued_at": "2025-05-05T02:07:58.452501Z",
-  "inputs": {
-    "registration": "YLG19A"
-  }
-}
-```
-
 ## 5. Poll for Run Completion
 
 You can poll for the run to complete using a helper function:
 
 ```typescript
-async function pollRunUntilComplete(runId, interval = 2000) {
+async function pollRunUntilComplete(runId, interval = 10000) {
   while (true) {
     const runDetails = await vern.getRun(runId);
     if (runDetails.status === "completed") {
@@ -133,3 +109,15 @@ Explore the documentation further to learn about:
 - Setting up advanced configurations
 - Error handling and debugging
 - Integrating Vern with your application workflow
+
+```bash
+curl -X POST https://vern.so/api/v1/runs \
+  -H "x-api-key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "taskId": "getCarDetails",
+    "inputs": {
+      "registration": "YLG19A"
+    }
+  }'
+```
