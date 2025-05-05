@@ -1,6 +1,6 @@
 ---
 title: Runs
-description: Execute Tasks with specific inputs and context.
+description: Execute Tasks with specific inputs.
 icon: "play"
 ---
 
@@ -10,35 +10,48 @@ Runs represent a specific execution instance of a [Task](/essentials/tasks). Whe
 
 - **Task Execution:** Trigger the actual performance of a defined Task.
 - **Input Provision:** Provide the specific data (inputs) required by the Task for this particular execution.
-- **Context Specification:** Optionally specify a [Linked Profile](/essentials/profiles) to provide the necessary authentication or configuration context for the execution.
 - **Tracking:** Each Run represents a traceable instance of a workflow execution, allowing you to monitor its status and results.
 
 ## Creating Runs
 
-Runs are created programmatically via the Vern REST API, as they typically correspond to real-time events or user actions in your application.
+Runs can be created via the Vern SDK or REST API, as they typically correspond to real-time events or user actions in your application.
 
-To create a Run, you make a `POST` request to the `/v1/runs` endpoint:
+### Using the SDK
+
+```typescript
+import Vern from "vern";
+
+// Initialize the SDK
+const vern = Vern({ apiKey: "YOUR_API_KEY" });
+
+// Method 1: Call a task directly (if your task is named "getCarDetails")
+const run = await vern.getCarDetails({ registration: "YLG19A" });
+
+// Method 2: Use the explicit createRun method
+const run = await vern.createRun({
+  taskId: "getCarDetails",
+  inputs: { registration: "YLG19A" },
+});
+```
+
+### Using the REST API
 
 ```bash
-curl -X POST https://api.vern.so/v1/runs \
+curl -X POST https://vern.so/api/v1/runs \
   -H "Authorization: Bearer YOUR_VERN_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "task_id": "tsk_ghi456jkl789",      // ID of the Task to execute
-    "profile_id": "prf_xyz789abc123", // Optional: ID of the Profile to use
+    "taskId": "getCarDetails",
     "inputs": {
       // Input data required by the Task
-      "item_name": "Flux Capacitor",
-      "quantity": 1,
-      "price": 150000
+      "registration": "YLG19A"
     }
   }'
 ```
 
 **Key Components:**
 
-- `task_id`: **Required.** Specifies which Task definition to execute.
-- `profile_id`: **Optional.** Specifies which Linked Profile's credentials/configuration to use. If the task requires authentication or specific settings stored in a profile, this is necessary.
+- `taskId`: **Required.** Specifies which Task definition to execute.
 - `inputs`: An object containing the data required by the specified Task. The structure must match the inputs defined when the Task was created in the UI.
 
 ## Run ID and Asynchronous Execution
@@ -49,21 +62,37 @@ Upon successful submission of a Run creation request, the API immediately return
 
 The Run ID is used to:
 
-- Check the status of the run (e.g., `pending`, `running`, `succeeded`, `failed`).
+- Check the status of the run (e.g., `queued`, `running`, `completed`, `failed`).
 - Retrieve the results or output of the run once it has completed.
 
-You typically need to poll an endpoint like `/v1/runs/{run_id}` or configure webhooks (if available) to be notified of the run's final status and outcome.
+## Polling for Run Completion
 
-## Example: Running "Add Inventory Item"
+You can poll for run completion using our SDK:
 
-Using the Boracle ERP example:
+```typescript
+async function pollRunUntilComplete(runId, interval = 2000) {
+  while (true) {
+    const runDetails = await vern.getRun(runId);
+    if (runDetails.status === "completed") {
+      return runDetails;
+    }
+    await new Promise((resolve) => setTimeout(resolve, interval));
+  }
+}
 
-- We provide the `task_id` for "Add Inventory Item".
-- We provide the `profile_id` for the specific Boracle ERP user (e.g., John Doe) whose credentials should be used.
-- We provide the `inputs` (`item_name`, `quantity`, `price`) for the item to be added.
+const completedRun = await pollRunUntilComplete(run.id);
+// completedRun.result will have the result when done
+```
 
-Vern receives this, queues the job, uses the credentials from the specified profile to authenticate with Boracle ERP, and executes the logic defined in the task (calling the `/inventory` endpoint with the provided inputs).
+## Example: Running "Find Property Details"
+
+Using the property search example:
+
+- We provide the `taskId` for "Find Property Details".
+- We provide the `inputs` (like `address` and `include_photos`) for the property search.
+
+Vern receives this, queues the job, and executes the browser-based task to search for and extract the property details.
 
 ## Next Steps
 
-Understanding Runs completes the core workflow: Define connections (**Integrations**), define actions (**Tasks**), manage context/credentials (**Profiles**), and execute actions (**Runs**). Explore the API reference for details on managing and monitoring runs.
+Understanding Runs completes the core workflow: Define browser actions (**Tasks**) and execute them (**Runs**). Explore the API reference for details on managing and monitoring runs.

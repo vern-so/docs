@@ -19,12 +19,7 @@
           },
           {
             "group": "Essentials",
-            "pages": [
-              "essentials/integrations",
-              "essentials/profiles",
-              "essentials/tasks",
-              "essentials/runs"
-            ]
+            "pages": ["essentials/tasks", "essentials/runs"]
           }
         ]
       },

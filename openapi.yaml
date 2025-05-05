@@ -12,7 +12,7 @@ paths:
     post:
       summary: Create a new run
       description: >
-        Starts a task run. Accepts an optional profile ID, a required task ID, and a flexible inputs object.
+        Starts a task run. Accepts a required task ID and a flexible inputs object.
       operationId: createRun
       security:
         - bearerAuth: []
@@ -23,9 +23,6 @@ paths:
             schema:
               type: object
               properties:
-                profileId:
-                  type: string
-                  description: Optional linked profile ID.
                 taskId:
                   type: string
                   description: ID of the task to run.
@@ -85,8 +82,6 @@ components:
       type: object
       properties:
         id:
-          type: string
-        profileId:
           type: string
         taskId:
           type: string

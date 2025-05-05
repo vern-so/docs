@@ -4,27 +4,26 @@ description: Define specific actions or workflows Vern can perform.
 icon: "clipboard-list"
 ---
 
-Tasks represent specific, reusable actions or workflows that Vern can perform within the context of an [Integration](/essentials/integrations). They define _what_ Vern should do when triggered.
+Tasks represent specific, reusable actions or workflows that Vern can perform within a browser. They define _what_ Vern should do when triggered.
 
 ## Purpose of Tasks
 
-- **Action Definition:** Encapsulate a specific operation, like "Create User", "Send Message", "Update Record", or "Generate Report".
-- **Input Specification:** Define the data (inputs) required to execute the action (e.g., for "Create User", inputs might be `email`, `first_name`, `last_name`).
-- **Workflow Logic:** Can range from a single API call to the external application to more complex multi-step workflows orchestrated by Vern.
-- **Reusability:** Define a task once and trigger it multiple times with different inputs or [Profiles](/essentials/profiles).
+- **Action Definition:** Encapsulate a specific operation, like "Search for Products", "Fill Out Forms", "Extract Data", or "Complete Checkout".
+- **Input Specification:** Define the data (inputs) required to execute the action (e.g., for "Search for Products", inputs might be `query`, `category`, `price_range`).
+- **Workflow Logic:** Can range from visiting a single webpage to more complex multi-step browser interactions orchestrated by Vern.
+- **Reusability:** Define a task once and trigger it multiple times with different inputs.
 
 ## Creating Tasks
 
-Similar to Integrations, Tasks are typically configured within the Vern user interface:
+Tasks are configured within the Vern user interface:
 
 1.  Navigate to the **Tasks** section in the [Vern Dashboard](https://vern.so/tasks).
 2.  Click **"New Task"**.
-3.  Select the **Integration** this task will operate on (e.g., the "Boracle ERP" integration).
-4.  Define the task logic:
-    - Specify the API endpoint(s) in the external application to call.
-    - Map the required input parameters for the task.
-    - Configure how Vern should handle the request and response (e.g., HTTP method, headers, request body templating).
-    - Define any output mapping or expected results.
+3.  Define the task logic:
+    - Specify the websites to visit and the actions to take
+    - Map the required input parameters for the task
+    - Configure how Vern should interact with elements on the page
+    - Define any output mapping or expected results
 
 <div style={{ position: "relative", paddingBottom: "56.25%", height: 0 }}>
   <iframe
@@ -37,29 +36,28 @@ Similar to Integrations, Tasks are typically configured within the Vern user int
       height: "100%",
     }}
     src="https://www.tella.tv/video/cm9831o4j00000bih6mv481m2/embed?b=0&title=0&a=1&loop=1&autoPlay=true&t=0&muted=1&wt=0"
-    allowFullScreen={false}
+    allowFullScreen={true}
     allowTransparency={false}
   />
 </div>
 
 ## Task ID
 
-Upon creation, Vern assigns a unique **Task ID** (e.g., `tsk_ghi456jkl789`) to the task.
+Upon creation, Vern assigns the **Task ID** in camel case (e.g., `getCarDetails`) to the task.
 
-This ID is essential as it's the primary identifier used when creating [Runs](/essentials/runs) via the API. It tells Vern exactly which predefined action to execute.
+This ID is essential as it's the primary identifier used when creating [Runs](/essentials/runs) via the API or SDK. It tells Vern exactly which predefined action to execute.
 
 You can find the Task ID in the details section of the task within the Vern dashboard.
 
-## Example: "Add Inventory Item" Task
+## Example: "Find Property Details" Task
 
-Following the Boracle ERP example from the [Quickstart](/quickstart):
+Here's an example of a typical task:
 
-- **Integration:** Boracle ERP
-- **Task:** Add Inventory Item
-- **Inputs Defined in UI:** `item_name` (string), `quantity` (integer), `price` (number)
-- **Logic Defined in UI:** Make a `POST` request to Boracle ERP's `/inventory` endpoint, sending the provided inputs in the request body.
-- **Task ID:** `tsk_boracle_additem` (example)
+- **Task:** Find Property Details
+- **Inputs Defined in UI:** `address` (string), `include_photos` (boolean)
+- **Logic Defined in UI:** Navigate to a property website, search for the given address, extract property details and photo URLs.
+- **Task ID:** `findPropertyDetails` (example)
 
 ## Next Steps
 
-Once you have an Integration and a Task defined, you can trigger executions of that task by creating [Runs](/essentials/runs).
+Once you have a Task defined, you can trigger executions of that task by creating [Runs](/essentials/runs) through our API or SDK.

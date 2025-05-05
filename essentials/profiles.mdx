@@ -1,60 +1,14 @@
 ---
 title: Linked Profiles
-description: Manage user-specific credentials and configurations for Integrations.
+description: This page has been deprecated.
 icon: "users"
 ---
 
-Linked Profiles (or simply Profiles) hold specific configurations or authentication credentials needed to execute [Tasks](/essentials/tasks) within the context of a particular [Integration](/essentials/integrations). They allow Vern to act on behalf of a specific end-user or use a unique set of settings when interacting with an external application.
-
-## Purpose of Linked Profiles
-
-- **User Impersonation:** Store individual user credentials (like API keys, OAuth tokens) securely, so Vern can perform actions in the external application _as that user_.
-- **Configuration Variants:** Store different configurations for the same integration (e.g., API endpoints for different environments, specific account settings).
-- **Decoupling:** Separate the general integration setup from the specific credentials needed for individual operations.
-
-## Creating Linked Profiles
-
-Linked Profiles are typically created within the Vern user interface when you need to store specific user credentials or configurations for a task. This often happens when a task needs to act on behalf of a specific end-user.
-
-1.  Navigate to the [Profiles page](https://vern.so/profiles) in the Vern dashboard.
-2.  Click **"New Profile"**.
-3.  Select the **Integration** this profile will be associated with (e.g., the "Boracle ERP" integration created earlier).
-4.  Provide an **Email** for the profile. This is used solely as an identifier within Vern; no emails are sent to this address.
-5.  Click **"Create Profile"**.
-
-<div style={{ position: "relative", paddingBottom: "56.25%", height: 0 }}>
-  <iframe
-    className="shadow-lg"
-    style={{
-      position: "absolute",
-      top: 0,
-      left: 0,
-      width: "100%",
-      height: "100%",
-    }}
-    src="https://www.tella.tv/video/cm97y8g9c000g0bl2bqibh9ns/embed?b=0&title=0&a=1&loop=1&autoPlay=true&t=0&muted=1&wt=0"
-    allowFullScreen={true}
-    allowTransparency={false}
-  />
-</div>
-
-<Note>
-  You only need to create a Linked Profile if the Task requires specific user
-  credentials or configurations. Some tasks might operate at an integration
-  level without needing a specific user profile.
+<Note type="warning">
+  The concept of Linked Profiles has been deprecated in the latest version of
+  Vern.
 </Note>
 
-## Profile ID & Magic Link
+Vern now focuses on browser automation using our Tasks system, which doesn't require separate profile management. Please refer to the [Tasks](/essentials/tasks) documentation for information on how to create and manage browser automation tasks.
 
-Upon successful creation, the UI will display:
-
-- A unique **Profile ID** (e.g., `prf_xyz789abc123`). This ID is used when creating [Runs](/essentials/runs) via the API to specify that the task should be executed using the credentials or configuration stored within this particular profile.
-- A **Magic Link**. This unique URL (e.g., `https://vern.so/profiles/prf_xyz789abc123`) should be sent to the end-user. When they visit this link, they will be prompted to authenticate with the external application (like Boracle ERP in our example), allowing Vern to securely capture and store the necessary credentials associated with this profile.
-
-## Security
-
-Credentials captured via the Magic Link and stored in Linked Profiles are encrypted and handled securely by Vern. The end-user provides them once through the secure Magic Link flow, and Vern uses them internally when executing runs associated with that profile.
-
-## Next Steps
-
-With an Integration and potentially a Linked Profile, you are ready to execute [Runs](/essentials/runs) to perform tasks.
+For a quick start guide on using Vern, see the [Quickstart guide](/quickstart).

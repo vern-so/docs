@@ -3,33 +3,22 @@ title: Introduction to Vern
 description: "Understand the core concepts of the Vern platform."
 ---
 
-> **Note:** These documents are currently a work in progress and are not yet considered production-ready.
-
-Welcome to Vern! Vern helps you connect different software applications and automate workflows between them. To get started, it's helpful to understand four key concepts:
+Welcome to Vern! Vern helps you create browser agents that can automate tasks on websites. To get started, it's helpful to understand two key concepts:
 
 <CardGroup cols={2}>
-  <Card title="Integrations" icon="link" href="/essentials/integrations">
-    Connect your applications to Vern. Set up integrations via the Vern UI.
-  </Card>
   <Card title="Tasks" icon="clipboard-list" href="/essentials/tasks">
-    Define specific actions or workflows Vern can perform within an integration.
-    Set up tasks via the Vern UI.
-  </Card>
-  <Card title="Linked Profiles" icon="users" href="/essentials/profiles">
-    Represent specific configurations or user authentications for an
-    integration, created via the API using an Integration ID.
+    Define specific actions or workflows Vern can perform within a browser. Set
+    up tasks via the Vern UI.
   </Card>
   <Card title="Runs" icon="play" href="/essentials/runs">
-    Execute a specific Task, potentially using a Linked Profile for context or
-    authentication. Trigger runs via the API using a Task ID.
+    Execute a specific Task. Trigger runs via the API or SDK using a Task ID.
   </Card>
 </CardGroup>
 
 ## How it Fits Together
 
-1.  You first create an **Integration** for each application you want Vern to connect with (e.g., Salesforce, Slack, Boracle ERP) in the [Vern Dashboard](https://vern.so/integrations).
-2.  Within an Integration, you define **Tasks** that Vern can perform (e.g., "Create Invoice", "Send Notification", "Add Inventory Item") in the [Vern Dashboard](https://vern.so/tasks).
-3.  When a specific user or configuration needs to use an Integration, you create a **Linked Profile** via the API, associating it with the relevant **Integration ID**. This profile securely stores credentials or settings.
-4.  Finally, you trigger a **Run** via the API using the **Task ID** for the action you want to perform. You can optionally provide a **Profile ID** if the task needs specific user context or credentials stored in a Linked Profile.
+1.  You define **Tasks** that Vern can perform (e.g., "Search for Properties", "Fill Out Forms", "Extract Data") in the [Vern Dashboard](https://vern.so/tasks).
+2.  You trigger a **Run** via the API or SDK using the **Task ID** for the action you want to perform, along with any required inputs.
+3.  Vern executes the task in a browser and returns the results to you.
 
-Ready to get started? Head over to the [Quickstart guide](/quickstart) to set up your first integration and task.
+Ready to get started? Head over to the [Quickstart guide](/quickstart) to set up your first task and run it with our SDK.

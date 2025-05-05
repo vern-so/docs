@@ -1,41 +1,17 @@
 ---
 title: "Quickstart"
-description: "Set up your first Vern integration and run a task in under 5 minutes"
+description: "Set up and run your first Vern task in under 5 minutes"
 ---
 
 This guide will walk you through the essential steps to get started with Vern.
 
-## 1. Create an Integration in the UI
+## 1. Create a Task in the UI
 
-Integrations represent the connection between Vern and an external application.
-
-1.  Navigate to the [Integrations page](https://vern.so/integrations) in the Vern dashboard.
-2.  Click "New Integration" and choose the application you want to connect. For this example, let's imagine connecting to a fictional ERP system called "Boracle ERP".
-3.  Follow the on-screen instructions to authenticate and configure the Boracle ERP integration.
-4.  Once created, note down the **Integration ID** displayed for your new integration. You'll need it later.
-
-<div style={{ position: "relative", paddingBottom: "56.25%", height: 0 }}>
-  <iframe
-    className="shadow-lg"
-    style={{
-      position: "absolute",
-      top: 0,
-      left: 0,
-      width: "100%",
-      height: "100%",
-    }}
-    src="https://www.tella.tv/video/cm97z0lbw000m0bjj3z8q5v4n/embed?b=0&title=0&a=1&loop=1&autoPlay=true&t=0&muted=1&wt=0"
-    allowFullScreen={true}
-    allowTransparency={false}
-  />
-</div>
-## 2. Create a Task in the UI
-
-Tasks define the specific actions Vern can perform within an integration.
+Tasks define the specific actions Vern can perform within a browser.
 
 1.  Navigate to the [Tasks page](https://vern.so/tasks) in the Vern dashboard.
-2.  Click "New Task" and select the Integration you just created (Boracle ERP).
-3.  Define the task. For our example, let's create a task called "Add Inventory Item". Configure the necessary inputs (e.g., item name, quantity, price) and how Vern should interact with Boracle ERP's API to add the item.
+2.  Click "New Task" and define the browser actions you want to automate.
+3.  Configure the necessary inputs (e.g., search terms, form fields) and how Vern should interact with websites to complete the task.
 4.  Once created, note down the **Task ID** displayed for your new task.
 
 <div style={{ position: "relative", paddingBottom: "56.25%", height: 0 }}>
@@ -54,73 +30,106 @@ Tasks define the specific actions Vern can perform within an integration.
   />
 </div>
 
-## 3. (Optional) Create a Linked Profile in the UI
-
-Linked Profiles store specific user credentials or configurations needed to execute tasks. If a task needs to act on behalf of a specific user (like our "Add Inventory Item" example which needs a Boracle ERP user's credentials), you'll create a Linked Profile.
-
-1.  Navigate to the [Profiles page](https://vern.so/profiles) in the Vern dashboard.
-2.  Click "New Profile" and select the Integration you created earlier (Boracle ERP).
-3.  Give the profile an email (only used as an identifier, we don't send them anything).
-4.  Once created, note down the **Profile ID**.
-5.  Copy the **Magic Link** provided after profile creation.
-6.  Send this Magic Link to the end-user. They can use this link (which directs to `https://vern.so/profiles/[PROFILE_ID]`) to authenticate and provide their credentials for the Boracle ERP integration.
-
-<div style={{ position: "relative", paddingBottom: "56.25%", height: 0 }}>
-  <iframe
-    className="shadow-lg"
-    style={{
-      position: "absolute",
-      top: 0,
-      left: 0,
-      width: "100%",
-      height: "100%",
-    }}
-    src="https://www.tella.tv/video/cm97y8g9c000g0bl2bqibh9ns/embed?b=0&title=0&a=1&loop=1&autoPlay=true&t=0&muted=1&wt=0"
-    allowFullScreen={true}
-    allowTransparency={false}
-  />
-</div>
-
-<Note>
-  You only need to create a Linked Profile if the Task requires specific user
-  credentials or configurations. Some tasks might operate at an integration
-  level without needing a specific user profile.
-</Note>
-
-## 4. Create a Run via API
-
-Runs execute a specific task, optionally using a Linked Profile.
-
-Finally, let's trigger a run of the "Add Inventory Item" task.
-You'll need your Vern API key and the **Task ID** from Step 2. If the task requires user-specific actions (like ours), you'll also need the **Profile ID** from Step 3.
+## 2. Install the SDK
 
 ```bash
-curl -X POST https://api.vern.so/v1/runs \
-  -H "Authorization: Bearer YOUR_VERN_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "task_id": "YOUR_ADD_ITEM_TASK_ID",
-    "profile_id": "USER_JOHN_DOE_PROFILE_ID", // Include this line only if using a Profile from Step 3
-    "inputs": {
-      "item_name": "Flux Capacitor",
-      "quantity": 1,
-      "price": 150000
-      // ... other inputs defined for the task
-    }
-  }'
+npm install vern
 ```
 
-Replace the placeholder IDs and API key. If using a profile, include the `"profile_id"` line and its value. This request tells Vern to execute the "Add Inventory Item" task, using the provided inputs. If a profile ID is included, it uses the credentials stored in that Linked Profile.
+## 3. Initialize the SDK
 
-Vern will execute the task asynchronously. The API response will contain a **Run ID** which you can use to check the status and result of the run later.
+Import and initialize the Vern SDK with your API key:
+
+```typescript
+import Vern from "vern";
+
+const vern = Vern({ apiKey: "YOUR_API_KEY" });
+```
+
+## 4. Run a Task
+
+You can run a task in two ways:
+
+### Option 1: Call the task directly
+
+If your task is named `getCarDetails`, you can call it directly:
+
+```typescript
+const run = await vern.getCarDetails({ registration: "YLG19A" });
+```
+
+### Option 2: Use the createRun method
+
+Alternatively, use the explicit `createRun` method:
+
+```typescript
+const run = await vern.createRun({
+  taskId: "getCarDetails",
+  inputs: { registration: "YLG19A" },
+});
+```
+
+**Example response to creating a run:**
+
+```json
+{
+  "run_id": "29c47376-03b4-4402-84c8-4d2a555b1a4a",
+  "queued_at": "2025-05-05T02:07:58.452501Z",
+  "inputs": {
+    "registration": "YLG19A"
+  }
+}
+```
+
+## 5. Poll for Run Completion
+
+You can poll for the run to complete using a helper function:
+
+```typescript
+async function pollRunUntilComplete(runId, interval = 2000) {
+  while (true) {
+    const runDetails = await vern.getRun(runId);
+    if (runDetails.status === "completed") {
+      return runDetails;
+    }
+    await new Promise((resolve) => setTimeout(resolve, interval));
+  }
+}
+
+const completedRun = await pollRunUntilComplete(run.id);
+// completedRun.result will have the extracted response data when done (if specified)
+```
+
+**Example of a completed run response:**
+
+```json
+{
+  "id": "1acsd6-03b4-4402-84c8-4d2a555b1a4a",
+  "task": "Fill in Sixth Digit contact form",
+  "status": "completed",
+  "created_at": "2025-05-05T02:07:58.444979Z",
+  "started_at": "2025-05-05T02:09:23.379952Z",
+  "completed_at": "2025-05-05T02:09:23.379952Z",
+  "inputs": {
+    "registration": "YLG19A"
+  }
+  "response": {
+    "carDetails": {
+      "make": "Hyundai",
+      "model": "i30",
+      "year": "2017"
+    }
+  }
+}
+```
 
 ## Next Steps
 
-You've successfully connected an application, defined a task, linked a user profile, and executed a run!
+You've successfully defined a task and executed a run!
 
 Explore the documentation further to learn about:
 
-- Handling different authentication methods for integrations.
-- More complex task definitions.
-- Polling for run results or using webhooks.
-- Managing multiple profiles and integrations.
+- Creating more complex browser automation tasks
+- Setting up advanced configurations
+- Error handling and debugging
+- Integrating Vern with your application workflow

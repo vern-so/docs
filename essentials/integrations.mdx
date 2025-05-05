@@ -1,53 +1,13 @@
 ---
 title: Integrations
-description: Connect external applications to Vern.
+description: This page has been deprecated.
 icon: "link"
 ---
 
-Integrations are the foundational building blocks in Vern. They represent a secure and configured connection between Vern and an external software application or service (like Salesforce, Slack, Stripe, or your own custom applications).
+<Note type="warning">
+  The concept of Integrations has been deprecated in the latest version of Vern.
+</Note>
 
-## Purpose of Integrations
+Vern now focuses on browser automation using our Tasks system. Please refer to the [Tasks](/essentials/tasks) documentation for information on how to create and manage browser automation tasks.
 
-- **Connectivity:** Establish the link between Vern and the target system.
-- **Authentication:** Handle the necessary credentials or authentication methods (API keys, OAuth, etc.) required to interact with the external application's API.
-- **Scope Definition:** Often define the scope of actions Vern is permitted to perform within the connected application.
-
-## Creating Integrations
-
-Integrations are typically set up manually through the Vern user interface:
-
-1.  Navigate to the **Integrations** section in the [Vern Dashboard](https://vern.so/integrations).
-2.  Click **"New Integration"**.
-3.  Select the application you want to connect from the list of available services or choose to configure a custom integration.
-4.  Follow the guided steps to provide necessary authentication details (e.g., API keys, OAuth connection flow) and any specific configuration required by the application.
-
-<div style={{ position: "relative", paddingBottom: "56.25%", height: 0 }}>
-  <iframe
-    className="shadow-lg"
-    style={{
-      position: "absolute",
-      top: 0,
-      left: 0,
-      width: "100%",
-      height: "100%",
-    }}
-    src="https://www.tella.tv/video/cm97z0lbw000m0bjj3z8q5v4n/embed?b=0&title=0&a=1&loop=1&autoPlay=true&t=0&muted=1&wt=0"
-    allowFullScreen={true}
-    allowTransparency={false}
-  />
-</div>
-
-## Integration ID
-
-Once an Integration is successfully created, Vern assigns it a unique **Integration ID** (e.g., `int_abc123def456`).
-
-This ID is crucial because it's used in the API when:
-
-- Creating [Linked Profiles](/essentials/profiles) associated with this specific integration.
-- Sometimes, depending on the setup, identifying the target system when defining [Tasks](/essentials/tasks).
-
-You can find the Integration ID in the details section of the integration within the Vern dashboard.
-
-## Next Steps
-
-Once you have an Integration set up, you can define [Tasks](/essentials/tasks) that Vern can perform using this connection.
+For a quick start guide on using Vern, see the [Quickstart guide](/quickstart).

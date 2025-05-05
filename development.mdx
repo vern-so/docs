@@ -1,19 +1,54 @@
 ---
-title: "Developing with the Vern API"
-description: "Authenticate and interact with the Vern REST API."
+title: "Developing with Vern"
+description: "Use the Vern SDK or REST API to automate browser tasks."
 ---
 
-This guide covers the basics of interacting with the Vern API to programmatically manage profiles and trigger runs.
+This guide covers the basics of interacting with Vern to programmatically trigger browser automation tasks.
 
 ## Obtaining API Keys
 
-To interact with the Vern API, you need an API key.
+To interact with Vern, you need an API key.
 
 1.  Log in to your Vern account.
 2.  Navigate to the API Keys section in the Vern UI (`https://vern.so/api-keys`).
 3.  Generate a new API key. Treat this key like a password; keep it secure and do not expose it in client-side code.
 
-## Authentication
+## Using the Vern SDK
+
+We recommend using our TypeScript/JavaScript SDK for the easiest integration.
+
+### Installation
+
+```bash
+npm install vern
+```
+
+### Initialization
+
+```typescript
+import Vern from "vern";
+
+const vern = Vern({ apiKey: "YOUR_API_KEY" });
+```
+
+### Running Tasks
+
+```typescript
+// Call a task directly
+const run = await vern.getCarDetails({ registration: "YLG19A" });
+
+// Or use the explicit createRun method
+const run = await vern.createRun({
+  taskId: "getCarDetails",
+  inputs: { registration: "YLG19A" },
+});
+```
+
+## Using the REST API Directly
+
+Alternatively, you can use the REST API directly.
+
+### Authentication
 
 All API requests must be authenticated using a Bearer token in the `Authorization` header.
 
@@ -23,26 +58,29 @@ Authorization: Bearer YOUR_VERN_API_KEY
 
 Replace `YOUR_VERN_API_KEY` with the key you obtained.
 
-## Making API Requests
+### Making API Requests
 
 The Vern API is a standard REST API that uses JSON for request and response bodies.
 
-Here's an example using `curl` to list your profiles:
+Here's an example of creating a run:
 
 ```bash
-curl https://api.vern.so/v1/profiles \
-  -H "Authorization: Bearer YOUR_VERN_API_KEY"
+curl -X POST https://vern.so/api/v1/runs \
+  -H "Authorization: Bearer YOUR_VERN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "taskId": "getCarDetails",
+    "inputs": {
+      "registration": "YLG19A"
+    }
+  }'
 ```
 
-Refer to the [Quickstart guide](/quickstart) for examples of creating profiles and runs.
+Refer to the [Quickstart guide](/quickstart) for more examples.
 
 ## API Reference
 
-For detailed information on all available endpoints, parameters, and response formats, please consult the full [API Reference](/api-reference). (Note: You'll need to create this page or link to your OpenAPI spec).
-
-## Rate Limits
-
-(Add information about API rate limits here if applicable. e.g., The Vern API is subject to rate limits. Please refer to the API Reference for details on current limits.)
+For detailed information on all available endpoints, parameters, and response formats, please consult the full [API Reference](/api-reference).
 
 ## Error Handling
 
@@ -63,7 +101,7 @@ Error responses will typically include a JSON body with more details:
 {
   "error": {
     "code": "invalid_parameter",
-    "message": "The provided task_id does not exist."
+    "message": "The provided taskId does not exist."
   }
 }
 ```
