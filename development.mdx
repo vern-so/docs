@@ -34,7 +34,7 @@ const vern = Vern({ apiKey: "YOUR_API_KEY" });
 ### Running Tasks
 
 ```typescript
-const run = await vern.createRun({
+const run = await vern.runs.create({
   taskId: "getCarDetails",
   inputs: { registration: "YLG19A" },
 });

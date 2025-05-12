@@ -24,8 +24,8 @@ import Vern from "vern";
 // Initialize the SDK
 const vern = Vern({ apiKey: "YOUR_API_KEY" });
 
-// Use the explicit createRun method
-const run = await vern.createRun({
+// Use the explicit runs.create method
+const run = await vern.runs.create({
   taskId: "getCarDetails",
   inputs: { registration: "YLG19A" },
 });
@@ -69,7 +69,7 @@ You can poll for run completion using our SDK:
 ```typescript
 async function pollRunUntilComplete(runId, interval = 10000) {
   while (true) {
-    const runDetails = await vern.getRun(runId);
+    const runDetails = await vern.runs.retrieve(runId);
     if (runDetails.status === "completed") {
       return runDetails;
     }

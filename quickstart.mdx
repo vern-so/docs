@@ -48,10 +48,10 @@ const vern = Vern({ apiKey: "YOUR_API_KEY" });
 
 ## 4. Run a Task
 
-You can run a task using the explicit `createRun` method:
+You can run a task using the explicit `runs.create` method:
 
 ```typescript
-const run = await vern.createRun({
+const run = await vern.runs.create({
   taskId: "getCarDetails",
   inputs: { registration: "YLG19A" },
 });
@@ -64,7 +64,7 @@ You can poll for the run to complete using a helper function:
 ```typescript
 async function pollRunUntilComplete(runId, interval = 10000) {
   while (true) {
-    const runDetails = await vern.getRun(runId);
+    const runDetails = await vern.runs.retrieve(runId);
     if (runDetails.status === "completed") {
       return runDetails;
     }
