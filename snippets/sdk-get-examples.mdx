@@ -1,0 +1,55 @@
+Here are examples of retrieving run status using the SDK in different programming languages:
+
+<CodeGroup>
+
+```typescript JavaScript
+const run = await client.runs.retrieve('run_id');
+console.log(run.status);
+```
+
+```python Python
+run = client.runs.retrieve("run_id")
+print(run.status)
+```
+
+```go Go
+run, err := client.Runs.Get(context.TODO(), "run_id")
+if err != nil {
+  panic(err.Error())
+}
+fmt.Printf("%+v\n", run.Status)
+```
+
+```java Java
+package com.vern_sdk.api.example;
+
+import com.vern_sdk.api.client.VernClient;
+import com.vern_sdk.api.client.okhttp.VernOkHttpClient;
+import com.vern_sdk.api.models.runs.RunRetrieveParams;
+import com.vern_sdk.api.models.runs.RunRetrieveResponse;
+
+public final class Main {
+    private Main() {}
+
+    public static void main(String[] args) {
+        // Configures using the `VERN_SDK_API_KEY` and `VERN_BASE_URL` environment variables
+        VernClient client = VernOkHttpClient.fromEnv();
+
+        RunRetrieveResponse run = client.runs().retrieve("id");
+    }
+}
+```
+
+```ruby Ruby
+require "vern_sdk"
+
+vern = VernSDK::Client.new(
+  api_key: ENV["VERN_SDK_API_KEY"] # This is the default and can be omitted
+)
+
+run = vern.runs.retrieve("id")
+
+puts(run)
+```
+
+</CodeGroup> 

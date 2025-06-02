@@ -19,16 +19,16 @@
           },
           {
             "group": "Essentials",
-            "pages": ["essentials/tasks", "essentials/runs"]
+            "pages": ["essentials/tasks", "essentials/runs", "essentials/webhooks"]
           }
         ]
       },
       {
         "tab": "API Reference",
-        "openapi": "/openapi.yaml",
+        "openapi": "https://app.stainless.com/api/spec/documented/vern-sdk/openapi.documented.yml",
         "pages": [
-          "api-reference/create-a-new-run",
-          "api-reference/get-a-specific-run"
+          "api-reference/create-a-new-task-run",
+          "api-reference/get-a-task-run-by-id"
         ]
       }
     ]

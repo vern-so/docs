@@ -1,0 +1,93 @@
+Here are examples of using the Vern SDK in different programming languages:
+
+<CodeGroup>
+
+```typescript Typescript
+import Vern from "vern";
+
+const client = new Vern({
+  apiKey: process.env['VERN_SDK_API_KEY'], // This is the default and can be omitted
+});
+
+async function main() {
+  const run = await client.runs.create({ taskId: 'enterInventoryItem' });
+  console.log(run.id);
+}
+
+main();
+```
+
+```python Python
+import os
+from vern import Vern
+
+client = Vern(
+    api_key=os.environ.get("VERN_SDK_API_KEY"),  # This is the default and can be omitted
+)
+run = client.runs.create(
+    task_id="enterInventoryItem",
+)
+print(run.id)
+```
+
+```go Go
+package main
+
+import (
+  "context"
+  "fmt"
+
+  "github.com/vern-so/sdk-go"
+  "github.com/vern-so/sdk-go/option"
+)
+
+func main() {
+  client := vernsdk.NewClient(
+    option.WithAPIKey("My API Key"), // defaults to os.LookupEnv("VERN_SDK_API_KEY")
+  )
+  run, err := client.Runs.New(context.TODO(), vernsdk.RunNewParams{
+    TaskID: "enterInventoryItem",
+  })
+  if err != nil {
+    panic(err.Error())
+  }
+  fmt.Printf("%+v\n", run.ID)
+}
+```
+
+```java Java
+package com.vern_sdk.api.example;
+
+import com.vern_sdk.api.client.VernClient;
+import com.vern_sdk.api.client.okhttp.VernOkHttpClient;
+import com.vern_sdk.api.models.runs.RunCreateParams;
+import com.vern_sdk.api.models.runs.RunCreateResponse;
+
+public final class Main {
+    private Main() {}
+
+    public static void main(String[] args) {
+        // Configures using the `VERN_SDK_API_KEY` and `VERN_BASE_URL` environment variables
+        VernClient client = VernOkHttpClient.fromEnv();
+
+        RunCreateParams params = RunCreateParams.builder()
+            .taskId("enterInventoryItem")
+            .build();
+        RunCreateResponse run = client.runs().create(params);
+    }
+}
+```
+
+```ruby Ruby
+require "vern_sdk"
+
+vern = VernSDK::Client.new(
+  api_key: ENV["VERN_SDK_API_KEY"] # This is the default and can be omitted
+)
+
+run = vern.runs.create(task_id: "enterInventoryItem")
+
+puts(run)
+```
+
+</CodeGroup> 

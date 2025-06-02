@@ -4,6 +4,12 @@ description: Execute Tasks with specific inputs.
 icon: "play"
 ---
 
+import SDKExamples from '/snippets/sdk-create-examples.mdx';
+import SDKRetrieveExamples from '/snippets/sdk-get-examples.mdx';
+import RunStatusCodes from '/snippets/run-status-codes.mdx';
+import RunLifecycle from '/snippets/run-lifecycle.mdx';
+import WebhookPayload from '/snippets/webhook-payload.mdx';
+
 Runs represent a specific execution instance of a [Task](/essentials/tasks). When you want Vern to perform an action defined by a Task, you create a Run.
 
 ## Purpose of Runs
@@ -14,22 +20,11 @@ Runs represent a specific execution instance of a [Task](/essentials/tasks). Whe
 
 ## Creating Runs
 
-Runs can be created via the Vern SDK or REST API, as they typically correspond to real-time events or user actions in your application.
+Runs can be created via the Vern SDK or REST API. Each run requires a Task ID and can optionally include specific inputs.
 
 ### Using the SDK
 
-```typescript
-import Vern from "vern";
-
-// Initialize the SDK
-const vern = Vern({ apiKey: "YOUR_API_KEY" });
-
-// Use the explicit runs.create method
-const run = await vern.runs.create({
-  taskId: "getCarDetails",
-  inputs: { registration: "YLG19A" },
-});
-```
+<SDKExamples taskId="enterInventoryItem"/>
 
 ### Using the REST API
 
@@ -38,58 +33,45 @@ curl -X POST https://vern.so/api/v1/runs \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "taskId": "getCarDetails",
+    "taskId": "enterInventoryItem",
     "inputs": {
-      // Input data required by the Task
-      "registration": "YLG19A"
+      // Optional task-specific inputs
     }
   }'
 ```
 
-**Key Components:**
+**Request Components:**
 
-- `taskId`: **Required.** Specifies which Task definition to execute.
-- `inputs`: An object containing the data required by the specified Task. The structure must match the inputs defined when the Task was created in the UI.
+- `taskId` (required): The ID of the task to execute
+- `inputs` (optional): Object containing task-specific input data
+- `profileId` (optional): User-specified UID for a profile linked via magic link
+- `url` (optional): A URL to be processed by the task
 
-## Run ID and Asynchronous Execution
+**Response Status Codes:**
 
-Upon successful submission of a Run creation request, the API immediately returns a response containing a unique **Run ID** (e.g., `run_mno123pqr456`).
+<RunStatusCodes />
 
-**Important:** Vern executes tasks asynchronously. The immediate API response only confirms that the run request was received and queued. It does _not_ mean the task has completed.
+## Run Lifecycle and Status
 
-The Run ID is used to:
+<RunLifecycle />
 
-- Check the status of the run (e.g., `queued`, `running`, `completed`, `failed`).
-- Retrieve the results or output of the run once it has completed.
+## Retrieving Run Status
 
-## Polling for Run Completion
+You can check the status of a run using the SDK or REST API:
 
-You can poll for run completion using our SDK:
+<SDKRetrieveExamples />
 
-```typescript
-async function pollRunUntilComplete(runId, interval = 10000) {
-  while (true) {
-    const runDetails = await vern.runs.retrieve(runId);
-    if (runDetails.status === "completed") {
-      return runDetails;
-    }
-    await new Promise((resolve) => setTimeout(resolve, interval));
-  }
-}
+The response includes:
 
-const completedRun = await pollRunUntilComplete(run.id);
-// completedRun.result will have the result when done
-```
-
-## Example: Running "Find Property Details"
-
-Using the property search example:
-
-- We provide the `taskId` for "Find Property Details".
-- We provide the `inputs` (like `address` and `include_photos`) for the property search.
-
-Vern receives this, queues the job, and executes the browser-based task to search for and extract the property details.
+- `id`: Unique identifier for the run
+- `task`: Name of the executed task
+- `inputs`: The provided input data
+- `status`: Current run status
+- `created_at`: When the run was created
+- `started_at`: When execution began
+- `completed_at`: When execution finished
+- `response`: Task execution results (when completed)
 
 ## Next Steps
 
-Understanding Runs completes the core workflow: Define browser actions (**Tasks**) and execute them (**Runs**). Explore the API reference for details on managing and monitoring runs.
+Now that you understand Runs, explore the [Tasks](/essentials/tasks) documentation to learn how to define the actions that your runs will execute. You can also learn about [Webhooks](/essentials/webhooks) to receive notifications when runs complete.

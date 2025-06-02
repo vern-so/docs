@@ -1,0 +1,79 @@
+---
+title: Webhooks
+description: Get notified about run completions and other events.
+icon: "webhook"
+---
+
+import WebhookPayload from '/snippets/webhook-payload.mdx';
+
+A webhook is an _event-driven_ method of communication between applications. Unlike traditional APIs where you need to frequently poll for data to get "real-time" updates, webhooks send data only when specific events occur, making them more efficient and responsive.
+
+## Vern Webhooks
+
+Vern uses Svix to deliver secure and reliable webhooks to your application. When events occur in your Vern tasks (like run completion), Vern sends an HTTP `POST` request to your configured webhook endpoint with a JSON payload containing the event details.
+
+You can manage your webhooks through the [Vern Dashboard](https://www.vern.so/webhooks), where you can:
+- Configure webhook endpoints
+- View webhook delivery history
+- Access your webhook signing secrets
+- Replay failed webhook deliveries
+
+
+
+## Supported Events
+
+Currently, Vern supports the following webhook events:
+- `run.completed` - Triggered when a task run completes successfully
+- `profile.linked` - Triggered when a profile is linked via magic link
+
+## Payload Structure
+
+Each webhook delivery includes a JSON payload with the following structure:
+
+<WebhookPayload />
+
+## Security and Reliability
+
+### Webhook Verification
+To ensure security, all webhook requests are signed using Svix. You should always verify the signature before processing webhook data. The signing secret is available in your Vern Dashboard under the webhooks section.
+
+Here's an example of how to verify webhook signatures using the Svix library:
+
+```javascript api/webhooks/route.ts [expandable]
+import { Webhook } from "svix";
+import bodyParser from "body-parser";
+ 
+const secret = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw";
+ 
+app.post("/webhook", bodyParser.raw({ type: "application/json" }), (req, res) => {
+  const payload = req.body;
+  const headers = req.headers;
+ 
+  const wh = new Webhook(secret);
+  let msg;
+  try {
+    msg = wh.verify(payload, headers);
+  } catch (err) {
+    res.status(400).json({});
+  }
+ 
+  // Do something with the message...
+ 
+  res.json({});
+});
+```
+
+### Retry Logic
+If a webhook delivery fails, Svix will automatically retry the delivery following a predefined schedule. Failed deliveries can be monitored and managed through the Vern Dashboard.
+
+### Best Practices
+1. Always verify webhook signatures
+2. Implement idempotency in your webhook handlers
+3. Process webhooks asynchronously
+4. Store the raw webhook payload for debugging
+
+## Next Steps
+
+- Set up webhook endpoints in your [Vern Dashboard](https://www.vern.so/webhooks)
+- Learn about [Tasks](/essentials/tasks) to understand what events can trigger webhooks
+- Explore [Runs](/essentials/runs) to see how task execution relates to webhook events 
