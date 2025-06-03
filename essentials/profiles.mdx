@@ -1,0 +1,73 @@
+---
+title: Profiles
+description: Link your users' identities to Vern tasks for authenticated automation.
+icon: "users"
+---
+
+Profiles in Vern allow you to link your users' identities to automated tasks, enabling you to run tasks on behalf of authenticated users. This is particularly useful when your tasks require user-specific authentication or personalized data.
+
+## How Profiles Work
+
+1. Create a profile in the Vern dashboard
+2. Generate a magic link for user authentication
+3. User signs in via the magic link
+4. Receive a webhook notification when the profile is linked
+5. Use the profile ID in your task runs
+
+## Creating and Linking Profiles
+
+### 1. Create a Profile in the UI
+
+1. Navigate to the [Profiles section](https://vern.so/profiles) in the Vern dashboard
+2. Click "New Profile"
+3. Select the [integration](https://vern.so/profiles/integrations) you want to link
+4. Enter your user's unique identifier (UID)
+5. Generate a magic link for user authentication
+
+### 2. User Authentication
+
+Share the generated magic link with your user. When they click the link, they'll be directed to authenticate with the selected integration.
+
+### 3. Handle Profile Linking
+
+When a user successfully authenticates, Vern will send a `profile.linked` [webhook event](/essentials/webhooks) to your configured endpoint:
+
+```json
+{
+  "email": "youruser@microsoft.com",
+  "integration": "LinkedIn",
+  "linked_at": "2025-05-29 05:02:59.288+00",
+  "uid": "example-user-123"
+}
+```
+
+## Using Profiles in Task Runs
+
+Once a profile is linked, you can use it in your task runs by including the `profileId` parameter:
+
+```typescript
+const run = await vern.runs.create({
+  taskId: "sendMessage",
+  profileId: "example-user-123", // Your user's unique UID
+  inputs: {
+    recipient: "Bill Gates",
+    body: "This email was sent using a linked profile."
+  }
+});
+```
+
+## Important Notes
+
+1. **Task Configuration**: Make sure to link the required integrations to your task in the Vern dashboard before attempting to run it with a profile.
+
+2. **Profile Status**: A profile must be successfully linked before it can be used in task runs. You can check the profile status through the dashboard or by handling the `profile.linked` webhook.
+
+3. **Security**: Profile IDs are sensitive information. Store them securely and never expose them in client-side code.
+
+4. **User Association**: When creating a profile, use your existing user IDs to maintain a clear mapping between your users and their Vern profiles.
+
+## Next Steps
+
+- Learn about [Tasks](/essentials/tasks) to understand how to configure tasks with integrations
+- Set up [Webhooks](/essentials/webhooks) to handle profile linking events
+- Explore [Runs](/essentials/runs) to see how to execute tasks with linked profiles 

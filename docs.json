@@ -19,7 +19,7 @@
           },
           {
             "group": "Essentials",
-            "pages": ["essentials/tasks", "essentials/runs", "essentials/webhooks"]
+            "pages": ["essentials/tasks", "essentials/runs", "essentials/profiles","essentials/webhooks"]
           }
         ]
       },
