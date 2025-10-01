@@ -42,7 +42,7 @@ Import data into a workbook with intelligent column remapping:
     { from: 'date', to: 'Transaction Date' },
     { from: 'region', to: 'Sales Region' },
     { from: 'address', to: ['Street', 'City', 'Post Code'], delimiter: ','},
-    { from: ['sales_id', 'sku'], to: 'ID', split: '-'},
+    { from: ['sales_id', 'sku'], to: 'ID', join: '-'},
   ],
   autoremap: true // Use AI to remap remaining columns
 })
@@ -53,7 +53,7 @@ Import data into a workbook with intelligent column remapping:
   - `from`: Source column name(s)
   - `to`: Target column name(s)
   - `delimiter`: Split source values across multiple columns
-  - `split`: Join multiple source columns into one
+  - `join`: Join multiple source columns into one
 - `autoremap`: Enable AI-powered column mapping for unmapped fields
 
 ### Transform
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
           { from: 'date', to: 'Transaction Date' },
           { from: 'region', to: 'Sales Region' },
           { from: 'address', to: ['Street', 'City', 'Post Code'], delimiter: ','},
-          { from: ['sales_id', 'sku'], to: 'ID', split: '-'},
+          { from: ['sales_id', 'sku'], to: 'ID', join: '-'},
         ],
         autoremap: true // Use AI to remap the remaining columns
       })
