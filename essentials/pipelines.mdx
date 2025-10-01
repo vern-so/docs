@@ -1,0 +1,214 @@
+---
+title: Pipelines
+description: Chain data operations for automated ETL workflows.
+icon: "diagram-project"
+---
+
+Pipelines enable you to chain multiple data operations together, creating powerful ETL (Extract, Transform, Load) workflows. With pipelines, you can import data, transform it using AI-powered operations, clean formatting issues, and export the results—all in a single, declarative workflow.
+
+## Purpose of Pipelines
+
+- **Operation Chaining:** Connect multiple data operations in a sequential workflow
+- **AI-Powered Transformations:** Use natural language prompts to transform and clean data
+- **Automated Data Sync:** Build end-to-end data synchronization between systems
+- **Intelligent Remapping:** Automatically map columns between different data schemas
+- **Error Resolution:** Leverage AI to detect and fix data formatting issues
+
+## Creating a Pipeline
+
+Pipelines are created using the Vern SDK by calling `vern.workbooks.pipeline(sheetId)` and chaining operations:
+
+```typescript
+const result = await vern.workbooks.pipeline(sheetId)
+  .import(data, options)
+  .transform(prompts)
+  .autoclean()
+  .export(config)
+  .execute();
+```
+
+Each pipeline must end with `.execute()` to run the workflow.
+
+## Pipeline Operations
+
+### Import
+
+Import data into a workbook with intelligent column remapping:
+
+```typescript
+.import(salesData.records, {
+  remappings: [
+    { from: 'price', to: 'Amount' },
+    { from: 'date', to: 'Transaction Date' },
+    { from: 'region', to: 'Sales Region' },
+    { from: 'address', to: ['Street', 'City', 'Post Code'], delimiter: ','},
+    { from: ['sales_id', 'sku'], to: 'ID', split: '-'},
+  ],
+  autoremap: true // Use AI to remap remaining columns
+})
+```
+
+**Options:**
+- `remappings`: Array of column mapping rules
+  - `from`: Source column name(s)
+  - `to`: Target column name(s)
+  - `delimiter`: Split source values across multiple columns
+  - `split`: Join multiple source columns into one
+- `autoremap`: Enable AI-powered column mapping for unmapped fields
+
+### Transform
+
+Apply data transformations using natural language instructions:
+
+```typescript
+.transform([
+  'Convert international amounts to AUD',
+  'Update sales region to relevant city',
+  'Standardize date formats to YYYY-MM-DD'
+])
+```
+
+Pass an array of natural language prompts describing the transformations you want to apply. Vern's AI will interpret and execute these operations on your data.
+
+### Autoclean
+
+Automatically detect and resolve data formatting issues:
+
+```typescript
+.autoclean()
+```
+
+Autoclean uses AI to identify and fix common data quality issues like:
+- Inconsistent formatting
+- Invalid characters
+- Type mismatches
+- Missing required values
+- Duplicate entries
+
+### Export
+
+Send processed data to external systems via webhook:
+
+```typescript
+.export({
+  type: 'webhook',
+  url: 'https://api.example.com/data',
+  headers: {
+    'Authorization': `Bearer ${process.env.API_TOKEN}`,
+    'Content-Type': 'application/json',
+  },
+})
+```
+
+**Options:**
+- `type`: Export destination type (currently supports `'webhook'`)
+- `url`: Target API endpoint
+- `headers`: HTTP headers for authentication and content negotiation
+
+## Complete Example
+
+Here's a complete example of a pipeline that syncs sales data from one system to another:
+
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+import Vern from 'vern';
+
+const vern = new Vern({
+  apiKey: process.env['VERN_API_KEY']
+});
+
+export async function POST(request: NextRequest) {
+  try {
+    const { sheetId } = await request.json();
+    
+    // Step 1: Fetch data from external sales API
+    const response = await fetch('https://api.example.com/sales', {
+      headers: {
+        'Authorization': `Bearer ${process.env.SALES_API_TOKEN}`,
+      },
+    });
+    
+    const salesData = await response.json();
+
+    // Step 2: Chain Vern operations using pipeline
+    const result = await vern.workbooks.pipeline(sheetId)
+      .import(salesData.records, {
+        remappings: [
+          { from: 'price', to: 'Amount' },
+          { from: 'date', to: 'Transaction Date' },
+          { from: 'region', to: 'Sales Region' },
+          { from: 'address', to: ['Street', 'City', 'Post Code'], delimiter: ','},
+          { from: ['sales_id', 'sku'], to: 'ID', split: '-'},
+        ],
+        autoremap: true // Use AI to remap the remaining columns
+      })
+      .transform([
+        'Convert international amounts to AUD',
+        'Update sales region to relevant city'
+      ]) // Use natural language prompts to transform data
+      .autoclean() // Use AI to resolve remaining formatting issues
+      .export({
+        type: 'webhook',
+        url: 'https://{install}.{geo}.deputy.com/api/v2/metrics',
+        headers: {
+          'Authorization': `Bearer ${process.env.DEPUTY_INTERNAL_API_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+      })
+      .execute();
+      
+    console.log('Successfully synced sales data to Deputy');
+    
+    return NextResponse.json({ success: true, result });
+
+  } catch (error) {
+    console.error('Error in sales data pipeline:', error);
+    return NextResponse.json({ error: 'Pipeline failed' }, { status: 500 });
+  }
+}
+```
+
+## Pipeline Execution
+
+When you call `.execute()`, Vern:
+
+1. Validates the pipeline configuration
+2. Executes each operation in sequence
+3. Passes the output of each step to the next
+4. Returns the final result or throws an error if any step fails
+
+Pipelines are executed synchronously, meaning `.execute()` waits for all operations to complete before returning.
+
+## Error Handling
+
+Always wrap pipeline execution in a try-catch block to handle potential errors:
+
+```typescript
+try {
+  const result = await vern.workbooks.pipeline(sheetId)
+    .import(data)
+    .transform(['...'])
+    .export(config)
+    .execute();
+} catch (error) {
+  console.error('Pipeline failed:', error);
+  // Handle the error appropriately
+}
+```
+
+## Best Practices
+
+- **Use Autoremap:** Enable `autoremap: true` to reduce manual column mapping
+- **Clear Transformations:** Write specific, actionable transformation prompts
+- **Error Handling:** Always implement proper error handling for pipeline execution
+- **Validation:** Validate source data before importing to catch issues early
+- **Secure Credentials:** Store API keys and tokens securely in environment variables
+- **Logging:** Log pipeline results for debugging and monitoring
+- **Idempotency:** Design pipelines to be safely re-runnable
+
+## Next Steps
+
+- Learn about [Workbooks](/essentials/workbooks) to understand data storage in Vern
+- Explore the [SDK documentation](/sdk) for detailed API references
+- Set up [Webhooks](/essentials/webhooks) to receive notifications about pipeline completions
+
