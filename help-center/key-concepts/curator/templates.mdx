@@ -1,0 +1,39 @@
+---
+title: Templates
+---
+
+import { Frame } from '@mintlify/components';
+
+Templates help you validate data and provide context for our AI to fix messy data. They define what your data should look like, which helps the system understand how to clean and standardize it automatically.
+
+## What Are Templates?
+
+Templates are validation rules and descriptions that tell Vern how to interpret and fix your data. When you create a Template, you're essentially teaching the system what "good" data looks like for each column, so it can identify and fix problems automatically.
+
+For example, if you're working with HR software and need to validate employee data, you might create a Template that defines how employee IDs should be formatted, what valid department names are, and how dates should be structured.
+
+## Creating Templates
+
+<Frame>
+  <img src="/images/%23template.png" alt="Templates interface" />
+</Frame>
+
+To create a Template, go to [vern.so/templates](https://vern.so/templates) and click "Create template." You can upload a CSV file, and our AI will automatically generate descriptions and rules based on your data. This makes it quick to get started—just upload a sample of your clean data, and the system will learn from it.
+
+## Rule Types
+
+Templates use different types of rules to validate data:
+
+**None** - No validation is applied. Use this when you want to accept any value in the column.
+
+**AI** - Uses AI to validate whether a value fits the column description. If something doesn't match, it flags it yellow so you can review it. This is great for flexible validation where you want the system to understand context.
+
+**Strict** - Uses specific patterns or hardcoded options to check if a value is valid. For example, if you're validating department names, Strict rules can check that the value matches one of your approved departments. Rules are auto-generated as you type, or you can manually upload a CSV or list of valid values.
+
+**Link** - Checks if a value exists in another Template's column. This is useful when you have related data across multiple sheets in the same workbook. For example, if you're validating project assignments, a Link rule can check that the assigned employee ID exists in your Employees Template.
+
+## Using Templates
+
+Once you create a Template, you can use it in Workbooks to validate and clean your customer data. Each sheet in a Workbook can have its own Template, so you can validate different types of data (like Employees, Projects, and Equipment) all in one place.
+
+For construction software, you might create Templates for Projects, Equipment, and Employees. When you upload customer data, the system uses these Templates to validate everything and suggest fixes automatically.

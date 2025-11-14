@@ -1,0 +1,51 @@
+---
+title: Workbooks
+---
+
+import { Frame } from '@mintlify/components';
+
+Workbooks are essentially Excel-like workbooks that contain multiple sheets. Each sheet uses a Template to validate and fix data, making it easy to organize and clean all your customer information in one place.
+
+## What Are Workbooks?
+
+<Frame>
+  <img src="/images/%23workbook.png" alt="Workbooks interface" />
+</Frame>
+
+Think of a Workbook as a container for all your customer's data. You can have multiple sheets within a Workbook—each one representing a different type of data (like Employees, Projects, or Equipment). Each sheet uses a Template to validate and clean its data automatically.
+
+For example, if you're onboarding an HR client, you might create a Workbook with separate sheets for Employee Information, Benefits, and Payroll. Each sheet uses its own Template to ensure the data is clean and properly formatted.
+
+## Uploading Data
+
+You can add data to a Workbook from multiple sources:
+
+- **Links** - Data submitted through your customer's onboarding link
+- **Manual upload** - Upload CSV files directly
+- **Scout runs** - Data extracted from a single Scout execution
+- **Scout tables** - Data extracted from multiple Scout executions
+
+When you upload data, our AI automatically suggests how to map your columns to the Template columns, making it easy to get started.
+
+## AI-Powered Features
+
+Once data is uploaded, Vern's AI helps you clean it:
+
+**Column Mapping** - The AI suggests how your uploaded columns should map to your Template columns. You can accept the suggestions, map columns directly, split columns with a specific delimiter, or combine multiple columns into one.
+
+**Data Validation** - The system validates all data against your Template rules and identifies any issues.
+
+**Fix Suggestions** - The AI suggests fixes for invalid or messy data. You can review each suggestion and choose to accept or reject it.
+
+## Working with Your Data
+
+After uploading data, you'll see suggestions for column mappings. For example, if your customer uploaded "Emp Name" and "Employee Name" as separate columns, you might combine them into a single "Employee Name" column. Or if dates are in a format like "MM/DD/YYYY" but your Template expects "YYYY-MM-DD", the AI will suggest the fix.
+
+You have full control—you can accept all suggested fixes, reject specific ones, or make manual adjustments. This gives you confidence that your data is clean and ready to use.
+
+## Example Use Cases
+
+For HR software, you might create a Workbook with sheets for Employee Data, Benefits Enrollment, and Payroll Information. When your customer submits data through their link, it flows into the appropriate sheets, gets validated against your Templates, and you can review and accept fixes all in one place.
+
+For construction software, you might have sheets for Projects, Equipment Inventory, and Employee Assignments. Data from Scout runs that extract project information automatically flows into the Projects sheet, gets validated, and you can quickly review and approve the cleaned data.
+

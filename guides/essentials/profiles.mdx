@@ -30,7 +30,7 @@ Share the generated magic link with your user. When they click the link, they'll
 
 ### 3. Handle Profile Linking
 
-When a user successfully authenticates, Vern will send a `profile.linked` [webhook event](/essentials/webhooks) to your configured endpoint:
+When a user successfully authenticates, Vern will send a `profile.linked` [webhook event](/guides/essentials/webhooks) to your configured endpoint:
 
 ```json
 {
@@ -68,6 +68,6 @@ const run = await vern.runs.create({
 
 ## Next Steps
 
-- Learn about [Tasks](/essentials/tasks) to understand how to configure tasks with integrations
-- Set up [Webhooks](/essentials/webhooks) to handle profile linking events
-- Explore [Runs](/essentials/runs) to see how to execute tasks with linked profiles 
+- Learn about [Tasks](/guides/essentials/tasks) to understand how to configure tasks with integrations
+- Set up [Webhooks](/guides/essentials/webhooks) to handle profile linking events
+- Explore [Runs](/guides/essentials/runs) to see how to execute tasks with linked profiles

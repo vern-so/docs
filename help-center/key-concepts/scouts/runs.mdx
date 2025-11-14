@@ -1,0 +1,48 @@
+---
+title: Runs
+---
+
+import { Frame } from '@mintlify/components';
+
+Runs are how you execute Tasks. When you want a Scout to perform a specific action, you create a Run that tells the Scout which Task to execute and provides any necessary information.
+
+## What Are Runs?
+
+A Run is a single execution of a Task. Think of it this way: a Task is the recipe, and a Run is actually cooking the meal. When you create a Run, you're telling a Scout to go perform that Task right now with the specific inputs you provide.
+
+## Single Runs
+
+Single Runs are perfect when you want to extract a single report or item. For example, if you want to extract a single Employees report, you would create a single Run rather than iterating through each Employee entry on a page.
+
+Single Runs are ideal for:
+- Extracting one specific document or report
+- Getting data from a single page or source
+- Quick, one-time data extractions
+
+## How Runs Work
+
+<Frame>
+  <img src="/images/%23run.png" alt="Runs interface" />
+</Frame>
+
+When you create a Run, you select the Task you want to execute and provide any specific information needed for that execution. The Scout then:
+- Validates the information you provided
+- Navigates to the appropriate website
+- Performs the actions defined in the Task
+- Extracts and returns the requested data
+
+You can monitor the Run's progress and see when it completes. Once finished, you'll have the extracted data ready to use.
+
+## When to Use Single Runs vs Tables
+
+Use a **single Run** when you need to extract one specific item or report. Use **Tables** when you need to extract multiple records of the same type (like all Projects or all Employees). Tables automatically handle iterating through multiple entries, while single Runs focus on one specific extraction.
+
+## Tracking Runs
+
+Each Run tracks its execution status, so you can see:
+- When the Run was created
+- When it started executing
+- When it completed
+- What data was extracted
+
+This helps you keep track of what's been done and what data you've collected for each customer.

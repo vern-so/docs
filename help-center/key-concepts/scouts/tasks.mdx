@@ -1,0 +1,49 @@
+---
+title: Tasks
+---
+
+import { Frame } from '@mintlify/components';
+
+Tasks define what Scouts (our AI web agents) should do when they visit a website. Think of a Task as a reusable instruction set that tells a Scout how to navigate a site and extract the information you need.
+
+## What Are Tasks?
+
+Tasks are specific, reusable actions or workflows that Scouts can perform. For example, a Task might tell a Scout to "Navigate to project, extract all the details on the project info tab" or "Search for products and collect pricing information."
+
+Once you define a Task, you can use it multiple times with different customers or different data. This saves you time—instead of manually walking through the same steps every time, you create the Task once and reuse it whenever you need that information.
+
+## Creating Tasks
+
+You create Tasks in the Vern dashboard. Navigate to the **Tasks** section and click **"New Task"** to get started.
+
+<Frame>
+  <img src="/images/%23task.png" alt="Creating Tasks interface" />
+</Frame>
+
+You have two options for creating Tasks:
+
+**Task Studio (Beta):**
+- Record your actions as you navigate websites and interact with elements
+- The system generates a Task based on what you did
+- Review and edit the generated Task to make sure it's exactly what you need
+
+**Manual:**
+- Enter the target website URLs and navigation instructions
+- Define what information the Scout should look for
+- Specify how the Scout should interact with page elements
+- Configure what data to extract and return
+
+## How Tasks Work
+
+When you create a Task, you're essentially teaching a Scout how to complete a specific job. The Task defines:
+- Where to go (the website or page)
+- What to do (navigate, click, fill forms, etc.)
+- What to extract (the data you need)
+
+Once created, Tasks can be executed through Runs or Tables, depending on whether you need to extract a single item or multiple records.
+
+## Best Practices
+
+- **Be specific** - Clearly define what information you need and where to find it
+- **Test your Tasks** - Run a test to make sure the Scout can complete the Task successfully
+- **Reuse when possible** - If you find yourself doing the same extraction repeatedly, create a Task for it

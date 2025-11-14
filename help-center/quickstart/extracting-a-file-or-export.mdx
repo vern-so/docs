@@ -1,0 +1,48 @@
+---
+title: Extract a file or export from your customer's old system
+---
+
+import { Frame } from '@mintlify/components';
+
+Sometimes your customer needs to extract a single document or report from their old system. Single Runs let you do this quickly using Scouts (our AI web agents).
+
+## When to Use Single Runs
+
+Use a single Run when you need to extract:
+- One specific document or report
+- Data from a single page or source
+- A quick, one-time extraction
+
+For example, if you need to extract a single Employees report from their HR system, a single Run is perfect for this.
+
+## Step 1: Create a Task
+
+First, you need to create a Task that tells the Scout what to do. Go to the Tasks section in your dashboard and click "New Task."
+
+You can use Task Studio to record your actions as you navigate the website, or manually enter instructions like "Navigate to the reports page and download the Employee Export."
+
+## Step 2: Create a Run
+
+<Frame>
+  <img src="/images/%23run.png" alt="Runs interface" />
+</Frame>
+
+Once you have a Task, go to the Runs section and create a new Run. Select the Task you just created and provide any specific information needed—like the customer's login credentials or which report to download.
+
+## Step 3: Monitor Progress
+
+The Scout will start working immediately. You can watch the Run's progress in real-time. You'll see when it starts, when it's navigating the site, and when it completes.
+
+## Step 4: Get Your Data
+
+Once the Run completes, the extracted data is automatically available. You can optionally add it to a Workbook where you can validate and clean it.
+
+## Need Multiple Records?
+
+If you need to extract multiple records of the same type (like all Projects or all Employees), use [Tables instead](/help-center/quickstart/extracting-multiple-pages). Tables automatically handle extracting many records at once.
+
+## Next Steps
+
+After extracting the data, you can:
+- [Validate it](/help-center/quickstart/validating-your-customers-data) using Templates
+- [Clean it](/help-center/quickstart/cleaning-your-customers-messy-data) using Chat if needed

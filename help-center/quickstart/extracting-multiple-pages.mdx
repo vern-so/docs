@@ -1,0 +1,62 @@
+---
+title: Extract multiple pages from your customer's old system
+---
+
+import { Frame } from '@mintlify/components';
+
+When you need to extract many records of the same type—like all Projects, all Employees, or all Orders—Tables make it easy. Tables automatically find all matching records and extract them all at once.
+
+## When to Use Tables
+
+Use Tables when you need to extract:
+- Multiple records of the same type
+- All items from a list or database
+- Data that requires iterating through many pages
+
+For example, if you need to extract all Projects from a project management system, Tables will automatically find all 52 Projects and extract their details (Name, Address, Manager, Duration, etc.) without you having to click through each one.
+
+## Step 1: Create a Task
+
+First, create a Task that tells the Scout how to extract one record. Go to the Tasks section and click "New Task."
+
+Create a Task like "Navigate to project, extract all the details on the project info tab." This tells the Scout what to do for each record.
+
+## Step 2: Run Scout and Find Sample Records
+
+<Frame>
+  <img src="/images/%23table.png" alt="Tables interface" />
+</Frame>
+
+Once you have your Task, go to [vern.so/runs](https://vern.so/runs) and click "Run Scout." Select your Task, then click "Create table of runs" and then click "Find sample records."
+
+The Scouts will start working to find sample records on the page. This helps the system understand what records look like and what properties are available.
+
+## Step 3: Review and Approve Properties
+
+After the Scouts complete finding sample records, you'll see a list of:
+- The properties found (like Name, Address, Manager, Duration, etc.)
+- The unique identifiers (like Project Name)
+
+Review these and make any adjustments needed. You can approve which properties you want to extract and confirm which field should be used as the identifier.
+
+## Step 4: Extract All Data
+
+Once you've approved the properties and identifiers, proceed with extracting all the data. The system will automatically find all matching records (e.g., all 52 Projects) and extract the approved properties for each one.
+
+You'll see the extraction progress, and once it completes, you'll have all the extracted records organized in a clean, structured format. You can optionally add this data to a Workbook where you can validate and clean it.
+
+## Example: Extracting All Projects
+
+Let's say you're onboarding a construction company and need all their projects. You would:
+1. Create a Task: "Navigate to project, extract all details from the project info tab"
+2. Go to vern.so/runs, click "Run Scout," select your Task, click "Create table of runs," and then click "Find sample records"
+3. Review and approve the properties (Name, Address, Manager, Duration) and identifier (Project Name)
+4. Proceed with extraction—the system finds all 52 Projects automatically and extracts the approved properties
+
+Instead of manually clicking through 52 projects, Tables do it all automatically once you've approved the properties.
+
+## Next Steps
+
+After extracting multiple records, you can:
+- [Validate the data](/help-center/quickstart/validating-your-customers-data) using Templates
+- [Clean any messy data](/help-center/quickstart/cleaning-your-customers-messy-data) using Chat

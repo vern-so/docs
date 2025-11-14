@@ -1,0 +1,72 @@
+---
+title: Validate your customer's uploaded data
+---
+
+import { Frame } from '@mintlify/components';
+
+Templates help you validate your customer's data automatically. They define what "good" data looks like, so the system can identify problems and suggest fixes.
+
+## Step 1: Create a Template
+
+<Frame>
+  <img src="/images/%23template.png" alt="Templates interface" />
+</Frame>
+
+Go to [vern.so/templates](https://vern.so/templates) and click "Create template." Upload a CSV file with sample clean data—this could be data from a previous customer or an example of what you expect.
+
+Our AI will automatically analyze your data and generate descriptions and validation rules for each column.
+
+## Step 2: Set Up Validation Rules
+
+Review the generated rules and adjust them as needed. You have three types of rules:
+
+- **AI** - Uses AI to check if values fit the description (flags yellow if something doesn't match)
+- **Strict** - Checks against specific patterns or a list of valid values (like approved department names)
+- **Link** - Checks if values exist in another Template's column (useful for related data)
+
+For example, if you're validating employee data for HR software, you might set Strict rules for department names (only allow "HR", "Engineering", "Sales", etc.) and AI rules for employee names.
+
+## Step 3: Create a Workbook
+
+<Frame>
+  <img src="/images/%23workbook.png" alt="Workbooks interface" />
+</Frame>
+
+Go to your Workbooks section and create a new Workbook. Add a sheet for the type of data you're validating (like "Employee Data" or "Project Information").
+
+Assign your Template to the sheet. This tells the system how to validate the data.
+
+## Step 4: Upload Your Customer's Data
+
+You can add data to your Workbook from:
+- Your customer's onboarding link
+- Manual CSV uploads
+- Scout runs or tables
+
+When you upload data, the AI automatically suggests how to map your columns to the Template columns.
+
+## Step 5: Review Validation Results
+
+Once data is uploaded, the system validates everything against your Template rules. You'll see:
+- Green checkmarks for valid data
+- Yellow flags for data that might need review
+- Red flags for invalid data
+
+The system suggests fixes for any problems it finds.
+
+## Step 6: Accept or Reject Fixes
+
+Review each suggested fix and choose to accept or reject it. You have full control—you can accept all fixes, reject specific ones, or make manual adjustments.
+
+## Example: Validating HR Data
+
+If you're onboarding an HR client:
+1. Create a Template with rules for Employee ID format, valid departments, and date formats
+2. Create a Workbook with an "Employee Data" sheet
+3. Upload their employee roster
+4. Review validation results and accept fixes
+5. Your data is now clean and ready to use
+
+## Next Steps
+
+After validating your data, you can [clean any remaining messy data](/help-center/quickstart/cleaning-your-customers-messy-data) using Chat.

@@ -1,7 +1,7 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "maple",
-  "name": "Vern API",
+  "name": "Vern Documentation",
   "colors": {
     "primary": "#10B981",
     "light": "#10B981",
@@ -11,24 +11,97 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Help center",
+        "icon": "help-circle",
         "groups": [
           {
-            "group": "Get Started",
-            "pages": ["introduction", "quickstart", "development"]
+            "group": "Get started",
+            "pages": [
+              "help-center/get-started/introduction",
+              "help-center/get-started/contact-support"
+            ]
           },
           {
-            "group": "Essentials",
-            "pages": ["essentials/pipelines", "essentials/tasks", "essentials/runs", "essentials/profiles","essentials/webhooks" ]
+            "group": "Key concepts",
+            "pages": [
+              {
+                "group": "Companies",
+                "pages": [
+                  "help-center/key-concepts/companies/links",
+                  "help-center/key-concepts/companies/forms"
+                ]
+              },
+              {
+                "group": "Scouts",
+                "pages": [
+                  "help-center/key-concepts/scouts/tasks",
+                  "help-center/key-concepts/scouts/runs",
+                  "help-center/key-concepts/scouts/tables"
+                ]
+              },
+              {
+                "group": "Curator",
+                "pages": [
+                  "help-center/key-concepts/curator/templates",
+                  "help-center/key-concepts/curator/workbooks",
+                  "help-center/key-concepts/curator/chat"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Quickstart",
+            "pages": [
+              "help-center/quickstart/creating-your-first-onboarding-link",
+              "help-center/quickstart/extracting-a-file-or-export",
+              "help-center/quickstart/extracting-multiple-pages",
+              "help-center/quickstart/validating-your-customers-data",
+              "help-center/quickstart/cleaning-your-customers-messy-data"
+            ]
           }
         ]
       },
       {
-        "tab": "API Reference",
-        "openapi": "https://app.stainless.com/api/spec/documented/vern-sdk/openapi.documented.yml",
-        "pages": [
-          "api-reference/create-a-new-task-run",
-          "api-reference/get-a-task-run-by-id"
+        "tab": "Developer tools",
+        "icon": "square-terminal",
+        "menu": [
+          {
+            "item": "Guides",
+            "icon": "book-open",
+            "groups": [
+              {
+                "group": "Get Started",
+                "pages": [
+                  "guides/introduction",
+                  "guides/quickstart",
+                  "guides/development"
+                ]
+              },
+              {
+                "group": "Essentials",
+                "pages": [
+                  "guides/essentials/tasks",
+                  "guides/essentials/runs",
+                  "guides/essentials/profiles",
+                  "guides/essentials/webhooks"
+                ]
+              }
+            ]
+          },
+          {
+            "item": "API reference",
+            "icon": "rocket",
+            "openapi": "https://app.stainless.com/api/spec/documented/vern-sdk/openapi.documented.yml",
+            "groups": [
+              {
+                "group": "Task runs",
+                "pages": [
+                  "api-reference/create-a-new-task-run",
+                  "api-reference/get-a-task-run-by-id"
+                ]
+              }
+            ]
+          }
         ]
       }
     ]
@@ -47,12 +120,12 @@
     "primary": {
       "type": "button",
       "label": "Dashboard",
-      "href": "https://vern.so/tasks"
+      "href": "https://vern.so/companies"
     }
   },
   "footer": {
     "socials": {
-      "linkedin": "https://linkedin.com/company/vern-ux"
+      "linkedin": "https://linkedin.com/company/vern-so"
     }
   }
 }
