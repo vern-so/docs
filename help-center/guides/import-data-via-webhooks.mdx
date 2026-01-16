@@ -1,0 +1,84 @@
+---
+title: "Import data to your app via webhooks"
+description: "Learn how to configure webhooks to import data directly into your application from workbooks"
+---
+
+<Frame>
+  <iframe
+className="rounded-xl"
+    src="https://www.tella.tv/video/vid_cmkeztw8j00oa04ky38wzdfv8/embed?b=0&title=1&a=1&loop=0&t=0&muted=0&wt=0"
+    allowFullScreen={true}
+    allowTransparency={false}
+  />
+</Frame>
+
+Webhooks allow you to import data directly from your workbooks into your application in real-time. Once configured, you can export cleaned data from any workbook and have it automatically sent to your app's endpoint.
+
+## Overview
+
+When you export data from a workbook, Vern sends webhook events to your configured endpoint. This requires:
+
+1. Setting up a webhook endpoint in the developer settings
+2. Configuring your application to receive and process the webhook events
+3. Exporting data from your workbook to trigger the webhook
+
+## Setting up webhooks
+
+To configure webhooks, navigate to **Developer Settings** → **Webhooks**. This will load the Svix portal, which is our webhook provider.
+
+### Adding an endpoint
+
+1. Click **Add Endpoint** in the Svix portal
+2. Enter your endpoint URL (this should be provided by your developer)
+   - For testing, you can use **Svix Play** to simulate an endpoint
+3. Give your endpoint a descriptive name (e.g., "Production endpoint for ACME HR")
+4. Subscribe to the **production export event** to receive data exports
+5. Click **Create**
+
+Once your endpoint is configured, you'll see an **Import to [Your Company Name]** option when viewing workbooks.
+
+## Exporting data from workbooks
+
+After setting up your webhook endpoint:
+
+1. Open the workbook containing the data you want to import
+2. Select the rows you want to export (or leave all selected for the entire dataset)
+3. Click **Export Data**
+4. Choose your configured endpoint (e.g., "Production" or "Preview")
+5. The webhook event will be sent to your endpoint
+
+You can verify the webhook was sent successfully by checking the Svix portal. In the endpoint details, you'll see:
+- Successful message delivery
+- The exact payload body
+- Full logs of all webhook events
+
+## Webhook payload structure
+
+The webhook payload contains your exported data in batches. Here's what to expect:
+
+- **Rows of data**: All the exported records from your workbook
+- **Indexed rows**: Each row includes its index number (e.g., row 1 to 50)
+- **Row order**: The original order of rows in the workbook is preserved
+- **Errors**: Any errors attached to specific records are included
+- **Batching**: Data is sent in batches of 1,000 records. If you have more than 1,000 records, multiple webhook events will be sent
+
+## Event catalog
+
+The Svix portal includes an **Event Catalog** that shows all available webhook events. For workbook data exports, you'll see:
+
+- **Production export event**: The event type for exporting data to your production app
+- **Preview export event**: The event type for exporting data to preview/test environments
+
+You can view the exact structure of these events in the event catalog, which is helpful for your developers to understand how the data will arrive at your endpoint.
+
+## Next steps
+
+Once your webhook endpoint is configured and receiving events, your development team needs to:
+
+1. Process the incoming webhook payloads
+2. Extract the row data from each batch
+3. Save the data to your database
+4. Handle any errors attached to records
+5. Implement proper error handling and retry logic for failed deliveries
+
+The Svix portal provides detailed logs and message history, making it easy to debug and monitor your webhook integrations.

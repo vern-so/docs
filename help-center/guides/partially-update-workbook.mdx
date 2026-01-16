@@ -1,0 +1,96 @@
+---
+title: "Partially update a workbook with another file"
+description: "Learn how to update specific parts of a workbook using data from another file"
+---
+
+<Frame>
+  <iframe
+className="rounded-xl"
+    src="https://www.tella.tv/video/vid_cmkg5tstz050g04l89nlo9gln/embed?b=0&title=1&a=1&loop=0&t=0&muted=0&wt=0"
+    allowFullScreen={true}
+    allowTransparency={false}
+  />
+</Frame>
+
+Partial updates allow you to fill in missing data in your workbook by matching rows from another file. This is perfect when you have incomplete data in your workbook and need to merge in additional details from a separate file using a common identifier.
+
+## Overview
+
+When you partially update a workbook, Vern matches rows between your existing data and the new file based on a shared identifier column. This process requires:
+
+1. Uploading the file containing the additional data you want to merge
+2. Mapping columns between the new file and your workbook
+3. Selecting a matching identifier to link rows together
+4. Choosing how to handle existing values (override or keep)
+5. Importing the matched data to update your workbook
+
+## Uploading your file
+
+To start a partial update:
+
+1. Open the workbook you want to update
+2. Click **Import** → **Upload File**
+3. Select the file containing the data you want to merge (e.g., a CSV with address details)
+4. The AI will automatically analyze the file and suggest column mappings
+
+## Mapping columns
+
+After uploading, you'll see suggested column mappings. The AI will attempt to match columns based on names and data types:
+
+- Review each suggested mapping
+- Adjust column mappings as needed (e.g., change separators like commas to spaces)
+- Ensure all relevant columns are mapped correctly
+- Verify that the data types match your workbook structure
+
+You can modify any mapping by clicking on it and selecting the appropriate column from your workbook.
+
+## Matching rows
+
+Once your columns are mapped, you need to specify how rows should be matched:
+
+1. Click **Match Rows**
+2. Select the matching identifier column (e.g., "Address ID")
+   - This column must exist in both your workbook and the uploaded file
+   - Rows with matching values in this column will be linked together
+3. Review the matching preview to ensure rows are being matched correctly
+
+The matching identifier determines which rows in your workbook will be updated. Any rows in your workbook that have a matching value in the identifier column will be candidates for updates.
+
+## Choosing update behavior
+
+Before importing, you can choose how to handle existing values:
+
+- **Incoming**: Replace empty or null cells with data from the new file
+- **Existing**: Preserve current data even if the new file has different values
+- **Import all as new**: Keep existing values and add all the data from the new file as new records
+
+For example, if you have null address fields in your workbook and want to fill them with data from the uploaded CSV, select **Override null values**. This will only update cells that are currently empty, leaving any existing data unchanged.
+
+## Importing the data
+
+Once you've configured your mappings and matching:
+
+1. Review your settings to ensure everything looks correct
+2. Click **Import Data**
+3. The matched data will be imported into your workbook
+
+After the import completes, you'll see the updated values in your workbook. The matched rows will now contain the merged data from your uploaded file, with null values filled in or existing values updated based on your chosen behavior.
+
+## Use cases
+
+Partial updates are particularly useful when:
+
+- **Filling missing data**: You have incomplete records and need to add details from another source
+- **Merging datasets**: Combining information from multiple files that share a common identifier
+- **Updating specific fields**: You only want to update certain columns without affecting the rest of your data
+- **Data enrichment**: Adding additional details to existing records (e.g., addresses, contact information, status updates)
+
+## Best practices
+
+1. **Verify your matching identifier**: Ensure the identifier column contains unique, consistent values in both files
+2. **Review mappings carefully**: Double-check column mappings before importing to avoid data mismatches
+3. **Test with a small dataset**: If working with large files, consider testing with a subset first
+4. **Backup your data**: Consider creating a copy of your workbook before performing large updates
+5. **Check for duplicates**: Ensure your matching identifier doesn't have duplicate values that could cause unexpected updates
+
+Partial updates make it easy to keep your workbooks up-to-date by merging data from multiple sources without having to manually copy and paste information.

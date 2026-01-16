@@ -18,7 +18,17 @@
             "group": "Get started",
             "pages": [
               "help-center/get-started/introduction",
-              "help-center/get-started/contact-support"
+              "help-center/get-started/contact-support",
+              {
+                "group": "Quickstart",
+                "pages": [
+                  "help-center/get-started/quickstart/creating-your-first-onboarding-link",
+                  "help-center/get-started/quickstart/extracting-a-file-or-export",
+                  "help-center/get-started/quickstart/extracting-multiple-pages",
+                  "help-center/get-started/quickstart/validating-your-customers-data",
+                  "help-center/get-started/quickstart/cleaning-your-customers-messy-data"
+                ]
+              }
             ]
           },
           {
@@ -50,13 +60,11 @@
             ]
           },
           {
-            "group": "Quickstart",
+            "group": "Guides",
             "pages": [
-              "help-center/quickstart/creating-your-first-onboarding-link",
-              "help-center/quickstart/extracting-a-file-or-export",
-              "help-center/quickstart/extracting-multiple-pages",
-              "help-center/quickstart/validating-your-customers-data",
-              "help-center/quickstart/cleaning-your-customers-messy-data"
+              "help-center/guides/import-data-via-webhooks",
+              "help-center/guides/partially-update-workbook",
+              "help-center/guides/calculate-values-across-sheets"
             ]
           }
         ]

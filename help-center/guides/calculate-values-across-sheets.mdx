@@ -1,0 +1,88 @@
+---
+title: "Calculate values across sheets"
+description: "Learn how to perform calculations that reference data from multiple sheets in a workbook"
+---
+
+<Frame>
+  <iframe
+className="rounded-xl"
+    src="https://www.tella.tv/video/vid_cmkg79jd3008504l4few33ycm/embed?b=0&title=1&a=1&loop=0&t=0&muted=0&wt=0"
+    allowFullScreen={true}
+    allowTransparency={false}
+  />
+</Frame>
+
+You can perform calculations across different sheets in a workbook, enabling you to match data from one sheet and use it in calculations on another sheet. This is especially useful when you need to transform values based on lookup data stored in a separate sheet.
+
+## Overview
+
+Cross-sheet calculations allow you to:
+- Match data between sheets using identifiers (like IDs or keys)
+- Look up values from one sheet to use in calculations on another
+- Convert values using multipliers or factors stored in a separate sheet
+- Transform data formats (e.g., converting monthly amounts to annual)
+
+## Example: Converting budget amounts to annual values
+
+A common use case is converting budget amounts to annual values based on payroll frequency. For example:
+
+- You have a **Budgets** sheet with budget amounts and payroll IDs
+- You have a **Payroll** sheet with payroll IDs and their corresponding frequencies
+- You need to multiply each budget amount by its payroll frequency to get the annual amount
+
+This requires a two-step process:
+
+1. Convert the payroll frequencies to numeric multipliers
+2. Match payroll IDs across sheets and multiply amounts by frequencies
+
+## Step 1: Convert frequencies to multipliers
+
+First, you'll need to convert text-based frequencies (like "Weekly", "Bi-weekly", "Monthly") to numeric multipliers (52, 26, 12, etc.).
+
+1. Open your **Payroll** sheet
+2. Select the frequency column
+3. Use Vern's data transformation to convert frequencies to numbers
+   - Provide examples like `52`, `26`, `12` to help Vern understand the pattern
+4. Vern will convert all frequencies to their numeric multiplier values
+
+Once converted, all frequencies are represented as numbers that can be used in calculations.
+
+## Step 2: Match IDs and multiply values
+
+After converting frequencies to multipliers, you can calculate annual amounts by matching payroll IDs across sheets:
+
+1. Open your **Budgets** sheet
+2. Describe what you want in natural language, mentioning the relevant columns with the `@` symbol:
+   - For example: "Multiply @Amount by the payroll frequency from the Payroll sheet where the payroll ID matches @PayrollID"
+3. Vern will automatically calculate the annual amount for each budget entry
+
+Vern automatically matches each payroll ID from the Budgets sheet with its corresponding frequency in the Payroll sheet, then multiplies the amount by that frequency to produce the annual value.
+
+## How it works
+
+Simply describe what you want in natural language and reference columns using the `@` symbol:
+
+- **Column references**: Use `@ColumnName` to reference columns in your calculations
+- **Natural language matching**: Describe how to match data across sheets (e.g., "where the payroll ID matches @PayrollID")
+- **Natural language calculations**: Describe the math operations you want (e.g., "multiply @Amount by the frequency")
+
+Vern understands your natural language input and automatically performs the calculations, updating results in real-time as your data changes.
+
+## Common use cases
+
+Cross-sheet calculations are useful for:
+
+- **Currency conversions**: Converting amounts using exchange rates stored in a separate sheet
+- **Unit conversions**: Converting measurements using conversion factors
+- **Cost calculations**: Calculating total costs using price tables and quantity data
+- **Data normalization**: Standardizing values based on lookup tables
+- **Conditional calculations**: Performing calculations based on category or type mappings
+
+## Best practices
+
+1. **Use consistent identifiers**: Ensure IDs or keys used for matching are formatted consistently across sheets
+2. **Provide examples**: When converting text to numbers, give Vern clear examples to help it understand the pattern
+3. **Verify results**: Check a few calculated values manually to ensure the matching and calculations are working correctly
+4. **Keep lookup tables updated**: Make sure reference data (like payroll frequencies) stays current
+
+
