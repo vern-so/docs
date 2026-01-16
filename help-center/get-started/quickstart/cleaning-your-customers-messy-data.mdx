@@ -1,15 +1,15 @@
 ---
-title: Clean your customer's messy data
+title: "Clean your customer's messy data"
 ---
 
 import { Frame } from '@mintlify/components';
 
-Even after validation, you might have messy data that needs cleaning—dates in different formats, typos, or values hidden in other columns. Chat makes it easy to fix these issues with simple instructions.
+Even after validation, you might have messy data that needs cleaning - dates in different formats, typos, or values hidden in other columns. Chat makes it easy to fix these issues with simple instructions.
 
 ## Step 1: Open Your Workbook
 
 <Frame>
-  <img src="/images/%23workbook.png" alt="Workbooks interface" />
+  ![Workbooks interface](/images/%23workbook.png)
 </Frame>
 
 Go to your Workbooks and open the Workbook containing the data you want to clean. Make sure your sheet has a Template assigned—Chat uses the Template's descriptions and rules to understand how to fix your data.
@@ -21,11 +21,13 @@ Click on the Chat feature in your Workbook. You can now give Chat simple instruc
 ## Common Cleaning Tasks
 
 **Fix formatting issues:**
+
 - "Fix date of birth column" - Standardizes all dates to the correct format
 - "Fix employee ID formats" - Corrects formatting inconsistencies
 - "Standardize department names" - Fixes typos and variations
 
 **Extract hidden values:**
+
 - "Extract medication values from the notes column" - Pulls out specific information from free-form text
 - "Extract emergency contact phone numbers from the notes column" - Finds phone numbers mixed with other text
 - "Extract manager names from the project notes column" - Pulls out names from descriptions
@@ -41,6 +43,7 @@ Once you're happy with the suggested fixes, accept them. Chat will transform all
 ## Example: Cleaning HR Data
 
 If your customer's employee data has messy dates:
+
 1. Open your Employee Data sheet in your Workbook
 2. Use Chat and say "Fix date of birth column"
 3. Chat uses your Template's date format rules to standardize all dates
@@ -50,6 +53,7 @@ If your customer's employee data has messy dates:
 ## Example: Extracting Hidden Data
 
 If your construction customer has equipment serial numbers mixed into project notes:
+
 1. Open your Projects sheet
 2. Use Chat and say "Extract equipment serial numbers from the project notes column"
 3. Chat creates a new column with just the serial numbers
