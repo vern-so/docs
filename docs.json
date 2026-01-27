@@ -12,7 +12,7 @@
     "tabs": [
       {
         "tab": "Help center",
-        "icon": "help-circle",
+        "icon": "question-circle",
         "groups": [
           {
             "group": "Get started",
@@ -64,7 +64,8 @@
             "pages": [
               "help-center/guides/import-data-via-webhooks",
               "help-center/guides/partially-update-workbook",
-              "help-center/guides/calculate-values-across-sheets"
+              "help-center/guides/calculate-values-across-sheets",
+              "help-center/guides/how-to-prompt"
             ]
           }
         ]

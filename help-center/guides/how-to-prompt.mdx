@@ -1,0 +1,255 @@
+---
+title: "How to write effective prompts"
+description: "You can ask Curator to fix, clean, format, and organize your data using simple, everyday language."
+---
+
+## Quick Start: Using @ to Reference Columns
+
+**The easiest way to tell the assistant which columns to work with is to type `@` followed by the column name.**
+
+When you type `@`, you'll see a list of all your columns. Just click on the one you want, or hit enter.
+
+<Frame>
+  ![Prompt interface](/images/prompt.png)
+</Frame>
+
+## Common Tasks & Examples
+
+### 1. Fixing Format Issues
+
+**When to use:** Your data has inconsistent formatting, extra characters, or needs to match a specific pattern.
+
+**Examples:**
+
+- `Fix the format of @Phone Number`
+- `Remove all dashes from @NRIC`
+- `Add dashes to @Phone Number to match the format XXX-XXX-XXXX`
+- `Standardize @Email addresses`
+- `Clean up @Address - remove extra spaces`
+- `Make @Date of Birth all the same format`
+
+**What happens:** The assistant will make all values in that column follow the same format, removing inconsistencies while keeping your data intact.
+
+### 2. Combining Columns
+
+**When to use:** You want to merge two or more columns into one (like combining First Name and Last Name into Full Name).
+
+**Examples:**
+
+- `Combine @First Name and @Last Name into @Full Name`
+- `Join @Street, @City, and @State into @Full Address`
+- `Merge @Area Code and @Phone Number into @Complete Phone`
+
+**What happens:** The assistant creates a new column (or fills an existing one) with the combined values, using a space or comma as a separator.
+
+### 3. Splitting Columns
+
+**When to use:** One column contains multiple pieces of information that should be separate (like "John Smith" that should be "John" and "Smith").
+
+**Examples:**
+
+- `Split @Full Name into @First Name and @Last Name`
+- `Separate @Full Address into @Street, @City, and @Zip Code`
+- `Break apart @Product Code into @Category and @Item Number`
+
+**What happens:** The assistant splits the values and puts them into the columns you specify.
+
+### 4. Calculating Values
+
+**When to use:** You need to do math with your data (multiply, add, subtract, divide).
+
+**Examples:**
+
+- `Calculate @Total by multiplying @Hours times @Rate`
+- `Add @Base Salary and @Bonus to get @Total Compensation`
+- `Calculate @Discount Price as @Original Price minus @Discount Amount`
+- `Multiply @Quantity by @Unit Price to fill @Line Total`
+
+**What happens:** The assistant performs the calculation for each row and fills in the result.
+
+### 5. Working with Dates
+
+**When to use:** You need to calculate ages, add/subtract days, or fill in today's date.
+
+**Examples:**
+
+- `Calculate age from @Date of Birth and put it in @Age`
+- `Add 30 days to @Start Date and fill @End Date`
+- `Fill @Today's Date with today's date`
+- `Calculate how many days until @Due Date`
+- `Add 1 year to @Hire Date`
+
+**What happens:** The assistant performs the date calculation automatically.
+
+### 6. Looking Up Values from Other Sheets
+
+**When to use:** You have data in one sheet and need to find matching information from another sheet (like looking up a product price based on a product ID).
+
+**Examples:**
+
+- `Match @Payroll ID (Budgets) to @payrollid (Payroll) and copy @frequency (Payroll) into @Frequency (Budgets)`
+- `Look up @price (Products) using @product_id (Orders) and fill @unit_price (Orders)`
+- `Find @name (Departments) based on @department_id (Employees) and put it in @department_name (Employees)`
+- `Match @role (Employees) and @level (Employees) to get @salary (Pay Rates)`
+
+**What happens:** The assistant finds matching rows between sheets and copies the values you need.
+
+For more detailed examples of cross-sheet operations, see [Calculate values across sheets](/help-center/guides/calculate-values-across-sheets).
+
+### 7. Extracting Information
+
+**When to use:** You have a column with free text (like notes or descriptions) and want to pull out specific information.
+
+**Examples:**
+
+- `Extract allergy information from @Notes and put it in @Allergies`
+- `Pull out phone numbers from @Description into @Contact Phone`
+- `Find email addresses in @Comments and extract them to @Email`
+
+**What happens:** The assistant reads through the text and extracts the relevant information into a new column.
+
+### 8. Categorizing or Classifying Data
+
+**When to use:** You want to automatically group or categorize your data based on patterns.
+
+**Examples:**
+
+- `Classify @Job Title into @Department (Engineering, Marketing, Sales, etc.)`
+- `Categorize @Product Description into @Product Type`
+- `Determine @Priority Level from @Issue Description`
+
+**What happens:** The assistant analyzes your data and assigns categories based on what it finds.
+
+### 9. Converting Formats
+
+**When to use:** You need to change data from one format to another (like dates, currencies, or units).
+
+**Examples:**
+
+- `Convert @Date from MM/DD/YYYY to YYYY-MM-DD format`
+- `Convert @Amount from USD to EUR using @rate (Exchange Rates)`
+- `Change @Temperature from Fahrenheit to Celsius`
+
+**What happens:** The assistant converts all values to the new format you specify.
+
+### 10. Formatting Text
+
+**When to use:** You want to change how text looks (capitalization, padding, trimming).
+
+**Examples:**
+
+- `Capitalize the first letter of each word in @Full Name`
+- `Make @Email all lowercase`
+- `Add leading zeros to @Order Number so it's always 5 digits`
+- `Remove extra spaces from @Address`
+
+**What happens:** The assistant applies the formatting you request to all values in the column.
+
+### 11. Deleting or Clearing Data
+
+**When to use:** You want to remove values from a column (either all values or specific ones).
+
+**Examples:**
+
+- `Delete all values in @Notes`
+- `Clear @Status column`
+- `Remove all data from @Temporary Column`
+- `Delete values in @Comments where @Status is "Inactive"`
+
+**What happens:** The assistant removes the values you specify, leaving those cells empty.
+
+## Tips for Best Results
+
+### Be Specific
+
+✅ **Good:** `Fix the format of @Phone Number to include dashes`
+
+❌ **Vague:** `Fix phone numbers`
+
+### Use Column References
+
+✅ **Good:** `Combine @First Name and @Last Name into @Full Name`
+
+❌ **Less clear:** `Combine first and last name`
+
+### Mention Both Source and Target Columns
+
+✅ **Good:** `Extract allergies from @Notes and put them in @Allergies`
+
+❌ **Less clear:** `Extract allergies`
+
+### For Cross-Sheet Operations, Use the (Sheet) Format
+
+✅ **Good:** `Match @product_id (Orders) to @id (Products) and get @price (Products)`
+
+❌ **Less clear:** `Get product prices`
+
+### Use Templates for Better Results
+
+Make sure your [Workbook](/help-center/key-concepts/curator/workbooks) sheets have [Templates](/help-center/key-concepts/curator/templates) assigned. Chat uses Template descriptions and validation rules to better understand your data and provide more accurate suggestions.
+
+## Common Patterns
+
+### Pattern 1: Fix Formatting
+
+**Template:** `Fix [what's wrong] in @Column Name`
+
+- `Fix the date format in @Birth Date`
+- `Fix phone numbers in @Contact`
+- `Fix email addresses in @Email`
+
+### Pattern 2: Combine Information
+
+**Template:** `Combine @Column1 and @Column2 into @Target Column`
+
+- `Combine @First and @Last into @Full Name`
+- `Join @Street, @City, @State into @Address`
+
+### Pattern 3: Split Information
+
+**Template:** `Split @Source Column into @Column1 and @Column2`
+
+- `Split @Full Name into @First Name and @Last Name`
+- `Separate @Address into @Street, @City, @Zip`
+
+### Pattern 4: Calculate
+
+**Template:** `Calculate @Result by [operation] @Column1 [operator] @Column2`
+
+- `Calculate @Total by multiplying @Quantity times @Price`
+- `Add @Base and @Bonus to get @Total`
+
+### Pattern 5: Look Up
+
+**Template:** `Match @Key (Sheet1) to @Key (Sheet2) and get @Value (Sheet2)`
+
+- `Match @product_id (Orders) to @id (Products) and get @price (Products)`
+
+## What If Something Goes Wrong?
+
+If the assistant doesn't understand your request:
+
+1. **Be more specific** - Add more details about what you want
+2. **Use column references** - Type `@` and select the exact columns
+3. **Break it into steps** - Try doing one thing at a time
+4. **Check your column names** - Make sure the columns you're referencing actually exist
+
+The assistant will ask you questions if it needs clarification, especially when there are multiple ways to handle your request.
+
+## Need Help?
+
+If you're not sure how to phrase something, try:
+
+- Describing what you want in plain English
+- Mentioning the column names using `@`
+- Being specific about the result you want
+
+The assistant is designed to understand natural language, so don't worry about using perfect grammar or technical terms!
+
+## Next Steps
+
+Now that you know how to write effective prompts, try using [Chat](/help-center/key-concepts/curator/chat) in your [Workbooks](/help-center/key-concepts/curator/workbooks):
+
+- [Clean your customer's messy data](/help-center/get-started/quickstart/cleaning-your-customers-messy-data) - Step-by-step guide to using Chat
+- [Calculate values across sheets](/help-center/guides/calculate-values-across-sheets) - Learn about cross-sheet calculations
+- [Chat documentation](/help-center/key-concepts/curator/chat) - Learn more about Chat capabilities
