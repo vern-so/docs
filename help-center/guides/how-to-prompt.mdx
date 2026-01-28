@@ -3,15 +3,17 @@ title: "How to write effective prompts"
 description: "You can ask Curator to fix, clean, format, and organize your data using simple, everyday language."
 ---
 
+<Frame>
+  ![Prompt interface](/images/prompt.png)
+</Frame>
+
 ## Quick Start: Using @ to Reference Columns
 
 **The easiest way to tell the assistant which columns to work with is to type `@` followed by the column name.**
 
-When you type `@`, you'll see a list of all your columns. Just click on the one you want, or hit enter.
+When you type `@` and start typing a column name, you'll see a list of matching columns in the workbook (from the current *and* other sheets). Just click on the one you want, or hit enter to add it to the AI’s context.
 
-<Frame>
-  ![Prompt interface](/images/prompt.png)
-</Frame>
+
 
 ## Common Tasks & Examples
 
@@ -23,7 +25,6 @@ When you type `@`, you'll see a list of all your columns. Just click on the one 
 
 - `Fix the format of @Phone Number`
 - `Remove all dashes from @NRIC`
-- `Add dashes to @Phone Number to match the format XXX-XXX-XXXX`
 - `Standardize @Email addresses`
 - `Clean up @Address - remove extra spaces`
 - `Make @Date of Birth all the same format`
@@ -40,17 +41,15 @@ When you type `@`, you'll see a list of all your columns. Just click on the one 
 - `Join @Street, @City, and @State into @Full Address`
 - `Merge @Area Code and @Phone Number into @Complete Phone`
 
-**What happens:** The assistant creates a new column (or fills an existing one) with the combined values, using a space or comma as a separator.
+**What happens:** The assistant fills the target column with the combined values, with a relevant separator.
 
 ### 3. Splitting Columns
 
 **When to use:** One column contains multiple pieces of information that should be separate (like "John Smith" that should be "John" and "Smith").
 
-**Examples:**
+**Example:**
 
 - `Split @Full Name into @First Name and @Last Name`
-- `Separate @Full Address into @Street, @City, and @Zip Code`
-- `Break apart @Product Code into @Category and @Item Number`
 
 **What happens:** The assistant splits the values and puts them into the columns you specify.
 
@@ -71,30 +70,33 @@ When you type `@`, you'll see a list of all your columns. Just click on the one 
 
 **When to use:** You need to calculate ages, add/subtract days, or fill in today's date.
 
-**Examples:**
+**Example:**
 
 - `Calculate age from @Date of Birth and put it in @Age`
-- `Add 30 days to @Start Date and fill @End Date`
-- `Fill @Today's Date with today's date`
-- `Calculate how many days until @Due Date`
-- `Add 1 year to @Hire Date`
 
 **What happens:** The assistant performs the date calculation automatically.
 
-### 6. Looking Up Values from Other Sheets
+### 6. Looking up values from other sheets
 
-**When to use:** You have data in one sheet and need to find matching information from another sheet (like looking up a product price based on a product ID).
+**When to use:**
 
-**Examples:**
+You have data in one sheet and want to bring in related information from another sheet - for example, copying a price, status, or category based on a matching ID.
 
-- `Match @Payroll ID (Budgets) to @payrollid (Payroll) and copy @frequency (Payroll) into @Frequency (Budgets)`
-- `Look up @price (Products) using @product_id (Orders) and fill @unit_price (Orders)`
-- `Find @name (Departments) based on @department_id (Employees) and put it in @department_name (Employees)`
-- `Match @role (Employees) and @level (Employees) to get @salary (Pay Rates)`
+**How to reference columns:**
 
-**What happens:** The assistant finds matching rows between sheets and copies the values you need.
+Type `@` and select a column from the list.
 
-For more detailed examples of cross-sheet operations, see [Calculate values across sheets](/help-center/guides/calculate-values-across-sheets).
+**Example prompt:**
+
+- `Match @Payroll ID with @payrollId, then copy @frequency into @Frequency`
+
+*(In the column picker, you’ll see which sheet each column belongs to)*
+
+**What happens:**
+
+The assistant matches rows across sheets using the columns you selected and copies the requested values into the target sheet.
+
+For more examples of working across sheets, see [Calculate values across sheets](https://www.notion.so/help-center/guides/calculate-values-across-sheets).
 
 ### 7. Extracting Information
 
@@ -128,7 +130,6 @@ For more detailed examples of cross-sheet operations, see [Calculate values acro
 
 - `Convert @Date from MM/DD/YYYY to YYYY-MM-DD format`
 - `Convert @Amount from USD to EUR using @rate (Exchange Rates)`
-- `Change @Temperature from Fahrenheit to Celsius`
 
 **What happens:** The assistant converts all values to the new format you specify.
 
@@ -136,12 +137,9 @@ For more detailed examples of cross-sheet operations, see [Calculate values acro
 
 **When to use:** You want to change how text looks (capitalization, padding, trimming).
 
-**Examples:**
+**Example:**
 
 - `Capitalize the first letter of each word in @Full Name`
-- `Make @Email all lowercase`
-- `Add leading zeros to @Order Number so it's always 5 digits`
-- `Remove extra spaces from @Address`
 
 **What happens:** The assistant applies the formatting you request to all values in the column.
 
@@ -153,8 +151,6 @@ For more detailed examples of cross-sheet operations, see [Calculate values acro
 
 - `Delete all values in @Notes`
 - `Clear @Status column`
-- `Remove all data from @Temporary Column`
-- `Delete values in @Comments where @Status is "Inactive"`
 
 **What happens:** The assistant removes the values you specify, leaving those cells empty.
 
@@ -178,52 +174,9 @@ For more detailed examples of cross-sheet operations, see [Calculate values acro
 
 ❌ **Less clear:** `Extract allergies`
 
-### For Cross-Sheet Operations, Use the (Sheet) Format
-
-✅ **Good:** `Match @product_id (Orders) to @id (Products) and get @price (Products)`
-
-❌ **Less clear:** `Get product prices`
-
 ### Use Templates for Better Results
 
-Make sure your [Workbook](/help-center/key-concepts/curator/workbooks) sheets have [Templates](/help-center/key-concepts/curator/templates) assigned. Chat uses Template descriptions and validation rules to better understand your data and provide more accurate suggestions.
-
-## Common Patterns
-
-### Pattern 1: Fix Formatting
-
-**Template:** `Fix [what's wrong] in @Column Name`
-
-- `Fix the date format in @Birth Date`
-- `Fix phone numbers in @Contact`
-- `Fix email addresses in @Email`
-
-### Pattern 2: Combine Information
-
-**Template:** `Combine @Column1 and @Column2 into @Target Column`
-
-- `Combine @First and @Last into @Full Name`
-- `Join @Street, @City, @State into @Address`
-
-### Pattern 3: Split Information
-
-**Template:** `Split @Source Column into @Column1 and @Column2`
-
-- `Split @Full Name into @First Name and @Last Name`
-- `Separate @Address into @Street, @City, @Zip`
-
-### Pattern 4: Calculate
-
-**Template:** `Calculate @Result by [operation] @Column1 [operator] @Column2`
-
-- `Calculate @Total by multiplying @Quantity times @Price`
-- `Add @Base and @Bonus to get @Total`
-
-### Pattern 5: Look Up
-
-**Template:** `Match @Key (Sheet1) to @Key (Sheet2) and get @Value (Sheet2)`
-
-- `Match @product_id (Orders) to @id (Products) and get @price (Products)`
+Make sure your [Workbook](https://www.notion.so/help-center/key-concepts/curator/workbooks) sheets have [Templates](https://www.notion.so/help-center/key-concepts/curator/templates) assigned. Chat uses Template descriptions and validation rules to better understand your data and provide more accurate suggestions.
 
 ## What If Something Goes Wrong?
 
@@ -248,8 +201,8 @@ The assistant is designed to understand natural language, so don't worry about u
 
 ## Next Steps
 
-Now that you know how to write effective prompts, try using [Chat](/help-center/key-concepts/curator/chat) in your [Workbooks](/help-center/key-concepts/curator/workbooks):
+Now that you know how to write effective prompts, try using [Chat](https://www.notion.so/help-center/key-concepts/curator/chat) in your [Workbooks](https://www.notion.so/help-center/key-concepts/curator/workbooks):
 
-- [Clean your customer's messy data](/help-center/get-started/quickstart/cleaning-your-customers-messy-data) - Step-by-step guide to using Chat
-- [Calculate values across sheets](/help-center/guides/calculate-values-across-sheets) - Learn about cross-sheet calculations
-- [Chat documentation](/help-center/key-concepts/curator/chat) - Learn more about Chat capabilities
+- [Clean your customer's messy data](https://www.notion.so/help-center/get-started/quickstart/cleaning-your-customers-messy-data) - Step-by-step guide to using Chat
+- [Calculate values across sheets](https://www.notion.so/help-center/guides/calculate-values-across-sheets) - Learn about cross-sheet calculations
+- [Chat documentation](https://www.notion.so/help-center/key-concepts/curator/chat) - Learn more about Chat capabilities
