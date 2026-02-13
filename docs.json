@@ -63,6 +63,7 @@
             "group": "Guides",
             "pages": [
               "help-center/guides/import-data-via-webhooks",
+              "help-center/guides/import-excel-clean-export-csv",
               "help-center/guides/partially-update-workbook",
               "help-center/guides/calculate-values-across-sheets",
               "help-center/guides/how-to-prompt"

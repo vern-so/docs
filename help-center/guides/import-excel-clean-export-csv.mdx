@@ -1,0 +1,90 @@
+---
+title: "Turn unstructured Excel files into clean data"
+description: "Step-by-step guide to uploading an Excel file without headers, mapping columns, cleaning data, and exporting the result as CSV from a workbook"
+---
+
+<Frame>
+  ![Excel interface](/images/unstructured.png)
+</Frame>
+
+This guide walks you through the full flow: uploading an unstructured Excel file into a [workbook](/help-center/key-concepts/curator/workbooks), turning off "Use first row as header," mapping columns to your [template](/help-center/key-concepts/curator/templates), cleaning data with [Chat](/help-center/key-concepts/curator/chat), and exporting the sheet as CSV.
+
+## Overview
+
+When your Excel file doesn't have a proper header row (or you don't want to use the first row as headers), Vern uses advanced parsing to detect table structure. You then map those columns to your sheet, optionally resolve duplicates and row matching, clean data in Chat, and export.
+
+The main steps are:
+
+1. Upload the Excel file and choose **not** to use the first row as headers
+2. Map source columns to your template columns
+3. Handle duplicate rows and row matching (if applicable)
+4. Clean and transform data using Chat
+5. Export the sheet as CSV
+
+## Step 1: Upload Excel and turn off "Use first row as header"
+
+<Frame>
+  ![Use first row interface](/images/use_first_row.png)
+</Frame>
+
+1. Open the workbook and select the sheet you want to import into.
+2. Click **Import** (or the upload action) and choose your Excel file.
+3. In the **Import Excel File** dialog:
+   - **Select Sheet** – Pick the sheet to import (e.g. "Sheet1"). The list shows row counts per sheet.
+   - **Use first row as column headers** – Turn this **off** (toggle to the left) so the first row is treated as data and Vern infers structure.
+4. With the toggle off, Vern runs advanced parsing and shows a **Column Preview** with detected columns and sample rows. For large sheets (e.g. 200+ rows), a note may suggest using advanced parsing on smaller sheets for best results.
+5. Click **Continue Import**.
+
+The dialog closes and the column mapping step opens with the parsed data.
+
+## Step 2: Map columns
+
+In the **Map Columns** step:
+
+- **Source columns** (from your Excel) are listed; you map each to a **target** template column or mark it as ignored.
+- Vern can suggest mappings (you may see "Analyzing your data to suggest optimal mappings" briefly). You can accept, change, or clear suggestions.
+- Use the search box to find columns. Adjust mappings by clicking a source and choosing the correct target column.
+- The preview table shows how the first rows will look with the current mappings. Map as many columns as you need; unmapped sources can be ignored.
+- When ready, continue to the next step (e.g. **Continue** or the next button).
+
+## Step 3: Duplicates and row matching (if shown)
+
+Depending on your data and sheet:
+
+- **Remove Duplicate Rows** – If there are duplicate values in a key column, you'll choose which column should be unique and, for each duplicate group, which row to keep. Resolve these and proceed.
+- **Match Rows to Existing Data** – If the sheet already has data, you'll see how imported rows match existing rows (update) or add as new. Select the matching identifier column and resolve any conflicts (e.g. which incoming row maps to which existing row).
+
+Complete these screens as shown, then click **Import** to write the data into the sheet.
+
+## Step 4: Clean data with Chat
+
+After import, your data is in the sheet. Use [Chat](/help-center/key-concepts/curator/chat) to clean and transform it:
+
+1. Open **Chat** in the workbook.
+2. Use natural language and the `@` symbol to reference columns (e.g. `Fix the format of @Phone Number` or `Standardize @Email addresses`).
+3. Send your instructions; the AI will apply changes to the sheet.
+
+For more examples and patterns, see [How to write effective prompts](/help-center/guides/how-to-prompt).
+
+## Step 5: Export as CSV
+
+When the data is ready:
+
+1. In the workbook header, open the sheet menu (the **⋯** or "More" control for the current sheet).
+2. Click **Export CSV**.
+3. The file downloads (e.g. `workbook-name-sheet-name-YYYY-MM-DD.csv`) with all rows and template column headers. If export is in progress, the control may show "Exporting..." until the download finishes.
+
+Export uses the current template column names as CSV headers and includes all records in the sheet.
+
+## Tips
+
+- **Unstructured Excel** – Turning off "Use first row as column headers" is best when the first row is not a real header (e.g. titles, merged cells, or mixed content). Vern then infers columns from the rest of the data.
+- **Column mapping** – Map at least the columns you need for validation and downstream use. Ignored columns are not imported.
+- **Cleaning** – Combine Chat with your [template](/help-center/key-concepts/curator/templates) (descriptions and validation) so the AI can suggest and apply cleaning more accurately.
+
+## Next steps
+
+- [How to write effective prompts](/help-center/guides/how-to-prompt) – Clean and transform data with natural language
+- [Workbooks](/help-center/key-concepts/curator/workbooks) – Concepts and features
+- [Chat](/help-center/key-concepts/curator/chat) – Bulk transformations in workbooks
+- [Partially update a workbook with another file](/help-center/guides/partially-update-workbook) – Merge data from another file by matching rows
