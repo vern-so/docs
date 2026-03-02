@@ -62,6 +62,7 @@
           {
             "group": "Guides",
             "pages": [
+              "help-center/guides/extract-unstructured-documents",
               "help-center/guides/import-data-via-webhooks",
               "help-center/guides/import-excel-clean-export-csv",
               "help-center/guides/partially-update-workbook",

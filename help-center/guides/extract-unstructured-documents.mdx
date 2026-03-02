@@ -1,0 +1,100 @@
+---
+title: "Extract data from unstructured documents"
+description: "Upload a PDF or unstructured Excel file and extract structured data into your template in minutes — no manual copy-pasting required."
+---
+
+<Frame>
+  <iframe
+    className="rounded-xl"
+    src="https://www.tella.tv/video/vid_cmm8fc76g00bw04jogqya3hy3/embed?b=0&title=0&a=1&loop=0&t=0&muted=0&wt=0&o=1"
+    allowFullScreen={true}
+    allowTransparency={false}
+  />
+</Frame>
+
+Vern can extract structured data from PDFs and unstructured Excel files and map it directly into your [template](/help-center/key-concepts/curator/templates) — turning a 40-page document into clean, organized rows in under five minutes.
+
+## Overview
+
+When a customer sends you a document like a strata roll, compliance report, or any multi-page PDF, manually copying data into your expected format is slow and error-prone. With Vern's document extraction, you:
+
+1. Upload the document to a [workbook](/help-center/key-concepts/curator/workbooks)
+2. Let Vern parse and understand the document structure
+3. Provide extraction instructions describing what data to pull
+4. Review a preview and import the extracted rows
+
+## Step 1: Upload your document
+
+Open the workbook with the template you want to populate and click **Import**. Select the PDF or Excel file you want to extract from — you can upload it directly or choose a previously uploaded file.
+
+Click **Continue** and Vern will parse the document to understand its structure and content. This may take a couple of minutes depending on the size of the document.
+
+## Step 2: Write extraction instructions
+
+Once parsing is complete, Vern shows a text field with suggested extraction instructions. Edit these to describe exactly what data you want to pull from the document.
+
+For example, if you're extracting contacts from a strata roll:
+
+> Extract all contacts including all of the different types — managing agents, tenants, and owners — from all units, even if some of the values are missing. Each row should be an individual name with their relevant contact details and unit info.
+
+See [Extraction instructions best practices](#extraction-instructions-best-practices) below for tips on writing effective instructions.
+
+## Step 3: Review and import
+
+Click **Extract** and Vern will process the document. In about a minute, you'll see a preview of the extracted data. Review the rows and columns to make sure everything looks correct.
+
+If you need to adjust column mappings, you can do so before importing. When you're happy with the preview, click **Continue** and then **Import Data** to add the rows to your sheet.
+
+## Extraction instructions best practices
+
+The extraction instructions tell Vern what data to look for and how to structure it. Better instructions lead to better results.
+
+### Use a sample template as a reference
+
+Vern already knows your template columns, so your instructions should focus on **what** to extract and **how** to structure it — not which columns to fill.
+
+For example, if your template has columns for Name, Email, Phone, and Type:
+
+> Extract all people listed in the document. Each row should be one person with their name, email, phone number, and role type (e.g. owner, tenant, managing agent).
+
+### Be specific about what to include
+
+Tell Vern exactly which types of records or sections to extract from. Vague instructions lead to incomplete results.
+
+**Good:**
+> Extract all contacts including owners, tenants, and managing agents from every unit in the document, even if some fields are missing.
+
+**Too vague:**
+> Extract the contacts.
+
+### Give examples when the data is ambiguous
+
+If the document uses inconsistent formatting or labels, provide examples so Vern knows what to look for.
+
+> Extract all line items. "Levy Amount" may appear as "Quarterly Levy", "Admin Fund", or "Sinking Fund" — treat all of these as the levy amount.
+
+### Specify how rows should be structured
+
+Clarify what each row in the output should represent, especially when the document groups data in a way that differs from your template.
+
+> Each row should be an individual contact. If a unit has multiple contacts (e.g. an owner and a managing agent), create separate rows for each person.
+
+### Handle missing values
+
+Documents often have incomplete data. Tell Vern whether to include partial records or skip them.
+
+> Include all contacts even if some values like email or phone number are missing. Leave those fields blank rather than skipping the row.
+
+## Tips
+
+- **Large documents** — Parsing time scales with document size. A 40-page PDF typically takes 1–2 minutes to parse.
+- **Multiple document types** — You can extract from PDFs, scanned documents, and unstructured Excel files.
+- **Iterative extraction** — If the first extraction isn't quite right, adjust your instructions and re-extract. Small tweaks to wording can significantly improve results.
+- **Clean after import** — Use [Chat](/help-center/key-concepts/curator/chat) to fix formatting or fill in missing values after importing. See [How to write effective prompts](/help-center/guides/how-to-prompt) for guidance.
+
+## Next steps
+
+- [How to write effective prompts](/help-center/guides/how-to-prompt) — Clean and transform data with natural language after extraction
+- [Turn unstructured Excel files into clean data](/help-center/guides/import-excel-clean-export-csv) — Alternative flow for Excel files with header mapping
+- [Templates](/help-center/key-concepts/curator/templates) — Set up validation rules for better extraction accuracy
+- [Workbooks](/help-center/key-concepts/curator/workbooks) — Learn more about workbook features
