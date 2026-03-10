@@ -8,6 +8,7 @@
     "dark": "#10B981"
   },
   "favicon": "/favicon.ico",
+  "openapi": "https://app.stainless.com/api/spec/documented/vern-sdk/openapi.documented.yml",
   "navigation": {
     "tabs": [
       {
@@ -102,7 +103,6 @@
           {
             "item": "API reference",
             "icon": "rocket",
-            "openapi": "https://app.stainless.com/api/spec/documented/vern-sdk/openapi.documented.yml",
             "groups": [
               {
                 "group": "Task runs",
