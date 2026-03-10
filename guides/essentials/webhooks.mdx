@@ -1,7 +1,6 @@
 ---
 title: Webhooks
 description: Get notified about run completions and other events.
-icon: "webhook"
 ---
 
 import WebhookPayload from '/snippets/webhook-payload.mdx';
@@ -12,7 +11,7 @@ A webhook is an _event-driven_ method of communication between applications. Unl
 
 Vern uses Svix to deliver secure and reliable webhooks to your application. When events occur in your Vern tasks (like run completion), Vern sends an HTTP `POST` request to your configured webhook endpoint with a JSON payload containing the event details.
 
-You can manage your webhooks through the [Vern Dashboard](https://www.vern.so/webhooks), where you can:
+You can manage your webhooks through the [Vern Dashboard](https://app.vern.so/webhooks), where you can:
 - Configure webhook endpoints
 - View webhook delivery history
 - Access your webhook signing secrets
@@ -24,7 +23,7 @@ You can manage your webhooks through the [Vern Dashboard](https://www.vern.so/we
 
 Currently, Vern supports the following webhook events:
 - `run.completed` - Triggered when a task run completes successfully
-- `profile.linked` - Triggered when a profile is linked via magic link
+- `profile.linked` - Triggered when a company is linked via magic link
 
 ## Payload Structure
 
@@ -74,6 +73,6 @@ If a webhook delivery fails, Svix will automatically retry the delivery followin
 
 ## Next Steps
 
-- Set up webhook endpoints in your [Vern Dashboard](https://www.vern.so/webhooks)
+- Set up webhook endpoints in your [Vern Dashboard](https://app.vern.so/webhooks)
 - Learn about [Tasks](/guides/essentials/tasks) to understand what events can trigger webhooks
 - Explore [Runs](/guides/essentials/runs) to see how task execution relates to webhook events

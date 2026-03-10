@@ -5,7 +5,7 @@ info:
     The Vern API allows you to run tasks and retrieve task execution results.
   version: 1.0.0
 servers:
-  - url: https://vern.so/api/v1
+  - url: https://app.vern.so/api/v1
     description: Production server
 security:
   - ApiKeyAuth: []

@@ -1,7 +1,6 @@
 ---
 title: Runs
 description: Execute Tasks with specific inputs.
-icon: "play"
 ---
 
 import SDKExamples from '/snippets/sdk-create-examples.mdx';
@@ -29,7 +28,7 @@ Runs can be created via the Vern SDK or REST API. Each run requires a Task ID an
 ### Using the REST API
 
 ```bash
-curl -X POST https://vern.so/api/v1/runs \
+curl -X POST https://app.vern.so/api/v1/runs \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -44,7 +43,7 @@ curl -X POST https://vern.so/api/v1/runs \
 
 - `taskId` (required): The ID of the task to execute
 - `inputs` (optional): Object containing task-specific input data
-- `profileId` (optional): User-specified UID for a profile linked via magic link
+- `profileId` (optional): User-specified UID for a company linked via magic link
 - `url` (optional): A URL to be processed by the task
 
 **Response Status Codes:**

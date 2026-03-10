@@ -1,15 +1,15 @@
 ---
 title: Tables
 ---
-Tables let you run several Scouts at the same time for a given Task. Instead of extracting one item at a time, Tables automatically find all matching records and extract them all at once.
+Tables let you run several Scouts at the same time for a given Task. Instead of scraping one item at a time, Tables automatically find all matching records and scrape them all at once.
 
 <Info>
-  **Important:** Before running an extraction, your customer must have signed in and authorized Scouts via a [Link](/help-center/key-concepts/companies/links). The Link allows Scouts to access and extract data on their behalf.
+  **Important:** Before running a scrape, your customer must have signed in and authorized Scouts via a [Link](/help-center/key-concepts/companies/links). The Link allows Scouts to access and scrape data on their behalf.
 </Info>
 
 ## What Are Tables?
 
-Tables are a simple way to run multiple Scouts simultaneously for the same Task. When you need to extract multiple records of the same type, Tables handle the work automatically—finding all the records, identifying their properties, and extracting everything in one go.
+Tables are a simple way to run multiple Scouts simultaneously for the same Task. When you need to scrape multiple records of the same type, Tables handle the work automatically—finding all the records, identifying their properties, and scraping everything in one go.
 
 ## How Tables Work
 
@@ -20,30 +20,30 @@ Tables are a simple way to run multiple Scouts simultaneously for the same Task.
 When you run a Task in a Table, the system automatically:
 - Finds the number of records (e.g., 52 Projects)
 - Identifies their unique identifiers (e.g., Project Name)
-- Extracts all their properties (e.g., Name, Address, Manager, Duration)
+- Scrapes all their properties (e.g., Name, Address, Manager, Duration)
 - Collects everything into a structured table format
 
-## Example: Extracting All Projects
+## Example: Scraping All Projects
 
-Let's say you want to extract all Projects for a customer. You would:
-1. Create a Task that tells the Scout to "Navigate to project, extract all the details on the project info tab"
+Let's say you want to scrape all Projects for a customer. You would:
+1. Create a Task that tells the Scout to "Navigate to project, scrape all the details on the project info tab"
 2. Run that Task in a Table
 
-The Table will automatically find all Projects on the page, identify each one by its Project Name, and extract all the details (Name, Address, Manager, Duration, etc.) for all 52 Projects—without you having to manually go through each one.
+The Table will automatically find all Projects on the page, identify each one by its Project Name, and scrape all the details (Name, Address, Manager, Duration, etc.) for all 52 Projects—without you having to manually go through each one.
 
 ## When to Use Tables vs Single Runs
 
-Use **Tables** when you need to extract multiple records of the same type. Tables are perfect for:
-- Extracting all Projects from a project management system
+Use **Tables** when you need to scrape multiple records of the same type. Tables are perfect for:
+- Scraping all Projects from a project management system
 - Collecting all Employees from an HR system
 - Gathering all Orders from an e-commerce platform
 - Any scenario where you need many records with the same structure
 
 Use **single Runs** when you only need one specific item or report. Single Runs are better for:
-- Extracting a single document
+- Scraping a single document
 - Getting data from one specific page
-- Quick, one-time extractions
+- Quick, one-time scrapes
 
 ## Benefits of Tables
 
-Tables save you significant time by automating the process of finding and extracting multiple records. Instead of manually clicking through each Project or Employee entry, Tables do it all automatically and organize everything into a clean, structured format that's ready to use.
+Tables save you significant time by automating the process of finding and scraping multiple records. Instead of manually clicking through each Project or Employee entry, Tables do it all automatically and organize everything into a clean, structured format that's ready to use.

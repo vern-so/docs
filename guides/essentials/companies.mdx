@@ -1,0 +1,72 @@
+---
+title: Companies
+description: Link your users' identities to Vern tasks for authenticated automation.
+---
+
+Companies in Vern allow you to link your users' identities to automated tasks, enabling you to run tasks on behalf of authenticated users. This is particularly useful when your tasks require user-specific authentication or personalized data.
+
+## How Companies Work
+
+1. Create a company in the Vern dashboard
+2. Generate a magic link for user authentication
+3. User signs in via the magic link
+4. Receive a webhook notification when the company is linked
+5. Use the company ID in your task runs
+
+## Creating and Linking Companies
+
+### 1. Create a Company in the UI
+
+1. Navigate to the [Companies section](https://app.vern.so/companies) in the Vern dashboard
+2. Click "New Company"
+3. Select the [source](https://app.vern.so/companies/sources) you want to link
+4. Enter your user's unique identifier (UID)
+5. Generate a magic link for user authentication
+
+### 2. User Authentication
+
+Share the generated magic link with your user. When they click the link, they'll be directed to authenticate with the selected source.
+
+### 3. Handle Company Linking
+
+When a user successfully authenticates, Vern will send a `profile.linked` [webhook event](/guides/essentials/webhooks) to your configured endpoint:
+
+```json
+{
+  "email": "youruser@microsoft.com",
+  "source": "LinkedIn",
+  "linked_at": "2025-05-29 05:02:59.288+00",
+  "uid": "example-user-123"
+}
+```
+
+## Using Companies in Task Runs
+
+Once a company is linked, you can use it in your task runs by including the `profileId` parameter:
+
+```typescript
+const run = await vern.runs.create({
+  taskId: "sendMessage",
+  profileId: "example-user-123", // Your user's unique UID
+  inputs: {
+    recipient: "Bill Gates",
+    body: "This email was sent using a linked company."
+  }
+});
+```
+
+## Important Notes
+
+1. **Task Configuration**: Make sure to link the required sources to your task in the Vern dashboard before attempting to run it with a company.
+
+2. **Company Status**: A company must be successfully linked before it can be used in task runs. You can check the company status through the dashboard or by handling the `profile.linked` webhook.
+
+3. **Security**: Company IDs are sensitive information. Store them securely and never expose them in client-side code.
+
+4. **User Association**: When creating a company, use your existing user IDs to maintain a clear mapping between your users and their Vern companies.
+
+## Next Steps
+
+- Learn about [Tasks](/guides/essentials/tasks) to understand how to configure tasks with sources
+- Set up [Webhooks](/guides/essentials/webhooks) to handle company linking events
+- Explore [Runs](/guides/essentials/runs) to see how to execute tasks with linked companies

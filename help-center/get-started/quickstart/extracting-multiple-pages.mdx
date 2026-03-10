@@ -1,29 +1,29 @@
 ---
-title: Extract multiple pages from your customer's old system
+title: Scrape multiple pages from your customer's old system
 ---
 
 import { Frame, Info } from '@mintlify/components';
 
-When you need to extract many records of the same type—like all Projects, all Employees, or all Orders—Tables make it easy. Tables automatically find all matching records and extract them all at once.
+When you need to scrape many records of the same type—like all Projects, all Employees, or all Orders—Tables make it easy. Tables automatically find all matching records and scrape them all at once.
 
 <Info>
-  **Important:** Before running an extraction, your customer must have signed in and authorized Scouts via a [Link](/help-center/key-concepts/companies/links). The Link allows Scouts to access and extract data on their behalf.
+  **Important:** Before running a scrape, your customer must have signed in and authorized Scouts via a [Link](/help-center/key-concepts/companies/links). The Link allows Scouts to access and scrape data on their behalf.
 </Info>
 
 ## When to Use Tables
 
-Use Tables when you need to extract:
+Use Tables when you need to scrape:
 - Multiple records of the same type
 - All items from a list or database
 - Data that requires iterating through many pages
 
-For example, if you need to extract all Projects from a project management system, Tables will automatically find all 52 Projects and extract their details (Name, Address, Manager, Duration, etc.) without you having to click through each one.
+For example, if you need to scrape all Projects from a project management system, Tables will automatically find all 52 Projects and scrape their details (Name, Address, Manager, Duration, etc.) without you having to click through each one.
 
 ## Step 1: Create a Task
 
-First, create a Task that tells the Scout how to extract one record. Go to the Tasks section and click "New Task."
+First, create a Task that tells the Scout how to scrape one record. Go to the Tasks section and click "New Task."
 
-Create a Task like "Navigate to project, extract all the details on the project info tab." This tells the Scout what to do for each record.
+Create a Task like "Navigate to project, scrape all the details on the project info tab." This tells the Scout what to do for each record.
 
 ## Step 2: Run Scout and Find Sample Records
 
@@ -31,7 +31,7 @@ Create a Task like "Navigate to project, extract all the details on the project 
   <img src="/images/%23table.png" alt="Tables interface" />
 </Frame>
 
-Once you have your Task, go to [vern.so/runs](https://vern.so/runs) and click "Run Scout." Select your Task, then click "Create table of runs" and then click "Find sample records."
+Once you have your Task, go to [vern.so/runs](https://app.vern.so/runs) and click "Run Scout." Select your Task, then click "Create table of runs" and then click "Find sample records."
 
 The Scouts will start working to find sample records on the page. This helps the system understand what records look like and what properties are available.
 
@@ -41,26 +41,26 @@ After the Scouts complete finding sample records, you'll see a list of:
 - The properties found (like Name, Address, Manager, Duration, etc.)
 - The unique identifiers (like Project Name)
 
-Review these and make any adjustments needed. You can approve which properties you want to extract and confirm which field should be used as the identifier.
+Review these and make any adjustments needed. You can approve which properties you want to scrape and confirm which field should be used as the identifier.
 
-## Step 4: Extract All Data
+## Step 4: Scrape All Data
 
-Once you've approved the properties and identifiers, proceed with extracting all the data. The system will automatically find all matching records (e.g., all 52 Projects) and extract the approved properties for each one.
+Once you've approved the properties and identifiers, proceed with scraping all the data. The system will automatically find all matching records (e.g., all 52 Projects) and scrape the approved properties for each one.
 
-You'll see the extraction progress, and once it completes, you'll have all the extracted records organized in a clean, structured format. You can optionally add this data to a Workbook where you can validate and clean it.
+You'll see the scraping progress, and once it completes, you'll have all the scraped records organized in a clean, structured format. You can optionally add this data to a Workbook where you can validate and clean it.
 
-## Example: Extracting All Projects
+## Example: Scraping All Projects
 
 Let's say you're onboarding a construction company and need all their projects. You would:
-1. Create a Task: "Navigate to project, extract all details from the project info tab"
+1. Create a Task: "Navigate to project, scrape all details from the project info tab"
 2. Go to vern.so/runs, click "Run Scout," select your Task, click "Create table of runs," and then click "Find sample records"
 3. Review and approve the properties (Name, Address, Manager, Duration) and identifier (Project Name)
-4. Proceed with extraction—the system finds all 52 Projects automatically and extracts the approved properties
+4. Proceed with scraping—the system finds all 52 Projects automatically and scrapes the approved properties
 
 Instead of manually clicking through 52 projects, Tables do it all automatically once you've approved the properties.
 
 ## Next Steps
 
-After extracting multiple records, you can:
+After scraping multiple records, you can:
 - [Validate the data](/help-center/quickstart/validating-your-customers-data) using Templates
 - [Clean any messy data](/help-center/quickstart/cleaning-your-customers-messy-data) using Chat

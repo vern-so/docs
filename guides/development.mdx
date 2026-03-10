@@ -1,16 +1,16 @@
 ---
 title: "Developing with Vern"
-description: "Use the Vern SDK or REST API to automate browser tasks."
+description: "Use the Vern SDK or REST API to integrate Vern into your application."
 ---
 
-This guide covers the basics of interacting with Vern to programmatically trigger browser automation tasks.
+This guide covers the basics of interacting with Vern programmatically using the SDK or REST API.
 
 ## Obtaining API Keys
 
 To interact with Vern, you need an API key.
 
 1.  Log in to your Vern account.
-2.  Navigate to the API Keys section in the Vern UI (`https://vern.so/api-keys`).
+2.  Navigate to the API Keys section in the Vern UI (`https://app.vern.so/api-keys`).
 3.  Generate a new API key. Treat this key like a password; keep it secure and do not expose it in client-side code.
 
 ## Using the Vern SDK
@@ -61,7 +61,7 @@ The Vern API is a standard REST API that uses JSON for request and response bodi
 Here's an example of creating a run:
 
 ```bash
-curl -X POST https://vern.so/api/v1/runs \
+curl -X POST https://app.vern.so/api/v1/runs \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{

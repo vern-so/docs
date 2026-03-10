@@ -3,22 +3,31 @@ title: Introduction to Vern
 description: "Understand the core concepts of the Vern platform."
 ---
 
-Welcome to Vern! Vern helps you create browser agents that can automate tasks on websites. To get started, it's helpful to understand two key concepts:
+Welcome to Vern! Vern is a data migration platform that helps you collect, clean, and import your customers' data from legacy systems.
+
+## Key capabilities
 
 <CardGroup cols={2}>
-  <Card title="Tasks" icon="clipboard-list" href="/guides/essentials/tasks">
-    Define specific actions or workflows Vern can perform within a browser. Set
-    up tasks via the Vern UI.
+  <Card title="Curator" icon="table" href="/help-center/key-concepts/curator/workbooks">
+    Import, clean, and validate your customers' data using Workbooks, Templates, and AI-powered Chat.
   </Card>
-  <Card title="Runs" icon="play" href="/guides/essentials/runs">
-    Execute a specific Task. Trigger runs via the API or SDK using a Task ID.
+  <Card title="Scouts" icon="robot" href="/help-center/key-concepts/scouts/tasks">
+    Scrape data from your customers' existing systems using browser agents that navigate websites on their behalf.
   </Card>
 </CardGroup>
 
-## How it Fits Together
+## How it fits together
 
-1.  You define **Tasks** that Vern can perform (e.g., "Search for Properties", "Fill Out Forms", "Extract Data") in the [Vern Dashboard](https://vern.so/tasks).
-2.  You trigger a **Run** via the API or SDK using the **Task ID** for the action you want to perform, along with any required inputs.
-3.  Vern executes the task in a browser and returns the results to you.
+1. **Collect data** — Use [Scouts](/help-center/key-concepts/scouts/tasks) to scrape data from your customers' legacy systems, or have customers upload files and exports directly.
+2. **Clean and validate** — Use [Curator](/help-center/key-concepts/curator/workbooks) to transform messy data into the format your system expects, with AI-assisted cleaning and validation rules.
+3. **Export to your app** — Receive clean, structured data via [webhooks](/guides/essentials/webhooks) and import it into your application.
 
-Ready to get started? Head over to the [Quickstart guide](/guides/quickstart) to set up your first task and run it with our SDK.
+## Developer integration
+
+Vern provides a TypeScript SDK and REST API for programmatic access:
+
+- **Create and trigger Scouts** — Run scraping tasks via the [API](/guides/essentials/runs)
+- **Receive data via webhooks** — Get notified when data is ready with [Svix-powered webhooks](/guides/essentials/webhooks)
+- **Link customer accounts** — Authenticate your customers' systems using [Companies](/guides/essentials/companies)
+
+Ready to get started? Head over to the [Quickstart guide](/guides/quickstart) to set up the SDK and start integrating.

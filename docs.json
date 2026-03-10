@@ -12,22 +12,52 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "Help center",
-        "icon": "question-circle",
+        "tab": "Guides",
+        "icon": "book-open",
         "groups": [
           {
             "group": "Get started",
             "pages": [
               "help-center/get-started/introduction",
-              "help-center/get-started/contact-support",
+              "help-center/get-started/contact-support"
+            ]
+          },
+          {
+            "group": "Data migration",
+            "pages": [
               {
-                "group": "Quickstart",
+                "group": "Collecting data",
+                "icon": "download",
                 "pages": [
                   "help-center/get-started/quickstart/creating-your-first-onboarding-link",
                   "help-center/get-started/quickstart/extracting-a-file-or-export",
-                  "help-center/get-started/quickstart/extracting-multiple-pages",
+                  "help-center/get-started/quickstart/extracting-multiple-pages"
+                ]
+              },
+              {
+                "group": "Importing data",
+                "icon": "file-import",
+                "pages": [
+                  "help-center/guides/extract-unstructured-documents",
+                  "help-center/guides/import-excel-clean-export-csv"
+                ]
+              },
+              {
+                "group": "Cleaning data",
+                "icon": "sparkles",
+                "pages": [
+                  "help-center/guides/partially-update-workbook",
+                  "help-center/guides/calculate-values-across-sheets",
+                  "help-center/guides/how-to-prompt",
                   "help-center/get-started/quickstart/validating-your-customers-data",
                   "help-center/get-started/quickstart/cleaning-your-customers-messy-data"
+                ]
+              },
+              {
+                "group": "Exporting data",
+                "icon": "file-export",
+                "pages": [
+                  "help-center/guides/import-data-via-webhooks"
                 ]
               }
             ]
@@ -43,78 +73,60 @@
                 ]
               },
               {
-                "group": "Scouts",
-                "pages": [
-                  "help-center/key-concepts/scouts/tasks",
-                  "help-center/key-concepts/scouts/runs",
-                  "help-center/key-concepts/scouts/tables"
-                ]
-              },
-              {
                 "group": "Curator",
                 "pages": [
                   "help-center/key-concepts/curator/templates",
                   "help-center/key-concepts/curator/workbooks",
                   "help-center/key-concepts/curator/chat"
                 ]
+              },
+              {
+                "group": "Scouts (web agents)",
+                "pages": [
+                  "help-center/key-concepts/scouts/tasks",
+                  "help-center/key-concepts/scouts/runs",
+                  "help-center/key-concepts/scouts/tables"
+                ]
               }
-            ]
-          },
-          {
-            "group": "Guides",
-            "pages": [
-              "help-center/guides/extract-unstructured-documents",
-              "help-center/guides/import-data-via-webhooks",
-              "help-center/guides/import-excel-clean-export-csv",
-              "help-center/guides/partially-update-workbook",
-              "help-center/guides/calculate-values-across-sheets",
-              "help-center/guides/how-to-prompt"
             ]
           }
         ]
       },
       {
-        "tab": "Developer tools",
-        "icon": "square-terminal",
-        "menu": [
+        "tab": "Developer",
+        "icon": "code",
+        "groups": [
           {
-            "item": "Guides",
-            "icon": "book-open",
-            "groups": [
-              {
-                "group": "Get Started",
-                "pages": [
-                  "guides/introduction",
-                  "guides/quickstart",
-                  "guides/development"
-                ]
-              },
-              {
-                "group": "Essentials",
-                "pages": [
-                  "guides/essentials/tasks",
-                  "guides/essentials/runs",
-                  "guides/essentials/profiles",
-                  "guides/essentials/webhooks"
-                ]
-              }
+            "group": "Guides",
+            "pages": [
+              "guides/introduction",
+              "guides/quickstart",
+              "guides/development",
+              "guides/essentials/webhooks"
             ]
           },
           {
-            "item": "API reference",
-            "icon": "rocket",
-            "groups": [
-              {
-                "group": "Task runs",
-                "pages": [
-                  "api-reference/create-a-new-task-run",
-                  "api-reference/get-a-task-run-by-id"
-                ]
-              },
+            "group": "Scouts",
+            "pages": [
+              "guides/essentials/tasks",
+              "guides/essentials/runs",
+              "guides/essentials/companies"
+            ]
+          },
+          {
+            "group": "API reference",
+            "pages": [
               {
                 "group": "Webhooks",
                 "pages": [
                   "api-reference/workbook-export-webhooks"
+                ]
+              },
+              {
+                "group": "Scout runs",
+                "pages": [
+                  "api-reference/create-a-new-task-run",
+                  "api-reference/get-a-task-run-by-id"
                 ]
               }
             ]
@@ -137,7 +149,7 @@
     "primary": {
       "type": "button",
       "label": "Dashboard",
-      "href": "https://vern.so/companies"
+      "href": "https://app.vern.so/companies"
     }
   },
   "footer": {

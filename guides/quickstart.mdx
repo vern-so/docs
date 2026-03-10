@@ -1,34 +1,15 @@
 ---
 title: "Quickstart"
-description: "Set up and run your first Vern task in under 5 minutes"
+description: "Set up the Vern SDK and start integrating in under 5 minutes"
 ---
 
-This guide will walk you through the essential steps to get started with Vern.
+This guide walks you through setting up the Vern SDK and connecting your application to receive data.
 
-## 1. Create a Task in the UI
+## 1. Get your API key
 
-Tasks define the specific actions Vern can perform within a browser.
-
-1.  Navigate to the [Tasks page](https://vern.so/tasks) in the Vern dashboard.
-2.  Click "New Task" and define the browser actions you want to automate.
-3.  Configure the necessary inputs (e.g., search terms, form fields) and how Vern should interact with websites to complete the task.
-4.  Once created, note down the **Task ID** displayed for your new task.
-
-<div style={{ position: "relative", paddingBottom: "56.25%", height: 0 }}>
-  <iframe
-    className="shadow-lg"
-    style={{
-      position: "absolute",
-      top: 0,
-      left: 0,
-      width: "100%",
-      height: "100%",
-    }}
-    src="https://www.tella.tv/video/cm9831o4j00000bih6mv481m2/embed?b=0&title=0&a=1&loop=1&autoPlay=true&t=0&muted=1&wt=0"
-    allowFullScreen={true}
-    allowTransparency={false}
-  />
-</div>
+1. Log in to your [Vern account](https://app.vern.so).
+2. Navigate to [API Keys](https://app.vern.so/api-keys) in the dashboard.
+3. Generate a new API key. Keep it secure and never expose it in client-side code.
 
 ## 2. Install the SDK
 
@@ -46,110 +27,66 @@ import Vern from "vern";
 const vern = Vern({ apiKey: "YOUR_API_KEY" });
 ```
 
-## 4. Run a Task
+## 4. Set up webhooks
 
-You can run a task using the explicit `runs.create` method:
+Configure a [webhook](/guides/essentials/webhooks) endpoint to receive data from Vern. When events occur — like a workbook export or a Scout run completing — Vern sends an HTTP `POST` request to your endpoint.
 
-```typescript
-const run = await vern.runs.create({
-  taskId: "getCarDetails",
-  inputs: { registration: "YLG19A" },
-});
+You can configure your webhook URL in the [Vern dashboard](https://app.vern.so/settings/webhooks).
+
+```json
+{
+  "id": "run_123",
+  "task": "Get car details",
+  "status": "completed",
+  "inputs": {
+    "registration": "YLG19A"
+  },
+  "response": {
+    "carDetails": {
+      "make": "Hyundai",
+      "model": "i30",
+      "year": "2017"
+    }
+  },
+  "created_at": "2024-01-01T00:00:00Z",
+  "completed_at": "2024-01-01T00:00:02Z"
+}
 ```
 
-## 5. Handle Run Completion
+Learn more about webhook events and verification in the [Webhooks guide](/guides/essentials/webhooks).
+
+## 5. Run a Scout task (optional)
+
+If you're using Scouts to scrape data from customer systems, you can trigger runs programmatically:
 
 <Tabs>
-  <Tab title="Webhooks (Recommended)">
-    Configure a [webhook](/guides/essentials/webhooks) endpoint in your application to receive run completion events. This is the recommended approach as it eliminates the need for polling and provides real-time updates.
-
-    When a run completes, Vern will send a POST request to your configured webhook URL with the following payload:
-
-    ```json
-    {
-      "id": "run_123",
-      "task": "Get car details",
-      "inputs": {
-        "registration": "YLG19A"
-      },
-      "response": {
-        "carDetails": {
-          "make": "Hyundai",
-          "model": "i30",
-          "year": "2017"
-        }
-      },
-      "status": "completed",
-      "created_at": "2024-01-01T00:00:00Z",
-      "started_at": "2024-01-01T00:00:01Z",
-      "completed_at": "2024-01-01T00:00:02Z"
-    }
-    ```
-
-    You can configure your webhook URL in the [Vern dashboard](https://vern.so/settings/webhooks).
-  </Tab>
-  <Tab title="Polling (Easiest)">
-    If you prefer a simpler approach, you can poll for the run to complete using a helper function:
-
+  <Tab title="SDK">
     ```typescript
-    async function pollRunUntilComplete(runId, interval = 10000) {
-      while (true) {
-        const runDetails = await vern.runs.retrieve(runId);
-        if (runDetails.status === "completed") {
-          return runDetails;
-        }
-        await new Promise((resolve) => setTimeout(resolve, interval));
-      }
-    }
-
-    const completedRun = await pollRunUntilComplete(run.id);
-    // completedRun.result will have the extracted response data when done (if specified)
+    const run = await vern.runs.create({
+      taskId: "getCarDetails",
+      inputs: { registration: "YLG19A" },
+    });
     ```
-
-    **Example of a completed run response:**
-
-    ```json
-    {
-      "id": "1acsd6-03b4-4402-84c8-4d2a555b1a4a",
-      "task": "Get car details",
-      "status": "completed",
-      "created_at": "2025-05-05T02:07:58.444979Z",
-      "started_at": "2025-05-05T02:09:23.379952Z",
-      "completed_at": "2025-05-05T02:09:23.379952Z",
-      "inputs": {
-        "registration": "YLG19A"
-      }
-      "response": {
-        "carDetails": {
-          "make": "Hyundai",
-          "model": "i30",
-          "year": "2017"
+  </Tab>
+  <Tab title="REST API">
+    ```bash
+    curl -X POST https://app.vern.so/api/v1/runs \
+      -H "x-api-key: YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "taskId": "getCarDetails",
+        "inputs": {
+          "registration": "YLG19A"
         }
-      }
-    }
+      }'
     ```
   </Tab>
 </Tabs>
 
-## Next Steps
+Learn more about creating tasks and managing runs in the [Scouts section](/guides/essentials/tasks).
 
-You've successfully defined a task and executed a run!
+## Next steps
 
-Explore the documentation further to learn about:
-
-- Creating more complex browser automation tasks
-- Setting up advanced configurations
-- Error handling and debugging
-- Integrating Vern with your application workflow
-
-```bash
-curl -X POST https://vern.so/api/v1/runs \
-  -H "x-api-key: YOUR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "taskId": "getCarDetails",
-    "inputs": {
-      "registration": "YLG19A"
-    }
-  }'
-```
+- [Developing with Vern](/guides/development) — API authentication, error handling, and SDK details
+- [Webhooks](/guides/essentials/webhooks) — Event types, verification, and best practices
+- [Scouts](/guides/essentials/tasks) — Create browser automation tasks to scrape customer data

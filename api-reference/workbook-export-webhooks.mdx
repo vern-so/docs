@@ -85,7 +85,7 @@ You can configure separate webhook endpoints for preview and production events i
 |---|---|---|
 | `version` | `string` | Always `"1.0"` for flat payloads |
 | `workbook_id` | `string` | The ID of the exported workbook |
-| `external_id` | `string \| null` | Optional external identifier from the company profile |
+| `external_id` | `string \| null` | Optional external identifier from the company |
 | `batch` | `object` | Batch metadata (see [Batching](#batching)) |
 | `sheets` | `array` | Array of sheet objects |
 | `sheets[].id` | `string` | Sheet ID |
@@ -161,7 +161,7 @@ Each row object in `data` contains your column names as keys, plus:
 | `version` | `string` | Always `"2.0"` for nested payloads |
 | `workbook_id` | `string` | The ID of the exported workbook |
 | `company_name` | `string` | Name of the company that owns the workbook |
-| `external_id` | `string \| null` | Optional external identifier from the company profile |
+| `external_id` | `string \| null` | Optional external identifier from the company |
 | `export_mode` | `string` | Always `"nested"` |
 | `batch` | `object` | Batch metadata (see [Batching](#batching)) |
 | `root_sheets` | `string[]` | Names of the root-level sheets in the hierarchy |
