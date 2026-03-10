@@ -110,6 +110,12 @@
                   "api-reference/create-a-new-task-run",
                   "api-reference/get-a-task-run-by-id"
                 ]
+              },
+              {
+                "group": "Webhooks",
+                "pages": [
+                  "api-reference/workbook-export-webhooks"
+                ]
               }
             ]
           }
