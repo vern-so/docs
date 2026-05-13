@@ -1,0 +1,56 @@
+---
+title: How import works
+description: The AI agent that maps your customer's data into your schema.
+---
+
+Most of the work of onboarding a customer is converting their messy data into your clean schema. Vern's import agent does that for you in four steps you can review and override.
+
+You start with a file (CSV, Excel, PDF, or whatever Scouts pulled). You end with rows that pass your [template](/help-center/import/templates) rules and are ready to send to your app.
+
+## The four steps
+
+<Steps>
+  <Step title="Upload">
+    Open the sheet you want to import into and click **Import**. Drop in the file.
+
+    Vern handles CSV, Excel, and PDF — including multi-table PDFs and Excel files without proper header rows. If you re-upload a file with the same name, Vern warns you so you don't double-import by accident.
+  </Step>
+  <Step title="Clarify">
+    The agent reads your file, compares it to your template, and asks a few clarifying questions. It might ask how to interpret an ambiguous column, what to do with partial records, or how to normalize a date.
+
+    For unknowns the agent can resolve itself, it runs a web search (via Exa) instead of asking you. The goal is to ask only the questions you actually need to answer.
+  </Step>
+  <Step title="Review plan">
+    Vern generates a plain-English **migration plan** describing exactly what it'll do — column-by-column mappings, transformations, validation expectations.
+
+    Read it. Tweak the questions you answered if anything looks wrong. Vern regenerates the plan on the fly.
+
+    If you've imported a similar file before, Vern reuses that plan. Toggle **Ignore previous plan** if you want a fresh one (for example, the source's export format changed).
+  </Step>
+  <Step title="Execute">
+    Click **Execute**. The agent runs the plan as a script over your file. You see progress live.
+
+    When it finishes, the sheet shows the imported rows, marked valid (green), needs-review (yellow), or invalid (red) against your template rules.
+  </Step>
+</Steps>
+
+## Plans are reusable
+
+The plan Vern generates is split into two parts: a **recipe** (the portable logic for "ServiceM8 → our schema") and an **adapter** (one customer's specific values). The recipe carries over to your next customer using the same source. The adapter starts fresh each time.
+
+This means the second customer you onboard from a given system is dramatically faster than the first.
+
+## If something goes wrong mid-import
+
+You can stop a running import. The agent shuts down gracefully on the server, not just in your browser.
+
+You can't run two imports concurrently on the same sheet — Vern blocks the second one so you don't get conflicting writes.
+
+## After import
+
+If the agent missed something — a value didn't normalize, a rule was misinterpreted — [spot-check and fix](/help-center/import/spot-check-and-fix) the sheet. That's what manual edits and chat are for.
+
+## Next
+
+- [Templates](/help-center/import/templates) — define what the agent is mapping to.
+- [Spot-check and fix](/help-center/import/spot-check-and-fix) — what to do when the agent isn't perfect.

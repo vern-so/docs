@@ -1,33 +1,29 @@
 ---
-title: Introduction to Vern
-description: "Understand the core concepts of the Vern platform."
+title: Introduction to Vern's API
+description: Programmatic access for embedding Vern into your onboarding flow.
 ---
 
-Welcome to Vern! Vern is a data migration platform that helps you collect, clean, and import your customers' data from legacy systems.
+Vern is built to be used as a UI by an implementation team — and as an API by your backend. Most customers use both.
 
-## Key capabilities
+## What the API does
 
 <CardGroup cols={2}>
-  <Card title="Curator" icon="table" href="/help-center/key-concepts/curator/workbooks">
-    Import, clean, and validate your customers' data using Workbooks, Templates, and AI-powered Chat.
+  <Card title="Create companies" icon="building" href="/api-reference/create-a-company">
+    Programmatically spin up a company, workbook, and magic link in one call. Drop the magic link into your existing onboarding flow.
   </Card>
-  <Card title="Scouts" icon="robot" href="/help-center/key-concepts/scouts/tasks">
-    Scrape data from your customers' existing systems using browser agents that navigate websites on their behalf.
+  <Card title="Receive cleaned data" icon="webhook" href="/guides/webhooks">
+    Listen for workbook exports over Svix-delivered webhooks. The `external_id` you pass at company creation comes back on every export, so you can match it to your customer record.
   </Card>
 </CardGroup>
 
-## How it fits together
+## Typical integration
 
-1. **Collect data** — Use [Scouts](/help-center/key-concepts/scouts/tasks) to scrape data from your customers' legacy systems, or have customers upload files and exports directly.
-2. **Clean and validate** — Use [Curator](/help-center/key-concepts/curator/workbooks) to transform messy data into the format your system expects, with AI-assisted cleaning and validation rules.
-3. **Export to your app** — Receive clean, structured data via [webhooks](/guides/essentials/webhooks) and import it into your application.
+1. Your app calls `POST /api/v1/companies` when a new customer signs up. You receive a magic link URL back.
+2. You email or embed the magic link in your onboarding UI.
+3. The customer shares their data through the link. Your implementation team imports it in Vern.
+4. When the workbook is ready, your team exports it via webhook to your app's endpoint.
 
-## Developer integration
+## Next
 
-Vern provides a TypeScript SDK and REST API for programmatic access:
-
-- **Create and trigger Scouts** — Run scraping tasks via the [API](/guides/essentials/runs)
-- **Receive data via webhooks** — Get notified when data is ready with [Svix-powered webhooks](/guides/essentials/webhooks)
-- **Link customer accounts** — Authenticate your customers' systems using [Companies](/guides/essentials/companies)
-
-Ready to get started? Head over to the [Quickstart guide](/guides/quickstart) to set up the SDK and start integrating.
+- [Authentication](/guides/authentication) — how API keys work.
+- [Quickstart](/guides/quickstart) — make your first call.

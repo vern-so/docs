@@ -1,0 +1,40 @@
+---
+title: API keys
+description: Generate keys for the Vern REST API.
+---
+
+API keys let your backend create companies and listen for events without anyone logging into the dashboard.
+
+## Generate a key
+
+Go to [Settings → API keys](https://app.vern.so/api-keys) and click **New key**. Give it a name (e.g. "Production server"). Copy the key — Vern doesn't show it again.
+
+Treat it like a password. Don't commit it. Don't put it in client-side code. Use environment variables.
+
+## Rotate or revoke
+
+To revoke a key, open its row's menu and click **Delete**. Any request using that key fails immediately with a 401.
+
+To rotate, create a new key, swap it in your environment, then delete the old one.
+
+## Use it
+
+Pass the key as an `x-api-key` header on every request:
+
+```bash
+curl https://app.vern.so/api/v1/companies \
+  -H "x-api-key: YOUR_KEY"
+```
+
+See the [developer quickstart](/guides/quickstart) for full setup.
+
+## What keys let you do
+
+- Create companies and magic links — [`POST /api/v1/companies`](/api-reference/create-a-company).
+
+Webhook payloads are signed separately via Svix, not authenticated with API keys — see [Webhooks](/guides/webhooks).
+
+## Next
+
+- [Developer quickstart](/guides/quickstart) — make your first API call.
+- [Webhooks](/guides/webhooks) — receive events from Vern.

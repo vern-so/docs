@@ -1,92 +1,70 @@
 ---
-title: "Quickstart"
-description: "Set up the Vern SDK and start integrating in under 5 minutes"
+title: Quickstart
+description: Make your first API call in under five minutes.
 ---
 
-This guide walks you through setting up the Vern SDK and connecting your application to receive data.
+This walks you from API key to a working integration: create a company programmatically, then receive a webhook when its data is ready.
 
-## 1. Get your API key
+## 1. Get an API key
 
-1. Log in to your [Vern account](https://app.vern.so).
-2. Navigate to [API Keys](https://app.vern.so/api-keys) in the dashboard.
-3. Generate a new API key. Keep it secure and never expose it in client-side code.
+See [Authentication](/guides/authentication).
 
-## 2. Install the SDK
+## 2. Create a company
+
+This single call creates the company, its workbook (with one sheet per template), and a magic link to share with your customer.
 
 ```bash
-npm install vern
+curl -X POST https://app.vern.so/api/v1/companies \
+  -H "x-api-key: $VERN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Acme Corp",
+    "source": "01234567-89ab-cdef-0123-456789abcdef",
+    "email": "ops@yourco.com",
+    "external_id": "customer_42"
+  }'
 ```
 
-## 3. Initialize the SDK
-
-Import and initialize the Vern SDK with your API key:
-
-```typescript
-import Vern from "vern";
-
-const vern = Vern({ apiKey: "YOUR_API_KEY" });
-```
-
-## 4. Set up webhooks
-
-Configure a [webhook](/guides/essentials/webhooks) endpoint to receive data from Vern. When events occur — like a workbook export or a Scout run completing — Vern sends an HTTP `POST` request to your endpoint.
-
-You can configure your webhook URL in the [Vern dashboard](https://app.vern.so/settings/webhooks).
+The response includes a `magic_link_url`:
 
 ```json
 {
-  "id": "run_123",
-  "task": "Get car details",
-  "status": "completed",
-  "inputs": {
-    "registration": "YLG19A"
-  },
-  "response": {
-    "carDetails": {
-      "make": "Hyundai",
-      "model": "i30",
-      "year": "2017"
-    }
-  },
-  "created_at": "2024-01-01T00:00:00Z",
-  "completed_at": "2024-01-01T00:00:02Z"
+  "company": { "id": "...", "name": "Acme Corp", "external_id": "customer_42", "created_at": "..." },
+  "workbook_id": "...",
+  "sheets": [ /* one per template */ ],
+  "magic_link_url": "https://app.vern.so/link/abc123"
 }
 ```
 
-Learn more about webhook events and verification in the [Webhooks guide](/guides/essentials/webhooks).
+You can find the `source` UUID in [Settings → Sources](https://app.vern.so/sources). See [Create a company](/api-reference/create-a-company) for full request/response details.
 
-## 5. Run a Scout task (optional)
+## 3. Send the magic link
 
-If you're using Scouts to scrape data from customer systems, you can trigger runs programmatically:
+Drop `magic_link_url` into your onboarding email or UI. The customer authenticates and uploads data — no Vern login required on their end.
 
-<Tabs>
-  <Tab title="SDK">
-    ```typescript
-    const run = await vern.runs.create({
-      taskId: "getCarDetails",
-      inputs: { registration: "YLG19A" },
-    });
-    ```
-  </Tab>
-  <Tab title="REST API">
-    ```bash
-    curl -X POST https://app.vern.so/api/v1/runs \
-      -H "x-api-key: YOUR_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d '{
-        "taskId": "getCarDetails",
-        "inputs": {
-          "registration": "YLG19A"
-        }
-      }'
-    ```
-  </Tab>
-</Tabs>
+## 4. Receive cleaned data via webhook
 
-Learn more about creating tasks and managing runs in the [Scouts section](/guides/essentials/tasks).
+Once your implementation team has imported and exported the workbook, Vern POSTs the cleaned rows to your endpoint:
 
-## Next steps
+```json
+{
+  "version": "1.0",
+  "workbook_id": "wb_abc123",
+  "external_id": "customer_42",
+  "batch": { "id": "batch_...", "index": 0, "total": 1, "size": 50 },
+  "sheets": [
+    {
+      "id": "sheet_001",
+      "name": "Employees",
+      "data": [ /* row objects */ ]
+    }
+  ]
+}
+```
 
-- [Developing with Vern](/guides/development) — API authentication, error handling, and SDK details
-- [Webhooks](/guides/essentials/webhooks) — Event types, verification, and best practices
-- [Scouts](/guides/essentials/tasks) — Create browser automation tasks to scrape customer data
+Use `external_id` to match the payload back to your customer record. Configure the endpoint in [Settings → Webhooks](https://app.vern.so/webhooks). See [Webhooks](/guides/webhooks) for setup, signature verification, batching, and the full payload schema (flat and nested).
+
+## Next
+
+- [Create a company](/api-reference/create-a-company) — full API reference.
+- [Webhooks](/guides/webhooks) — payload schemas and verification.

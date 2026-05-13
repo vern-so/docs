@@ -1,0 +1,45 @@
+---
+title: Export a workbook
+description: Send cleaned data out of Vern, as CSV or via webhook.
+---
+
+Once a workbook looks right, hit **Export** on a sheet's header. One dialog covers both ways to get data out.
+
+## CSV
+
+The simplest option. Choose **CSV** in the export dialog, pick the rows you want (everything, or a filtered subset), click **Export**.
+
+A file like `acme-employees-2026-05-12.csv` downloads with template column names as headers, one row per record. Validation errors aren't included — what you export is what's in the sheet.
+
+Use this when:
+- You need a human-readable handoff to someone outside Vern.
+- You're manually loading the data into your app once.
+- You want a backup before making a risky change.
+
+## Webhook
+
+Choose **Webhook** in the export dialog, pick the endpoint you've configured, click **Export**. Vern delivers the rows to your endpoint in batches.
+
+Use this when:
+- You want the cleaned data to land in your app automatically.
+- You're integrating Vern into your existing onboarding pipeline.
+- You're sending data more than once (it's slow to manually export CSVs every time).
+
+You'll need to [set up a webhook endpoint](/guides/webhooks) first.
+
+## Preview vs production endpoints
+
+The export dialog shows two channels: **preview** (for staging/testing) and **production**. Configure separate endpoints for each in your webhook settings — preview goes to your test environment, production to your live one.
+
+## Nested or flat
+
+For webhook exports, you can choose how related sheets are delivered:
+
+- **Flat** — each sheet is its own array of rows. Good for independent sheets.
+- **Nested** — child sheets are nested under their parents via link rules. Good when sheets have foreign-key relationships and you want them grouped.
+
+Vern handles circular links between sheets cleanly. The payload schemas for both formats are in the [Webhooks](/guides/webhooks#payload-format) reference.
+
+## Next
+
+- [Webhooks](/guides/webhooks) — set up the endpoint that catches exports.

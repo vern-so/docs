@@ -1,0 +1,39 @@
+---
+title: Data retention
+description: Set how long workbook data sticks around before it's automatically purged.
+---
+
+By default, workbook data stays in Vern indefinitely. If your compliance posture requires bounded retention, set a retention policy and Vern will purge automatically on a schedule.
+
+## Set the policy
+
+Go to **Settings → Data retention**. Pick a preset:
+
+- **Forever** — data stays until you delete it.
+- **30 days** — workbook data is purged 30 days after the workbook's last activity.
+- **90 days** — same, on a 90-day window.
+- **Custom** — set any retention window.
+
+The policy applies to every company under your account.
+
+## What gets purged
+
+- Workbook sheet data (cell values).
+- Uploaded source files.
+- Import run history for the affected workbook.
+
+The company itself, magic links, and templates aren't touched — only customer data within workbooks.
+
+## What "last activity" means
+
+The clock resets every time a user edits a sheet, runs an import, or makes other changes within the workbook. A workbook in active onboarding never expires; an abandoned one will.
+
+## Compliance posture
+
+This is the simplest path to a data-minimization story. If your customers ask "how long does Vern keep our data?", this is the answer.
+
+For stronger guarantees (per-workbook policies, immediate purge), [contact us](/help-center/get-started/contact-support).
+
+## Next
+
+- [API keys](/help-center/settings/api-keys) — control programmatic access.

@@ -1,0 +1,34 @@
+---
+title: Authentication
+description: API keys, headers, and basic security guidance.
+---
+
+All Vern API requests authenticate with an API key passed in the `x-api-key` header.
+
+```bash
+curl https://app.vern.so/api/v1/companies \
+  -H "x-api-key: YOUR_API_KEY"
+```
+
+## Get a key
+
+Sign in to [app.vern.so](https://app.vern.so) and go to [Settings → API keys](https://app.vern.so/api-keys). Click **New key** and copy it — Vern doesn't show it again after creation.
+
+For details on generating, rotating, and revoking keys, see [API keys](/help-center/settings/api-keys).
+
+## What can go wrong
+
+- **401 Unauthorized** — key is missing, malformed, or revoked.
+- **429 Too many requests** — you've hit the rate limit. Back off and retry.
+
+## Security
+
+- Never put your key in client-side code. Vern's API is designed to be called from your backend.
+- Use environment variables, not hardcoded strings.
+- Rotate keys periodically and immediately if you suspect leakage.
+
+Webhook payloads are signed separately via Svix — see [Webhooks](/guides/webhooks) for signature verification.
+
+## Next
+
+- [Quickstart](/guides/quickstart) — make your first API call.

@@ -8,7 +8,6 @@
     "dark": "#10B981"
   },
   "favicon": "/favicon.ico",
-  "openapi": "https://app.stainless.com/api/spec/documented/vern-sdk/openapi.documented.yml",
   "navigation": {
     "tabs": [
       {
@@ -19,75 +18,46 @@
             "group": "Get started",
             "pages": [
               "help-center/get-started/introduction",
+              "help-center/get-started/quickstart",
               "help-center/get-started/contact-support"
             ]
           },
           {
-            "group": "Data migration",
+            "group": "Onboard a new customer",
             "pages": [
+              "help-center/onboard/create-a-company",
+              "help-center/onboard/share-a-magic-link",
+              "help-center/onboard/add-a-source",
               {
-                "group": "Collecting data",
-                "icon": "download",
+                "group": "Scrape with Scouts",
                 "pages": [
-                  "help-center/get-started/quickstart/creating-your-first-onboarding-link",
-                  "help-center/get-started/quickstart/extracting-a-file-or-export",
-                  "help-center/get-started/quickstart/extracting-multiple-pages"
-                ]
-              },
-              {
-                "group": "Importing data",
-                "icon": "file-import",
-                "pages": [
-                  "help-center/guides/extract-unstructured-documents",
-                  "help-center/guides/import-excel-clean-export-csv"
-                ]
-              },
-              {
-                "group": "Cleaning data",
-                "icon": "sparkles",
-                "pages": [
-                  "help-center/guides/partially-update-workbook",
-                  "help-center/guides/calculate-values-across-sheets",
-                  "help-center/guides/how-to-prompt",
-                  "help-center/get-started/quickstart/validating-your-customers-data",
-                  "help-center/get-started/quickstart/cleaning-your-customers-messy-data"
-                ]
-              },
-              {
-                "group": "Exporting data",
-                "icon": "file-export",
-                "pages": [
-                  "help-center/guides/import-data-via-webhooks"
+                  "help-center/onboard/scouts/tasks",
+                  "help-center/onboard/scouts/runs",
+                  "help-center/onboard/scouts/tables"
                 ]
               }
             ]
           },
           {
-            "group": "Key concepts",
+            "group": "Clean customer data",
             "pages": [
-              {
-                "group": "Companies",
-                "pages": [
-                  "help-center/key-concepts/companies/links",
-                  "help-center/key-concepts/companies/forms"
-                ]
-              },
-              {
-                "group": "Curator",
-                "pages": [
-                  "help-center/key-concepts/curator/templates",
-                  "help-center/key-concepts/curator/workbooks",
-                  "help-center/key-concepts/curator/chat"
-                ]
-              },
-              {
-                "group": "Scouts (web agents)",
-                "pages": [
-                  "help-center/key-concepts/scouts/tasks",
-                  "help-center/key-concepts/scouts/runs",
-                  "help-center/key-concepts/scouts/tables"
-                ]
-              }
+              "help-center/import/how-it-works",
+              "help-center/import/templates",
+              "help-center/import/spot-check-and-fix"
+            ]
+          },
+          {
+            "group": "Send data to your app",
+            "pages": [
+              "help-center/send/export-a-workbook"
+            ]
+          },
+          {
+            "group": "Settings",
+            "pages": [
+              "help-center/settings/team",
+              "help-center/settings/data-retention",
+              "help-center/settings/api-keys"
             ]
           }
         ]
@@ -97,38 +67,18 @@
         "icon": "code",
         "groups": [
           {
-            "group": "Guides",
+            "group": "Get started",
             "pages": [
               "guides/introduction",
-              "guides/quickstart",
-              "guides/development",
-              "guides/essentials/webhooks"
-            ]
-          },
-          {
-            "group": "Scouts",
-            "pages": [
-              "guides/essentials/tasks",
-              "guides/essentials/runs",
-              "guides/essentials/companies"
+              "guides/authentication",
+              "guides/quickstart"
             ]
           },
           {
             "group": "API reference",
             "pages": [
-              {
-                "group": "Webhooks",
-                "pages": [
-                  "api-reference/workbook-export-webhooks"
-                ]
-              },
-              {
-                "group": "Scout runs",
-                "pages": [
-                  "api-reference/create-a-new-task-run",
-                  "api-reference/get-a-task-run-by-id"
-                ]
-              }
+              "api-reference/create-a-company",
+              "guides/webhooks"
             ]
           }
         ]

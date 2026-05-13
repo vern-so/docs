@@ -1,0 +1,35 @@
+---
+title: Add a source
+description: Tag which legacy system you're migrating from so the import agent can reuse plans across customers.
+---
+
+A source labels the legacy system your customer's data is coming from — for example, "ServiceM8", "Workday", or "Salesforce".
+
+Sources are optional. Vern doesn't connect to them or sync against them. You're just tagging a company with where its data originally lived.
+
+## Why bother
+
+The second customer you onboard from a given source is dramatically faster than the first.
+
+When Vern's import agent generates a migration plan for a customer, it stores the portable parts of that plan (the "recipe") against the source. The next time you onboard a customer tagged with the same source, the agent starts from that recipe instead of from scratch.
+
+In practice: your first ServiceM8 migration takes the longest. Your tenth is mostly automatic.
+
+## Add one
+
+Go to [Sources](https://app.vern.so/sources) and click **New source**.
+
+1. Give it a name your team will recognize.
+2. Optionally upload a logo and pick a brand color.
+3. Save.
+
+## Tag a company
+
+When you create a company, pick the matching source. From then on, every import for that company benefits from any plans previously generated for other companies using the same source.
+
+You can also re-tag an existing company by editing its Properties.
+
+## Next
+
+- [Create a company](/help-center/onboard/create-a-company) — pick a source when you set up a customer.
+- [How import works](/help-center/import/how-it-works) — the agent-driven flow that gets faster with every customer you onboard from a known source.

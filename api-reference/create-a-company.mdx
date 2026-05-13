@@ -1,0 +1,88 @@
+---
+title: Create a company
+description: Programmatically create a company, workbook, and magic link in one call.
+---
+
+```http
+POST https://app.vern.so/api/v1/companies
+```
+
+Creates a company with an associated workbook (one sheet per selected template) and a magic link the customer can use to share data.
+
+## Authentication
+
+Requires an `x-api-key` header. See [Authentication](/guides/authentication).
+
+## Request body
+
+<ParamField body="name" type="string" required>
+  Display name for the company. Typically your customer's organization name.
+</ParamField>
+
+<ParamField body="source" type="string (uuid)" required>
+  The UUID of the integration the customer will authenticate against. Find this in [Settings → Sources](https://app.vern.so/sources).
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  Email of an existing teammate in your Vern account. Used as the `created_by` for the new workbook.
+</ParamField>
+
+<ParamField body="external_id" type="string">
+  Your own identifier for this customer (e.g. their ID in your database). Returned on every webhook for the resulting workbook, so you can match it back. Max 255 characters; alphanumeric, hyphens, and underscores only. Must be unique within your account.
+</ParamField>
+
+<ParamField body="template_ids" type="string[] (uuids)">
+  Which templates to create sheets from. If omitted, every template in your account is used.
+</ParamField>
+
+## Response
+
+`201 Created`
+
+```json
+{
+  "company": {
+    "id": "uuid",
+    "name": "Acme Corp",
+    "external_id": "customer_42",
+    "created_at": "2026-05-12T15:32:11.000Z"
+  },
+  "workbook_id": "uuid",
+  "sheets": [
+    { "id": "uuid", "name": "Employees", "template_id": "uuid" },
+    { "id": "uuid", "name": "Projects", "template_id": "uuid" }
+  ],
+  "magic_link_url": "https://app.vern.so/link/abc123"
+}
+```
+
+The magic link expires after 7 days. Refresh it from the company's page in the dashboard.
+
+## Errors
+
+| Status | Meaning |
+|---|---|
+| `400` | `name`, `source`, or `email` missing; `external_id` malformed; `template_ids` invalid. |
+| `401` | API key missing or invalid. |
+| `404` | The `source` UUID isn't an integration in your account, or the `email` isn't a teammate. |
+| `409` | `external_id` already used by another company in your account. |
+| `429` | Rate limit hit — back off and retry. |
+| `500` | Server error. |
+
+## Example
+
+```bash
+curl -X POST https://app.vern.so/api/v1/companies \
+  -H "x-api-key: $VERN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Acme Corp",
+    "source": "01234567-89ab-cdef-0123-456789abcdef",
+    "email": "ops@yourco.com",
+    "external_id": "customer_42"
+  }'
+```
+
+## Next
+
+- [Webhooks](/guides/webhooks) — receive cleaned data for the new company once its workbook is exported.
