@@ -1,0 +1,82 @@
+---
+title: Errors & idempotency
+description: The shared error model, idempotency and recovery semantics, and data region notes.
+---
+
+<Note>
+  **Preview.** Part of the Migration API — in active design and not yet generally
+  available. Endpoints and payloads may change. See the
+  [overview](/migration-api/introduction).
+</Note>
+
+Every Migration API endpoint shares one error model and one idempotency model.
+
+## Status codes
+
+| Status | Meaning |
+|---|---|
+| `400` | Malformed request — a required field is missing or a value is invalid. |
+| `401` | API key missing, malformed, or revoked. |
+| `404` | The referenced company, run, or sheet isn't in your account. |
+| `409` | A uniqueness or idempotency conflict (e.g. a reused `external_id`, or the same `idempotency_key` with a different payload). |
+| `429` | Rate limit hit — back off and retry. |
+| `500` | Server error — safe to retry idempotent requests. |
+
+Run-level failures are different from request errors: an import or export request
+can return `201` (accepted) and then resolve to a `failed` run. Read the run's
+`error` field for the reason. See [Poll an import](/migration-api/poll-an-import).
+
+## Error body
+
+Every error response is a JSON object with a single human-readable `error`
+string:
+
+```json
+{ "error": "external_id must contain only alphanumeric characters, hyphens, and underscores (max 255 chars)" }
+```
+
+There is no machine-readable error code, field pointer, or request-id header
+today — branch on the HTTP status and surface the `error` message for debugging.
+
+## Rate limits
+
+Each endpoint allows roughly **100 requests per minute** per API key; over that
+you get a `429` with `{ "error": "Too many requests" }`. There's no `Retry-After`
+header — back off (a second or two) and retry. Space your run polling out so a
+fleet of concurrent migrations doesn't burn the budget on status checks.
+
+## Idempotency
+
+Import and export creation accept an **`idempotency_key`** you choose. The key is
+unique per company: re-sending the same key for the same company returns the
+**existing run** instead of creating a second one.
+
+This makes retries safe and doubles as recovery — if you lose a `run_id`, re-POST
+the original request with the same key to get the run back. (For imports you can
+also look up the active run; see [Poll an import](/migration-api/poll-an-import#recovering-a-run).)
+
+<Tip>
+  An `idempotency_key` dedupes **run creation only**. For destination export, it
+  does not prevent a retried write from duplicating a record in the destination —
+  that's handled by a required natural key at publish time. See
+  [Export to a destination](/migration-api/export-to-destination).
+</Tip>
+
+## Polling conventions
+
+- Poll runs on an interval of ≈2s, backing off as the run ages.
+- Treat `completed`, `failed`, and `canceled` as terminal; stop polling.
+- Make your handling idempotent — the same terminal state can be read more than once.
+- Only one import runs at a time per company; starting a second while one is in
+  flight returns `409`.
+
+## Data region
+
+Companies are provisioned in a default region (`iad`). If you need data to land
+in a specific region for residency reasons, talk to us at
+[vish@vern.so](mailto:vish@vern.so) — additional regions are enabled per account.
+
+## Next
+
+- [Poll an import](/migration-api/poll-an-import)
+- [Export to a destination](/migration-api/export-to-destination)

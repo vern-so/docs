@@ -1,0 +1,82 @@
+---
+title: List sources
+description: List the sources in your account so your end-customers can pick which system they're migrating from.
+---
+
+```http
+GET https://app.vern.so/api/v1/sources
+```
+
+Returns the **sources** in your account — the migration definitions you've
+authored in the Vern UI. Use it to build a source picker in your own product so
+each customer can choose which system they're migrating from, then pass the
+chosen `id` as `source` when you
+[provision a company](/migration-api/provision-a-company).
+
+<Note>
+  **Preview.** Part of the Migration API — in active design and not yet generally
+  available; the shapes below may change. Until this ships, read source IDs from
+  [Settings → Sources](https://app.vern.so/sources) in the dashboard. See the
+  [overview](/migration-api/introduction).
+</Note>
+
+## Authentication
+
+Requires an `x-api-key` header. See [Authentication](/migration-api/authentication).
+
+## Response
+
+`200 OK`
+
+```json
+{
+  "sources": [
+    {
+      "id": "01234567-89ab-cdef-0123-456789abcdef",
+      "name": "Salesforce",
+      "logo_url": "https://logo.clearbit.com/salesforce.com"
+    }
+  ]
+}
+```
+
+<ResponseField name="id" type="string (uuid)">
+  The source's UUID. Pass it as `source` when you
+  [provision a company](/migration-api/provision-a-company).
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The source's display name — the system you migrate from (e.g. "Salesforce").
+</ResponseField>
+
+<ResponseField name="logo_url" type="string | null">
+  A logo for the source, suitable for rendering in your picker. `null` if none is
+  set.
+</ResponseField>
+
+<Note>
+  Sources and templates are **independent** lists. A source defines the import
+  plan and export writer; templates are the importable objects, shared across
+  your account. List them separately and let your customer pick each — see
+  [List templates](/migration-api/list-templates).
+</Note>
+
+## Errors
+
+| Status | Meaning |
+|---|---|
+| `401` | API key missing or invalid. |
+| `429` | Rate limit hit — back off and retry. |
+| `500` | Server error. |
+
+## Example
+
+```bash
+curl https://app.vern.so/api/v1/sources \
+  -H "x-api-key: $VERN_API_KEY"
+```
+
+## Next
+
+- [List templates](/migration-api/list-templates) — the importable objects.
+- [Provision a company](/migration-api/provision-a-company) — create a company bound to a source.

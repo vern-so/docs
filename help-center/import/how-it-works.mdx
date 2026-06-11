@@ -5,7 +5,7 @@ description: The AI agent that maps your customer's data into your schema.
 
 Most of the work of onboarding a customer is converting their messy data into your clean schema. Vern's import agent does that for you in four steps you can review and override.
 
-You start with a file (CSV, Excel, PDF, or whatever Scouts pulled). You end with rows that pass your [template](/help-center/import/templates) rules and are ready to send to your app.
+You start with a file (CSV, Excel, or PDF). You end with rows that pass your template rules and are ready to send to your app.
 
 ## The four steps
 
@@ -18,7 +18,7 @@ You start with a file (CSV, Excel, PDF, or whatever Scouts pulled). You end with
   <Step title="Clarify">
     The agent reads your file, compares it to your template, and asks a few clarifying questions. It might ask how to interpret an ambiguous column, what to do with partial records, or how to normalize a date.
 
-    For unknowns the agent can resolve itself, it runs a web search (via Exa) instead of asking you. The goal is to ask only the questions you actually need to answer.
+    For unknowns the agent can resolve itself, it runs a web search instead of asking you. The goal is to ask only the questions you actually need to answer.
   </Step>
   <Step title="Review plan">
     Vern generates a plain-English **migration plan** describing exactly what it'll do — column-by-column mappings, transformations, validation expectations.
@@ -52,5 +52,4 @@ If the agent missed something — a value didn't normalize, a rule was misinterp
 
 ## Next
 
-- [Templates](/help-center/import/templates) — define what the agent is mapping to.
 - [Spot-check and fix](/help-center/import/spot-check-and-fix) — what to do when the agent isn't perfect.
