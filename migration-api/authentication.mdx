@@ -3,6 +3,12 @@ title: Authentication
 description: API keys, headers, and basic security guidance.
 ---
 
+<Note>
+  **Preview.** Part of the Migration API — in active design and not yet generally
+  available. Endpoints and payloads may change. See the
+  [overview](/migration-api/introduction).
+</Note>
+
 All Vern API requests authenticate with an API key passed in the `x-api-key` header.
 
 ```bash
@@ -27,8 +33,8 @@ For details on generating, rotating, and revoking keys, see [API keys](/help-cen
 - Use environment variables, not hardcoded strings.
 - Rotate keys periodically and immediately if you suspect leakage.
 
-Webhook payloads are signed separately via Svix — see [Webhooks](/guides/webhooks) for signature verification.
+Webhook payloads are signed separately via Svix — see [Webhooks](/migration-api/webhooks) for signature verification.
 
 ## Next
 
-- [Quickstart](/guides/quickstart) — make your first API call.
+- [Quickstart](/migration-api/quickstart) — make your first API call.

@@ -1,0 +1,155 @@
+---
+title: Poll an import
+description: Track an import run to completion, review flagged rows, and recover a run if you lose its ID.
+---
+
+<Note>
+  **Preview.** Part of the Migration API — in active design and not yet generally
+  available. Endpoints and payloads may change. See the
+  [overview](/migration-api/introduction).
+</Note>
+
+```http
+GET https://app.vern.so/api/v1/companies/{id}/imports/{run_id}
+```
+
+Reads the state of an import [run](/migration-api/concepts#runs). Poll it on an
+interval (≈2s, backing off) until `status` is terminal.
+
+## Authentication
+
+Requires an `x-api-key` header. See [Authentication](/migration-api/authentication).
+
+## Response by status
+
+<ParamField path="status" type="string">
+  One of `queued`, `running`, `needs_attention`, `completed`, `failed`, or
+  `canceled`.
+</ParamField>
+
+| `status` | Body |
+|---|---|
+| `queued` / `running` | `{ status, progress_message }` — `progress_message` is a human-readable update (e.g. `"Cleaning your data"`, `"Retrying (attempt 2 of 5)"`). |
+| `needs_attention` | `{ status, report, needs_attention: { questions[], proposed_patch } }` — some rows failed validation and Vern proposes a fix. Resolve it via the `decisions` sub-resource below. |
+| `completed` | `{ status, report }` — see below. |
+| `failed` | `{ status, error }` — the plan couldn't run even after self-healing (e.g. unrecoverable column drift). No rows were inserted. |
+| `canceled` | `{ status }` — the run was stopped before it finished. |
+
+A **completed** report:
+
+```json
+{
+  "status": "completed",
+  "report": {
+    "inserted": 1450,
+    "perSheet": [
+      { "templateName": "Contacts", "sheetId": "7a1c2b3d-4e5f-4061-8a9b-0c1d2e3f4a5b", "rowCount": 1450 }
+    ],
+    "invalidCellCount": 12
+  }
+}
+```
+
+`invalidCellCount` is the number of **rows** that still have at least one cell
+that failed validation — not a count of individual cells. The import succeeded;
+those rows are simply flagged. The clean rows are ready to deliver, and the
+default CSV download (`?filter=valid`) excludes any flagged row entirely — so a
+single bad cell drops its whole row. See [Export CSV](/migration-api/export).
+
+## Reviewing flagged rows
+
+When a run is `needs_attention`, the poll response carries a `needs_attention`
+block with everything you need to **render the decision in your own UI**:
+self-describing `questions`, and a `proposed_patch` Vern would apply if you accept
+its suggestion as-is.
+
+```json
+{
+  "status": "needs_attention",
+  "report": { "inserted": 1438, "invalidCellCount": 15 },
+  "needs_attention": {
+    "questions": [
+      {
+        "id": "fq0",
+        "prompt": "Some Status values aren't one of the allowed options. How should Vern handle them?",
+        "context": "12 rows in Contacts have a Status outside Open / Closed / Pending.",
+        "target": {
+          "sheet_id": "7a1c2b3d-4e5f-4061-8a9b-0c1d2e3f4a5b",
+          "column": "Status",
+          "affected_count": 12,
+          "sample_values": ["open", "in progress", "DONE"],
+          "error": "Does not match allowed values: Open, Closed, Pending"
+        },
+        "relevant_columns": ["Status"],
+        "options": [
+          { "id": "a", "label": "Map all to 'Open'" },
+          { "id": "b", "label": "Remove these rows" }
+        ],
+        "allow_custom": true
+      }
+    ],
+    "proposed_patch": {
+      "summary": "Map 12 out-of-range Status values to 'Open'.",
+      "actions": [
+        { "sheet_id": "7a1c2b3d-4e5f-4061-8a9b-0c1d2e3f4a5b", "column": "Status", "action": "set_value", "value": "Open" }
+      ]
+    }
+  }
+}
+```
+
+You answer through the run's **decisions** sub-resource — not the poll. Approving
+re-runs the import (and may park again if rows still fail); rejecting ends it
+`failed`. See [Resolve flagged rows](/migration-api/resolve-flagged-rows) for the
+full question and answer schema.
+
+## Recovering a run
+
+If you lose a `run_id` (a crash, a dropped response, a page reload), you have two
+ways back:
+
+**Re-send the original import.** Because run creation is deduped on your
+`idempotency_key`, re-POSTing the original [import](/migration-api/import-files)
+with the **same key** returns the existing run instead of starting a new one.
+This is the cleanest recovery if you kept the key.
+
+**Look up the active run for the company:**
+
+```http
+GET https://app.vern.so/api/v1/companies/{id}/imports?status=active
+```
+
+Returns the single most-recent non-terminal run for the company (same shape as
+a single-run read), or `{ "run": null }` if nothing is in flight. Omit the filter
+to get a paginated history of recent runs, newest first:
+
+```http
+GET https://app.vern.so/api/v1/companies/{id}/imports
+```
+
+<Note>
+  An import runs for up to ~1 hour. A run whose engine died without writing a
+  terminal status is treated as `failed` ("Import timed out") once it goes stale,
+  so a lookup never reports a zombie run as forever-active.
+</Note>
+
+## Errors
+
+| Status | Meaning |
+|---|---|
+| `401` | API key missing or invalid. |
+| `404` | No such run, or the company isn't in your account. |
+| `429` | Rate limit hit — back off and retry. |
+| `500` | Server error. |
+
+## Example
+
+```bash
+curl https://app.vern.so/api/v1/companies/c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d/imports/d4c3b2a1-9f8e-47d6-b5a4-c3d2e1f0a9b8 \
+  -H "x-api-key: $VERN_API_KEY"
+```
+
+## Next
+
+- [Export CSV](/migration-api/export) — get the validated rows out.
+- [Errors & idempotency](/migration-api/errors) — the dedup and recovery model.

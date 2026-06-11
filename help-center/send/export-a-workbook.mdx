@@ -1,9 +1,9 @@
 ---
 title: Export a workbook
-description: Send cleaned data out of Vern, as CSV or via webhook.
+description: Send cleaned data out of Vern — as CSV, via webhook, or straight into your API.
 ---
 
-Once a workbook looks right, hit **Export** on a sheet's header. One dialog covers both ways to get data out.
+Once a workbook looks right, hit **Export** on a sheet's header. One dialog covers every way to get data out.
 
 ## CSV
 
@@ -25,7 +25,17 @@ Use this when:
 - You're integrating Vern into your existing onboarding pipeline.
 - You're sending data more than once (it's slow to manually export CSVs every time).
 
-You'll need to [set up a webhook endpoint](/guides/webhooks) first.
+You'll need to [set up a webhook endpoint](/migration-api/webhooks) first.
+
+## Writer
+
+Choose **Writer** in the export dialog to push the workbook straight into your app's API — no endpoint to build on your side. Pick a writer you've already set up, confirm the base URL and credentials for this run, and click **Export**. Vern auto-maps each sheet to the writer's templates and writes the rows to your API, streaming progress as it goes.
+
+Use this when:
+- You already have an API (or an OpenAPI spec) and don't want to stand up a webhook receiver.
+- You want Vern to call your existing endpoints directly.
+
+You'll need to [build a writer](/help-center/send/write-to-an-api) first.
 
 ## Preview vs production endpoints
 
@@ -38,8 +48,8 @@ For webhook exports, you can choose how related sheets are delivered:
 - **Flat** — each sheet is its own array of rows. Good for independent sheets.
 - **Nested** — child sheets are nested under their parents via link rules. Good when sheets have foreign-key relationships and you want them grouped.
 
-Vern handles circular links between sheets cleanly. The payload schemas for both formats are in the [Webhooks](/guides/webhooks#payload-format) reference.
+Vern handles circular links between sheets cleanly. The payload schemas for both formats are in the [Webhooks](/migration-api/webhooks#payload-format) reference.
 
 ## Next
 
-- [Webhooks](/guides/webhooks) — set up the endpoint that catches exports.
+- [Webhooks](/migration-api/webhooks) — set up the endpoint that catches exports.

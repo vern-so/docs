@@ -19,37 +19,28 @@
             "pages": [
               "help-center/get-started/introduction",
               "help-center/get-started/quickstart",
-              "help-center/get-started/contact-support"
+              "help-center/get-started/generate-templates"
             ]
           },
           {
             "group": "Onboard a new customer",
             "pages": [
               "help-center/onboard/create-a-company",
-              "help-center/onboard/share-a-magic-link",
-              "help-center/onboard/add-a-source",
-              {
-                "group": "Scrape with Scouts",
-                "pages": [
-                  "help-center/onboard/scouts/tasks",
-                  "help-center/onboard/scouts/runs",
-                  "help-center/onboard/scouts/tables"
-                ]
-              }
+              "help-center/onboard/share-a-magic-link"
             ]
           },
           {
             "group": "Clean customer data",
             "pages": [
               "help-center/import/how-it-works",
-              "help-center/import/templates",
               "help-center/import/spot-check-and-fix"
             ]
           },
           {
             "group": "Send data to your app",
             "pages": [
-              "help-center/send/export-a-workbook"
+              "help-center/send/export-a-workbook",
+              "help-center/send/write-to-an-api"
             ]
           },
           {
@@ -63,22 +54,41 @@
         ]
       },
       {
-        "tab": "Developer",
-        "icon": "code",
+        "tab": "Migration API",
+        "icon": "right-left",
         "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "migration-api/introduction",
+              "migration-api/concepts"
+            ]
+          },
           {
             "group": "Get started",
             "pages": [
-              "guides/introduction",
-              "guides/authentication",
-              "guides/quickstart"
+              "migration-api/quickstart",
+              "migration-api/authentication"
             ]
           },
           {
             "group": "API reference",
             "pages": [
-              "api-reference/create-a-company",
-              "guides/webhooks"
+              "migration-api/list-sources",
+              "migration-api/list-templates",
+              "migration-api/provision-a-company",
+              "migration-api/import-files",
+              "migration-api/poll-an-import",
+              "migration-api/resolve-flagged-rows",
+              "migration-api/export-to-destination",
+              "migration-api/export"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "migration-api/webhooks",
+              "migration-api/errors"
             ]
           }
         ]

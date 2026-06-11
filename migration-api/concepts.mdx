@@ -1,0 +1,110 @@
+---
+title: Core concepts
+description: Sources, companies, runs, and the frozen artifacts that make headless migrations reproducible.
+---
+
+<Note>
+  **Preview.** Part of the Migration API — in active design and not yet generally
+  available. Endpoints and payloads may change. See the
+  [overview](/migration-api/introduction).
+</Note>
+
+The Migration API has a small vocabulary. Once these few ideas click, the
+endpoints are obvious.
+
+## Source — the shape
+
+A **source** is the reusable definition of a migration from one system — its
+**import plan**: the published logic that maps and transforms that system's messy
+files into your templates. ("Plan" is just Vern's word for that import
+configuration.) You set it up **once**, in the Vern UI, and it's shared across
+every customer you migrate from that source.
+
+Authoring the plan is an interactive, human-supervised step in the UI. When
+you're happy with it, you **publish and bind** it to the source. You can
+[list your sources](/migration-api/list-sources) over the API to let a customer
+pick which system they're migrating from.
+
+## Template — the object
+
+A **template** is the target schema for one importable object — a sheet like
+Contacts or Companies — with its columns and validation rules (which columns
+exist, which are required, which must be unique, how they link to other objects).
+
+Templates are scoped to your **account**, not to a single source: the same set of
+objects is available to every source you author. When you provision a company,
+each template you select becomes one **sheet** on its workbook. You can
+[list your templates](/migration-api/list-templates) over the API — columns and
+all — to show a customer what they can import and let them choose.
+
+## Writer — the destination
+
+A **writer** is the published logic that pushes validated records *out* to a
+destination API. Like templates, it's defined **once** at the account level — it
+maps a set of templates to a destination — and it's **not** part of a source. The
+import side (sources and templates) is independent of it; you bring in a writer
+only when you deliver by [export](/migration-api/export-to-destination) (the
+download flow needs none).
+
+## Company — the instance
+
+A **company** is one customer's migration. You create it with the first API
+call, and it holds:
+
+- A **workbook** — their data, with one **sheet** per template.
+- A **magic link** — an optional hosted link the customer can use to share data
+  directly (you can ignore it for a fully headless flow).
+
+A company is bound to its source at creation, so it already knows which import
+plan to replay. **Your import calls only ever reference the company** — you never
+pass plan IDs; the logic is bound once and the calls just point at the customer.
+Export is the exception: because a writer isn't tied to a source, you choose one
+for the destination at export time.
+
+## Frozen, versioned artifacts
+
+When you publish a plan or writer, Vern snapshots it as an **immutable
+version**. The API replays that exact snapshot every time, so a migration that
+worked last month works identically today — no drift in *your* logic.
+
+When you improve the logic, you publish a **new version** and bind it. Existing
+runs are unaffected; new runs pick up the new version.
+
+## Identifiers
+
+Every resource ID the API returns — companies, workbooks, sheets, runs,
+templates, and sources — is a **UUID**. The `external_id` you set on a company is
+the one exception: it's your own string, echoed back untouched. Store IDs as
+opaque strings; don't assume a typed prefix.
+
+## Runs
+
+Anything asynchronous is a **run**. Each import and each writer export creates
+one run that you poll until it reaches a terminal state:
+
+```
+queued → running → completed
+                 ↘ needs_attention → (approve) → running → completed
+                 ↘ failed
+                 ↘ canceled
+```
+
+- **`queued`** — accepted, not started yet.
+- **`running`** — in progress; the poll response carries a human-readable
+  `progress_message`.
+- **`needs_attention`** — the import paused because some rows failed validation
+  and Vern has a proposed fix waiting for your approval. Approve or reject it via
+  the run's `decisions` sub-resource. (Imports only.)
+- **`completed`** — finished. The `report` tells you what landed (rows inserted,
+  per-sheet counts, and how many rows still carry a failed cell).
+- **`failed`** — the logic couldn't run even after self-healing (for example,
+  unrecoverable column drift). Nothing was inserted.
+- **`canceled`** — the run was stopped before it finished.
+
+CSV download is **not** a run — it's a synchronous stream of the validated data
+that already exists in the company.
+
+## Next
+
+- [Quickstart](/migration-api/quickstart) — see all of this in one flow.
+- [Provision a company](/migration-api/provision-a-company) — the first call.

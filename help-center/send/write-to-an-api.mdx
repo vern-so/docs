@@ -1,0 +1,91 @@
+---
+title: Write to an API
+description: Build a writer once, then push cleaned workbook data straight into your app's API.
+---
+
+A **writer** is a reusable connection that pushes cleaned rows into an external API. You point it at an API once, an agent figures out how to call it, and from then on you can export any workbook's data through it.
+
+It's the no-code alternative to [webhooks](/migration-api/webhooks): instead of standing up an endpoint that catches Vern's payload, you let Vern call your existing API directly.
+
+You'll find writers under **Templates → Writers** in the dashboard.
+
+## Build a writer
+
+<Steps>
+  <Step title="Point it at an API">
+    Click **New writer** and tell Vern where the API is. Any of these work:
+
+    - An **OpenAPI / Swagger URL** (the spec itself).
+    - A **docs URL** for the API.
+    - Just the **API name** — type `Stripe` and the agent finds the spec for you.
+
+    Or upload an **OpenAPI / Swagger file** directly.
+
+    You can also start **from a workbook**, which pre-selects the templates that workbook uses.
+  </Step>
+  <Step title="Pick the templates it covers">
+    Choose which of your templates this writer knows how to write. Each template becomes one mapping — a sheet of that type can be written through this writer.
+  </Step>
+  <Step title="Let the agent build it">
+    Vern opens the **Build** console and the agent gets to work. For each template it:
+
+    - discovers the API's **write endpoints** (POST / PUT / PATCH) and picks the best one,
+    - maps your template columns onto the endpoint's request body,
+    - writes the payload code, and
+    - runs a **dry run** to confirm the payload validates against the schema.
+
+    A template with no suitable endpoint is marked **unmatched** — you can prompt the agent to revisit it or leave it out. You can chat with the agent at any time to correct a mapping (for example, *"nest address under contact"* or *"send phone as E.164"*), and you can **stop** it mid-build.
+  </Step>
+  <Step title="Add credentials">
+    Open the **Auth** tab. Vern shows the auth scheme it read from the spec (API key, bearer token, or basic auth). Fill in your **Base URL** and credentials.
+
+    Secrets are stored write-only in Vault — you can update them but never read them back. Interactive OAuth flows aren't supported; use an API key or token instead.
+  </Step>
+</Steps>
+
+## The writer's anatomy
+
+Once built, a writer is made of a few tabs:
+
+- **Script** — the code the executor runs for each row. The agent authors this; you rarely need to touch it.
+- **Auth** — the base URL and credentials (above).
+- **Templates** — the per-template endpoint pairings the agent chose, and any left unmatched.
+- **Constants** — writer-level values reused on every write (for example a fixed `board_id` or `account_id`). Edit these inline.
+
+## Test before you commit
+
+Switch to the **Test** tab and run the writer live against a handful of sample rows. You'll see the real requests and responses.
+
+If something's off, click **Send to agent** to hand the results back to the build agent — it reads the actual API errors and fixes the mapping or payload, then you test again. Repeat until the test run is clean.
+
+<Tip>
+Point the Base URL at a sandbox environment while you test, then switch it to production once the writer is solid.
+</Tip>
+
+## Write a workbook through it
+
+Once a writer tests clean, you use it from a workbook:
+
+<Steps>
+  <Step title="Open Export">
+    Hit **Export** on a sheet header and choose the **Writer** tab.
+  </Step>
+  <Step title="Pick the writer">
+    Select your writer. Vern prefills its base URL and credentials for this run — edits here are temporary and aren't saved back to the writer.
+  </Step>
+  <Step title="Check the mapping">
+    Vern auto-maps each sheet in the workbook to one of the writer's templates. Any sheet the writer has no mapping for is flagged so you don't silently skip it.
+  </Step>
+  <Step title="Export">
+    Run it. Vern writes the rows to your API and streams progress live, grouping any failures so you can see exactly which rows the API rejected and why.
+  </Step>
+</Steps>
+
+## Writer vs webhook vs CSV
+
+Not sure which export path fits? [Export a workbook](/help-center/send/export-a-workbook) lays out CSV, webhook, and writer side by side with a "use this when" for each.
+
+## Next
+
+- [Export a workbook](/help-center/send/export-a-workbook) — the full export dialog, including CSV and webhook.
+- [Webhooks](/migration-api/webhooks) — the build-your-own-endpoint alternative.

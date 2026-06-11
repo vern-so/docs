@@ -1,0 +1,131 @@
+---
+title: List templates
+description: List the templates in your account — the importable objects, with their columns and validation rules — so your customers can pick what to import.
+---
+
+```http
+GET https://app.vern.so/api/v1/templates
+```
+
+Returns the **templates** in your account — the importable objects (Contacts,
+Companies, and so on), each with its columns and validation rules. Use it to show
+your customer what they can import and let them choose, then pass the chosen IDs
+as `template_ids` when you
+[provision a company](/migration-api/provision-a-company).
+
+Templates are scoped to your **account**, not to a single source — the same
+object set is available to every source you've authored. List sources and
+templates separately and let your customer pick each.
+
+<Note>
+  **Preview.** Part of the Migration API — in active design and not yet generally
+  available; the shapes below may change. Until this ships, read template IDs from
+  the Vern dashboard; provisioning with no `template_ids` defaults to every
+  template in your account. See the [overview](/migration-api/introduction).
+</Note>
+
+## Authentication
+
+Requires an `x-api-key` header. See [Authentication](/migration-api/authentication).
+
+## Response
+
+`200 OK`. Each template carries its `columns`, so you can render a preview of
+exactly what each object holds.
+
+```json
+{
+  "templates": [
+    {
+      "id": "01234567-89ab-cdef-0123-456789abcdef",
+      "name": "Contacts",
+      "description": "People at the customer's accounts.",
+      "columns": [
+        {
+          "name": "Email",
+          "description": "Primary email address.",
+          "required": true,
+          "unique": true,
+          "desiredRule": "strict",
+          "strictRule": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+        },
+        {
+          "name": "Account",
+          "description": "The company this contact belongs to.",
+          "required": true,
+          "unique": false,
+          "desiredRule": "link",
+          "linkRule": [{ "templateId": "…", "columnName": "Name" }]
+        }
+      ]
+    }
+  ]
+}
+```
+
+<ResponseField name="id" type="string (uuid)">
+  The template's UUID. Pass it in `template_ids` when you
+  [provision a company](/migration-api/provision-a-company).
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The template's display name — the object (e.g. "Contacts"). Becomes the sheet
+  name on the company's workbook.
+</ResponseField>
+
+<ResponseField name="description" type="string | null">
+  An optional human description of the object.
+</ResponseField>
+
+<ResponseField name="columns" type="object[]">
+  The object's fields and validation rules, in order. Each column has:
+
+  <Expandable title="column">
+    <ResponseField name="name" type="string">
+      The column's display name.
+    </ResponseField>
+    <ResponseField name="description" type="string">
+      What the column holds.
+    </ResponseField>
+    <ResponseField name="required" type="boolean">
+      Whether every row must have a value for this column.
+    </ResponseField>
+    <ResponseField name="unique" type="boolean">
+      Whether values in this column must be unique across rows.
+    </ResponseField>
+    <ResponseField name="desiredRule" type="string">
+      The validation rule applied to the column: `none` (no format check), `ai`
+      (Vern infers validity), `strict` (must match `strictRule`), or `link` (must
+      reference another template via `linkRule`).
+    </ResponseField>
+    <ResponseField name="strictRule" type="string">
+      A regular expression the value must match. Present only when `desiredRule`
+      is `strict`.
+    </ResponseField>
+    <ResponseField name="linkRule" type="object[]">
+      Cross-template references — `{ "templateId": "...", "columnName": "..." }`
+      pointing at the column this one links to. Present only when `desiredRule`
+      is `link`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Errors
+
+| Status | Meaning |
+|---|---|
+| `401` | API key missing or invalid. |
+| `429` | Rate limit hit — back off and retry. |
+| `500` | Server error. |
+
+## Example
+
+```bash
+curl https://app.vern.so/api/v1/templates \
+  -H "x-api-key: $VERN_API_KEY"
+```
+
+## Next
+
+- [List sources](/migration-api/list-sources) — the systems you migrate from.
+- [Provision a company](/migration-api/provision-a-company) — create a company with the chosen templates.

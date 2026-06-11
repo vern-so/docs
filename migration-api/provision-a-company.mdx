@@ -1,0 +1,122 @@
+---
+title: Provision a company
+description: Create an isolated company for one customer, bound to your source's published migration logic.
+---
+
+<Note>
+  **Preview.** Part of the Migration API — in active design and not yet generally
+  available. Endpoints and payloads may change. See the
+  [overview](/migration-api/introduction).
+</Note>
+
+```http
+POST https://app.vern.so/api/v1/companies
+```
+
+Creates a **company** for one of your customers — a workbook with one sheet per
+template, plus a magic link. The company is bound to the source you name in the
+`source` field, so later import and export calls already know which logic to
+replay.
+
+## Authentication
+
+Requires an `x-api-key` header. The key is scoped to your account, and can
+address every company in it. See [Authentication](/migration-api/authentication).
+
+## Request body
+
+<ParamField body="name" type="string" required>
+  Display name for the company. Typically your customer's organization name.
+</ParamField>
+
+<ParamField body="source" type="string (uuid)" required>
+  The UUID of the **source** this company belongs to. This binds the company
+  to your published import plan.
+  [List your sources](/migration-api/list-sources) to find it, or read it from
+  [Settings → Sources](https://app.vern.so/sources).
+</ParamField>
+
+<ParamField body="external_id" type="string">
+  Your own identifier for this customer (e.g. their ID in your database). Echoed
+  back so you can match the company to your records. Max 255 characters;
+  alphanumeric, hyphens, and underscores only. Must be unique — reusing one
+  returns `409`.
+</ParamField>
+
+<ParamField body="template_ids" type="string[] (uuids)">
+  Which templates to create sheets from — the objects this customer will import.
+  [List your templates](/migration-api/list-templates) to choose. If omitted,
+  every template in your account is used.
+</ParamField>
+
+<ParamField body="connections" type="object">
+  Connection details for writing to a customer's system: a `destination`
+  connection used by [export to a destination](/migration-api/export-to-destination),
+  shaped `{ "base_url": "...", "auth": { } }`. Credentials are stored write-only
+  and never returned. Omit this for the import-and-download flow. (A `source`
+  connection for *pulling* data in arrives later with the Reader engine — not part
+  of this preview.)
+</ParamField>
+
+## Response
+
+`201 Created`
+
+```json
+{
+  "company": {
+    "id": "c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d",
+    "name": "Acme Corp",
+    "external_id": "acme-001",
+    "created_at": "2026-06-11T15:32:11.000Z"
+  },
+  "workbook_id": "b3d9f2a1-6c4e-4a8b-9f1d-2e3c4b5a6d7f",
+  "sheets": [
+    {
+      "id": "7a1c2b3d-4e5f-4061-8a9b-0c1d2e3f4a5b",
+      "name": "Contacts",
+      "template_id": "9e8d7c6b-5a4f-4321-8b2c-1d0e9f8a7b6c"
+    }
+  ],
+  "connections": [
+    { "id": "5c4d3e2f-1a09-4b8c-9d7e-6f5a4b3c2d1e", "kind": "destination", "creds_configured": true }
+  ],
+  "magic_link_url": "https://app.vern.so/link/abc123"
+}
+```
+
+Every resource ID — `company.id`, `workbook_id`, `sheets[].id`, `template_id` —
+is a UUID. The `company.id` is the ID you'll pass to every import and export call.
+The workbook's creator is taken from the API key that made the request. The magic
+link is optional — ignore it for a fully headless flow.
+
+## Errors
+
+| Status | Meaning |
+|---|---|
+| `400` | `name` or `source` missing; `source` not a UUID; `external_id` malformed; `template_ids` not an array of UUIDs or not in your account; a company with that `name` already exists for the source. |
+| `401` | API key missing or invalid. |
+| `404` | The `source` UUID isn't a source in your account. |
+| `409` | `external_id` already used by another company. |
+| `429` | Rate limit hit — back off and retry. |
+| `500` | Server error. |
+
+See [Errors & idempotency](/migration-api/errors) for the shared error model.
+
+## Example
+
+```bash
+curl -X POST https://app.vern.so/api/v1/companies \
+  -H "x-api-key: $VERN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Acme Corp",
+    "source": "01234567-89ab-cdef-0123-456789abcdef",
+    "external_id": "acme-001",
+    "template_ids": ["9e8d7c6b-5a4f-4321-8b2c-1d0e9f8a7b6c"]
+  }'
+```
+
+## Next
+
+- [Import files](/migration-api/import-files) — push the customer's data into the company.

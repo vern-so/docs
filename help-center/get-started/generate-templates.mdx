@@ -1,0 +1,134 @@
+---
+title: Generate templates
+description: Have an AI draft your templates from a schema, spreadsheet, or API docs.
+---
+
+A template defines your columns, which are required, and the rule each must pass. If you already have a schema, spreadsheet, or API docs, an AI can draft your templates for you — one file can create several at once.
+
+## Steps
+
+<Steps>
+  <Step title="Copy the prompt">
+    Use the prompt below, or go to [Templates](https://app.vern.so/templates) → **New** → **Create with AI** and click **Copy prompt**. Paste it into ChatGPT, Claude, or Gemini — pick the most capable model (Claude Opus, a ChatGPT reasoning model, or Gemini Pro).
+  </Step>
+  <Step title="Attach your reference material">
+    Give the AI a database export, sample spreadsheets, API docs, or screenshots. It won't draft anything without at least one.
+  </Step>
+  <Step title="Confirm its assumptions">
+    The AI lists the choices it made in plain language. Correct anything, then confirm. It returns a single `vern_templates.yaml` file.
+  </Step>
+  <Step title="Upload the result">
+    In Vern, click **Upload vern_templates.yaml**. Each table becomes one template, ready in your [Templates](https://app.vern.so/templates) list. Vern asks before overwriting any name clash.
+  </Step>
+</Steps>
+
+## The prompt
+
+<Accordion title="Copy the template-generation prompt">
+```text
+You are helping me build a vern_templates.yaml file for Vern, a data-collection and validation platform. A "template" is a named set of columns; each column has a description and a validation rule, and may link to a column in another template. The file format is LinkML — a schema-modelling language with a stable, AI-friendly YAML syntax.
+
+Optimise for COMPLETENESS and ACCURACY: the goal is the full, exact schema from my reference files — every class and every slot — not a representative subset or a preview.
+
+Follow these steps IN ORDER. Do not skip ahead.
+
+STEP 1 — Reference material (REQUIRED).
+Before drafting anything, ask me to attach reference files that describe the data: a database schema or export, sample spreadsheets / CSVs, API documentation, or screenshots of the source system. Do NOT generate any LinkML until I have provided at least one reference file. If I have not attached anything, stop and ask me for it.
+
+STEP 2 — State your assumptions (REQUIRED).
+Read every reference file IN FULL and draft the classes and their slots. Capture EVERY column of EVERY table or entity as a slot — do not sample, preview, summarise, or truncate. If a reference defines 60 columns, the class must contain all 60. Make reasonable choices wherever the references are ambiguous or incomplete. Then, BEFORE producing any YAML, list every choice you made — in plain language a non-technical user can understand without knowing LinkML. Avoid jargon like "slot", "class", "identifier slot", or "foreign key" in this list; say "column", "table", "ID column", or "links to another table" instead. Cover:
+- Any column where you weren't sure what it represents or what kind of value belongs in it.
+- Which columns must always have a value, and which single column uniquely identifies each row (like an ID, code, or UID). Treat "the source always returns this column" and "this column must always have a value" as different things: a system-generated or read-only column that can still be empty or null (for example a "deleted at" timestamp that is only set once a row is deleted) is NOT a required column.
+- The rule you picked for what counts as a valid value — a list of allowed options, a format like "email" or "date", a length limit, a number range, etc.
+- Any column that points to a row in another table, and which column in the other table it points to.
+- Anything from the source you had to flatten or compress to fit (nested objects, arrays, inheritance, composite keys, default values, examples, units, and so on) — say in plain English what was in the source and where you captured that detail in the descriptions.
+Present these as a numbered list, then ask me whether anything needs adjusting. Wait for my response before continuing.
+
+STEP 3 — Output.
+Once I have confirmed the assumptions (with any adjustments I give), produce a single LinkML schema in YAML, as a downloadable file named "vern_templates.yaml". Provide it only as a downloadable file — do NOT print the YAML in the chat. The file must be COMPLETE: every class and every slot from the references, with nothing omitted, abbreviated, or replaced by "...". Before generating the file, verify that each class's slot count matches its source.
+
+LinkML shape Vern accepts:
+
+id: https://example.org/my-schema
+name: my_schema
+prefixes:
+  linkml: https://w3id.org/linkml/
+  my_schema: https://example.org/my-schema/
+default_prefix: my_schema
+imports:
+  - linkml:types
+
+enums:
+  FundStatus:
+    permissible_values:
+      active:
+      winding_down:
+      closed:
+
+classes:
+  Funds:
+    description: Investment funds the firm manages.
+    attributes:
+      fund_code:
+        description: Stable fund identifier.
+        identifier: true
+        required: true
+        pattern: "^.{1,50}$"
+      status:
+        description: Fund lifecycle status.
+        required: true
+        range: FundStatus
+      inception_date:
+        description: When the fund opened.
+        range: date
+
+  Investors:
+    description: People or entities invested in a fund.
+    attributes:
+      investor_uid:
+        description: Unique investor identifier.
+        identifier: true
+        required: true
+        pattern: "^.{1,64}$"
+      fund_code:
+        description: The fund this investor belongs to.
+        required: true
+        range: Funds
+
+How Vern interprets LinkML:
+- Each top-level entry under classes: becomes one Vern template, named by the class name.
+- description: on a class becomes the template description. Always write one — never leave it blank.
+- Each entry under attributes: becomes one column, named by the slot name. Write a description for EVERY slot — never leave it blank.
+- required: true makes the column required: it means every row must have a real, non-empty value. Set it only when a value must always be present. If a column can ever be empty, blank, null, or absent — even if the source system always returns the column in its output — leave it optional (set required: false or omit required). A column being system-generated, read-only, or always present in the source's output does NOT make it required; only the value being mandatory does.
+- identifier: true makes the column unique. Set it on a row's own primary-key slot (id, code, uid, etc.). Do NOT set it on foreign-key slots.
+- pattern: "<regex>" becomes a strict regex (JavaScript syntax, no surrounding slashes). Use it for free-form formats Vern can't infer.
+- range: <OtherClass> makes the slot a foreign key to that class. The target class MUST have a slot with identifier: true, which becomes the linked column. A foreign-key slot must NOT have a pattern.
+- range: <EnumName> (with the enum defined under top-level enums:) becomes a regex matching the enum's permissible values.
+- range: integer | float | boolean | date | datetime | time | uri produces a sensible default regex.
+
+Descriptions document the source data only. Every description must read as documentation of what the class or slot means in the source system. NEVER mention this prompt, the consuming platform, the name "Vern", LinkML itself, validation behaviour, or how a value is stored or imported. Phrases like "stored as a single value", "imported as", or "not supported" must never appear in any description: text.
+
+Preserve information from constructs LinkML-for-Vern can't carry directly. The following features will be silently dropped or downgraded, so do NOT emit them as LinkML — instead, fold the information they would have carried into description: text so nothing from the source is lost:
+
+- Arrays / multivalued slots / nested objects. Emit the slot as a single value (no multivalued:). In the slot's description, name the nested shape and list every nested field as "field_name (type)", comma-separated, so the structure survives. Example: "Line items on the invoice. Each item has: sku (string), qty (integer), unit_price (decimal), tax_code (string)."
+- is_a inheritance. Inline every parent attribute into the child class so the class is self-contained. In the child class's description, add: "Inherits from <Parent> in the source schema." Repeat for each ancestor in the chain.
+- mixins. Inline every mixin attribute into the class. In the class's description, add: "Includes mixins: <Mixin1>, <Mixin2>."
+- Composite unique_keys. Only a single identifier: slot is honoured. Pick the most stable / human-meaningful column of the composite key as identifier: true, and on EVERY column that participates in the key (including the chosen identifier), add to its description: "Part of a composite unique key with (<other1>, <other2>)."
+- slot_usage and top-level slots:. Use inline attributes: on each class instead. If a slot has overrides via slot_usage, fold the overrides into the inline attribute definition.
+- Default values (ifabsent:). Do NOT emit ifabsent:. Add to the slot's description: "Defaults to <value> when not set."
+- Numeric bounds (minimum_value: / maximum_value:). Do NOT emit these. Add to the slot's description: "Allowed range: <min> to <max>." If only one bound exists, say so (e.g., "Must be at least 0.").
+- Recommended slots (recommended: true). Only required vs optional is honoured. Set required: false and add to the slot's description: "Strongly recommended but not strictly required."
+- Example values (examples:). Do NOT emit examples:. List them in the slot's description: "Examples: <v1>, <v2>, <v3>."
+- Units (unit:). Do NOT emit unit:. Include the unit in the slot's description: "Measured in <unit>."
+- Per-value enum docs (description / meaning / title on a permissible_values entry). The enum keys survive as a regex but per-value documentation is lost. Surface it in the description of every slot that USES the enum: "Allowed values: active (currently open), winding_down (no new investors), closed (fully wound up)."
+- Aliases and titles (aliases: / title: on classes or slots). Do NOT emit these. Include them in the description: "Also known as: <alias1>, <alias2>. Human-readable name: <title>."
+- Anything else not listed above. For any other LinkML feature present in the source (e.g., abstract:, tree_root:, equals_string:, structured_pattern:, inlined:, class-level rules:, deprecated:, designates_type:, etc.), do NOT emit the construct. Describe what it conveyed in plain English inside the relevant class or slot description, so a human reading the YAML can still see what was in the source.
+
+Use inline attributes: on each class, top-level enums: for enumerations, and a single identifier: slot per class for foreign keys.
+```
+</Accordion>
+
+## Next steps
+
+- [Create a company](/help-center/onboard/create-a-company) — pick your templates to build a customer's workbook.
+- [Quickstart](/help-center/get-started/quickstart) — onboard your first customer end to end.
