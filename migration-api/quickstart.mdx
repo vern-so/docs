@@ -13,11 +13,12 @@ This walks through one customer migration from start to finish. All requests
 authenticate with an `x-api-key` header — see [Authentication](/migration-api/authentication).
 
 <Steps>
-  <Step title="Publish your migration logic (one time, in the UI)">
-    Before any API calls, set up the **source** in the Vern dashboard: define
-    your templates, then author and **publish** an import plan. This is the
-    interactive part — you do it once, and every customer migration replays it.
-    See [Core concepts](/migration-api/concepts).
+  <Step title="Set up your source and templates (one time, in the UI)">
+    Before any API calls, set up your **source** and **templates** in the Vern
+    dashboard — the target shape you want every customer's data to land in.
+    There's no import plan to author or freeze: the
+    [managed agent](/migration-api/concepts#the-managed-agent) builds and reuses
+    the mapping logic for you at run time. See [Core concepts](/migration-api/concepts).
   </Step>
 
   <Step title="Discover sources and templates (optional)">
@@ -67,8 +68,9 @@ authenticate with an `x-api-key` header — see [Authentication](/migration-api/
   </Step>
 
   <Step title="Import the customer's files">
-    Push files and Vern replays your plan. The call is async — it returns a run
-    to poll. (Small tabular sets can be sent inline as `rows` instead of files.)
+    Push files and Vern starts a managed-agent run. The call is async — it
+    returns a run to poll. (Small tabular sets can be sent inline as `rows`
+    instead of files.)
 
     ```bash
     curl -X POST https://app.vern.so/api/v1/companies/c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d/imports \
@@ -113,26 +115,25 @@ authenticate with an `x-api-key` header — see [Authentication](/migration-api/
     shape.
   </Step>
 
-  <Step title="Resolve flagged rows (only if needed)">
-    If the run comes back `needs_attention` instead of `completed`, Vern paused
-    because some rows failed validation and it has a fix waiting. The poll
-    response carries self-describing `questions` and a `proposed_patch` — render
-    them in your own UI, then send the customer's answer:
+  <Step title="Answer the agent (only if it asks)">
+    If the run comes back `blocked` instead of `completed`, the agent hit a
+    genuinely ambiguous decision and is waiting on you. The poll response carries
+    plain-language `questions` — render them in your own UI, then send the
+    answer to the run's `messages` sub-resource:
 
     ```bash
-    curl -X POST https://app.vern.so/api/v1/companies/c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d/imports/d4c3b2a1-9f8e-47d6-b5a4-c3d2e1f0a9b8/decisions \
+    curl -X POST https://app.vern.so/api/v1/companies/c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d/imports/d4c3b2a1-9f8e-47d6-b5a4-c3d2e1f0a9b8/messages \
       -H "x-api-key: $VERN_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
-        "decision": "approve",
-        "answers": [{ "question_id": "fq0", "option_id": "a" }]
+        "answers": [{ "id": "q1", "value": "Treat CANCELLED as inactive" }]
       }'
     ```
 
-    Vern applies the fix, writes a new plan version, and re-runs — poll again
-    until the run is `completed` (or it re-parks with fresh questions). To take
-    Vern's suggestion as-is, approve with no `answers`. See
-    [Resolve flagged rows](/migration-api/resolve-flagged-rows).
+    The agent resumes with your answer — poll again until the run is `completed`
+    (or it blocks once more with a fresh question). You can also send a free-form
+    correction at any time to steer the run. See
+    [Answer the agent](/migration-api/answer-questions).
   </Step>
 
   <Step title="Deliver the clean data">
@@ -144,7 +145,8 @@ authenticate with an `x-api-key` header — see [Authentication](/migration-api/
       -o contacts-clean.csv
     ```
 
-    Or push the validated records straight to a destination API with
+    Pushing the validated records straight to a destination API — instead of
+    downloading them — arrives in v2. See
     [Export to a destination](/migration-api/export-to-destination).
   </Step>
 </Steps>

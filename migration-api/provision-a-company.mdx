@@ -14,9 +14,10 @@ POST https://app.vern.so/api/v1/companies
 ```
 
 Creates a **company** for one of your customers — a workbook with one sheet per
-template, plus a magic link. The company is bound to the source you name in the
-`source` field, so later import and export calls already know which logic to
-replay.
+template, plus a magic link. You name the system you're migrating from in the
+`source` field, but **no import logic is bound** to the company: the
+[managed agent](/migration-api/concepts#the-managed-agent) decides what to run at
+import time. Later calls reference only the company.
 
 ## Authentication
 
@@ -30,10 +31,9 @@ address every company in it. See [Authentication](/migration-api/authentication)
 </ParamField>
 
 <ParamField body="source" type="string (uuid)" required>
-  The UUID of the **source** this company belongs to. This binds the company
-  to your published import plan.
-  [List your sources](/migration-api/list-sources) to find it, or read it from
-  [Settings → Sources](https://app.vern.so/sources).
+  The UUID of the **source** this company migrates from — the system its data is
+  coming out of. [List your sources](/migration-api/list-sources) to find it, or
+  read it from [Settings → Sources](https://app.vern.so/sources).
 </ParamField>
 
 <ParamField body="external_id" type="string">
@@ -49,14 +49,12 @@ address every company in it. See [Authentication](/migration-api/authentication)
   every template in your account is used.
 </ParamField>
 
-<ParamField body="connections" type="object">
-  Connection details for writing to a customer's system: a `destination`
-  connection used by [export to a destination](/migration-api/export-to-destination),
-  shaped `{ "base_url": "...", "auth": { } }`. Credentials are stored write-only
-  and never returned. Omit this for the import-and-download flow. (A `source`
-  connection for *pulling* data in arrives later with the Reader engine — not part
-  of this preview.)
-</ParamField>
+<Note>
+  **No `connections` in v1.** The import-and-download flow reads no connection.
+  Destination connections (for writing into a customer's system) and source
+  connections (for *pulling* data in via the Reader) arrive with
+  [export to a destination](/migration-api/export-to-destination) in v2.
+</Note>
 
 ## Response
 
@@ -77,9 +75,6 @@ address every company in it. See [Authentication](/migration-api/authentication)
       "name": "Contacts",
       "template_id": "9e8d7c6b-5a4f-4321-8b2c-1d0e9f8a7b6c"
     }
-  ],
-  "connections": [
-    { "id": "5c4d3e2f-1a09-4b8c-9d7e-6f5a4b3c2d1e", "kind": "destination", "creds_configured": true }
   ],
   "magic_link_url": "https://app.vern.so/link/abc123"
 }

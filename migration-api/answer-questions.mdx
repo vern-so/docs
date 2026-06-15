@@ -1,0 +1,153 @@
+---
+title: Answer the agent
+description: Render the agent's clarifying questions in your own UI and answer them — or send a free-form correction — to resume a blocked import.
+---
+
+<Note>
+  **Preview.** Part of the Migration API — in active design and not yet generally
+  available. Endpoints and payloads may change. See the
+  [overview](/migration-api/introduction).
+</Note>
+
+When the [managed agent](/migration-api/concepts#the-managed-agent) hits a
+mapping it genuinely can't settle on its own — the data, your templates, and the
+source all leave it ambiguous — the run pauses at
+[`blocked`](/migration-api/concepts#runs) instead of guessing. The
+[poll response](/migration-api/poll-an-import) then carries plain-language
+`questions` for you to **render in your own product**, and this endpoint is how
+you send the answer back.
+
+Nothing is changed while a run waits here. The agent is suspended; your answer
+(or free-form correction) is what resumes it.
+
+```http
+POST https://app.vern.so/api/v1/companies/{id}/imports/{run_id}/messages
+```
+
+## Authentication
+
+Requires an `x-api-key` header. See [Authentication](/migration-api/authentication).
+
+## What you get to render
+
+A `blocked` poll response looks like this:
+
+```json
+{
+  "status": "blocked",
+  "questions": [
+    {
+      "id": "q1",
+      "question": "Some Status values aren't one of the allowed options (Open, Closed, Pending). How should I handle them?",
+      "options": [
+        { "id": "a", "label": "Map them all to 'Open'" },
+        { "id": "b", "label": "Drop those rows" }
+      ],
+      "allowCustom": true
+    }
+  ]
+}
+```
+
+Each question is **self-describing** — you can render it in your UI without
+knowing anything about Vern's internals.
+
+<ParamField path="id" type="string">
+  Stable identifier you echo back in your answer.
+</ParamField>
+<ParamField path="question" type="string">
+  The question, in plain language. Show it as the field label.
+</ParamField>
+<ParamField path="options" type="object[]">
+  Suggested answers, each `{ id, label }`. Render them as choices (radio buttons,
+  a select, buttons). May be empty for an open-ended question.
+</ParamField>
+<ParamField path="allowCustom" type="boolean">
+  When `true`, let the customer type a free-text answer instead of picking an
+  option.
+</ParamField>
+
+## Answering
+
+Send one entry per question in `answers`, each with the question's `id` and a
+`value`. The `value` is either an option's `label` (the choice the customer
+picked) or free text (when `allowCustom` is `true`).
+
+<ParamField body="answers" type="object[]">
+  One `{ id, value }` per question you're answering. `id` matches the question;
+  `value` is the chosen option's label or a free-text answer.
+</ParamField>
+
+```json
+{
+  "answers": [
+    { "id": "q1", "value": "Treat CANCELLED as inactive" }
+  ]
+}
+```
+
+The agent applies your answer and resumes. If it can now finish, the run goes to
+`completed`; if another mapping is still ambiguous, it blocks again with a fresh
+question — keep [polling](/migration-api/poll-an-import) and answering until it's
+terminal.
+
+### Free-form corrections
+
+You don't have to wait for a question. At any point you can send a plain
+instruction to steer or correct the run — for example to override a mapping the
+agent chose — and it will incorporate it:
+
+```json
+{ "message": "Use the company domain for any missing Email, don't drop the row." }
+```
+
+_(The exact field for free-form corrections is still settling during the
+preview.)_
+
+A correction you send here applies to **this run only**. The agent's reused
+recipe drifts naturally across runs as different customers import — see
+[Reuse and pinning](/migration-api/concepts#reuse-and-pinning) for how to isolate
+that if you need a fixed starting point.
+
+## Response
+
+`200 OK`
+
+```json
+{
+  "run_id": "d4c3b2a1-9f8e-47d6-b5a4-c3d2e1f0a9b8",
+  "status": "running",
+  "poll_url": "/api/v1/companies/c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d/imports/d4c3b2a1-9f8e-47d6-b5a4-c3d2e1f0a9b8"
+}
+```
+
+Resume [polling](/migration-api/poll-an-import) `poll_url` until the run reaches a
+terminal status.
+
+## Errors
+
+| Status | Meaning |
+|---|---|
+| `400` | Malformed body, or an answer references an unknown question `id`. |
+| `401` | API key missing or invalid. |
+| `404` | No such run, or the company isn't in your account. |
+| `409` | The run isn't `blocked` (already resumed, or never paused) — except a free-form correction, which a `running` run accepts. |
+| `429` | Rate limit hit — back off and retry. |
+| `500` | Server error. |
+
+## Example
+
+```bash
+curl -X POST \
+  https://app.vern.so/api/v1/companies/c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d/imports/d4c3b2a1-9f8e-47d6-b5a4-c3d2e1f0a9b8/messages \
+  -H "x-api-key: $VERN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "answers": [{ "id": "q1", "value": "Map them all to '\''Open'\''" }]
+  }'
+```
+
+## Next
+
+- [Poll an import](/migration-api/poll-an-import) — track the resumed run.
+- [Export CSV](/migration-api/export) — get the validated rows out.

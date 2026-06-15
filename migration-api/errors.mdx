@@ -47,9 +47,9 @@ fleet of concurrent migrations doesn't burn the budget on status checks.
 
 ## Idempotency
 
-Import and export creation accept an **`idempotency_key`** you choose. The key is
-unique per company: re-sending the same key for the same company returns the
-**existing run** instead of creating a second one.
+Import creation (and, in v2, export creation) accepts an **`idempotency_key`**
+you choose. The key is unique per company: re-sending the same key for the same
+company returns the **existing run** instead of creating a second one.
 
 This makes retries safe and doubles as recovery — if you lose a `run_id`, re-POST
 the original request with the same key to get the run back. (For imports you can

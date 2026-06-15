@@ -79,15 +79,14 @@
               "migration-api/provision-a-company",
               "migration-api/import-files",
               "migration-api/poll-an-import",
-              "migration-api/resolve-flagged-rows",
-              "migration-api/export-to-destination",
-              "migration-api/export"
+              "migration-api/answer-questions",
+              "migration-api/export",
+              "migration-api/export-to-destination"
             ]
           },
           {
             "group": "Reference",
             "pages": [
-              "migration-api/webhooks",
               "migration-api/errors"
             ]
           }

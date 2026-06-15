@@ -23,16 +23,15 @@ Requires an `x-api-key` header. See [Authentication](/migration-api/authenticati
 ## Response by status
 
 <ParamField path="status" type="string">
-  One of `queued`, `running`, `needs_attention`, `completed`, `failed`, or
-  `canceled`.
+  One of `queued`, `running`, `blocked`, `completed`, `failed`, or `canceled`.
 </ParamField>
 
 | `status` | Body |
 |---|---|
-| `queued` / `running` | `{ status, progress_message }` — `progress_message` is a human-readable update (e.g. `"Cleaning your data"`, `"Retrying (attempt 2 of 5)"`). |
-| `needs_attention` | `{ status, report, needs_attention: { questions[], proposed_patch } }` — some rows failed validation and Vern proposes a fix. Resolve it via the `decisions` sub-resource below. |
+| `queued` / `running` | `{ status, message }` — `message` is a human-readable update (e.g. `"Cleaning your data"`, `"Retrying (attempt 2 of 5)"`). |
+| `blocked` | `{ status, questions[] }` — the agent hit a genuinely ambiguous decision and is waiting on you. Answer via the `messages` sub-resource below. |
 | `completed` | `{ status, report }` — see below. |
-| `failed` | `{ status, error }` — the plan couldn't run even after self-healing (e.g. unrecoverable column drift). No rows were inserted. |
+| `failed` | `{ status, error }` — the agent couldn't produce a working import even after self-healing. No rows were inserted. |
 | `canceled` | `{ status }` — the run was stopped before it finished. |
 
 A **completed** report:
@@ -56,52 +55,33 @@ those rows are simply flagged. The clean rows are ready to deliver, and the
 default CSV download (`?filter=valid`) excludes any flagged row entirely — so a
 single bad cell drops its whole row. See [Export CSV](/migration-api/export).
 
-## Reviewing flagged rows
+## A blocked run
 
-When a run is `needs_attention`, the poll response carries a `needs_attention`
-block with everything you need to **render the decision in your own UI**:
-self-describing `questions`, and a `proposed_patch` Vern would apply if you accept
-its suggestion as-is.
+When a run is `blocked`, the agent hit a genuinely ambiguous decision and the
+poll response carries the `questions` you need to **render in your own UI**. Each
+question is self-describing — `{ id, question, options[], allowCustom }`:
 
 ```json
 {
-  "status": "needs_attention",
-  "report": { "inserted": 1438, "invalidCellCount": 15 },
-  "needs_attention": {
-    "questions": [
-      {
-        "id": "fq0",
-        "prompt": "Some Status values aren't one of the allowed options. How should Vern handle them?",
-        "context": "12 rows in Contacts have a Status outside Open / Closed / Pending.",
-        "target": {
-          "sheet_id": "7a1c2b3d-4e5f-4061-8a9b-0c1d2e3f4a5b",
-          "column": "Status",
-          "affected_count": 12,
-          "sample_values": ["open", "in progress", "DONE"],
-          "error": "Does not match allowed values: Open, Closed, Pending"
-        },
-        "relevant_columns": ["Status"],
-        "options": [
-          { "id": "a", "label": "Map all to 'Open'" },
-          { "id": "b", "label": "Remove these rows" }
-        ],
-        "allow_custom": true
-      }
-    ],
-    "proposed_patch": {
-      "summary": "Map 12 out-of-range Status values to 'Open'.",
-      "actions": [
-        { "sheet_id": "7a1c2b3d-4e5f-4061-8a9b-0c1d2e3f4a5b", "column": "Status", "action": "set_value", "value": "Open" }
-      ]
+  "status": "blocked",
+  "questions": [
+    {
+      "id": "q1",
+      "question": "Some Status values aren't one of the allowed options (Open, Closed, Pending). How should I handle them?",
+      "options": [
+        { "id": "a", "label": "Map them all to 'Open'" },
+        { "id": "b", "label": "Drop those rows" }
+      ],
+      "allowCustom": true
     }
-  }
+  ]
 }
 ```
 
-You answer through the run's **decisions** sub-resource — not the poll. Approving
-re-runs the import (and may park again if rows still fail); rejecting ends it
-`failed`. See [Resolve flagged rows](/migration-api/resolve-flagged-rows) for the
-full question and answer schema.
+You answer through the run's **messages** sub-resource — not the poll. The agent
+resumes with your answer and may block again with a fresh question. See
+[Answer the agent](/migration-api/answer-questions) for the full question and
+answer schema.
 
 ## Recovering a run
 

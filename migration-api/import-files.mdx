@@ -1,6 +1,6 @@
 ---
 title: Import files
-description: Push a customer's files into a company and replay your published plan to produce validated rows.
+description: Push a customer's files into a company and run the managed agent to produce validated rows.
 ---
 
 <Note>
@@ -13,9 +13,9 @@ description: Push a customer's files into a company and replay your published pl
 POST https://app.vern.so/api/v1/companies/{id}/imports
 ```
 
-Pushes a customer's files into the company and replays the source's **import
-plan** to produce validated rows. The call is **asynchronous**: it returns a run
-you [poll](/migration-api/poll-an-import) until it finishes.
+Pushes a customer's files into the company and starts a **managed-agent run**
+that maps, cleans, and validates them into rows. The call is **asynchronous**: it
+returns a run you [poll](/migration-api/poll-an-import) until it finishes.
 
 `{id}` is the `company.id` from
 [provisioning](/migration-api/provision-a-company).
@@ -98,17 +98,19 @@ Poll `poll_url` until the run reaches a terminal status. See
 
 ## How the import behaves
 
-Your plan was authored against a particular file shape, but real customer exports
-drift — renamed headers, reordered columns, stray formats. The import
-**self-heals** through that drift wherever it can, so a frozen plan survives files
-it didn't see at authoring time.
+The run is a [managed agent](/migration-api/concepts#the-managed-agent), not a
+frozen replay. It **reuses-or-authors** the mapping logic, verifies it in a
+sandbox, and **self-heals** through the rough edges of a real customer file —
+renamed headers, reordered columns, stray formats — so a recipe survives files it
+didn't see before.
 
-When rows still fail validation, the run pauses at `needs_attention` with a
-proposed fix for your approval; approving it produces a new plan version and
-re-runs. If you'd rather not gate on review, the surviving invalid cells are
-reported in the run's `report` so you can download only the valid rows (see
-[Export CSV](/migration-api/export)) or fix the source data and re-import.
-See [Poll an import](/migration-api/poll-an-import) for both paths.
+When a mapping is genuinely ambiguous and neither the data nor your templates
+settle it, the run pauses at `blocked` with a plain-language question for you to
+[answer](/migration-api/answer-questions); answering resumes the run. Surviving
+invalid cells at the end are **reported, not parked** — they land in the run's
+`report` so you can download only the valid rows (see
+[Export CSV](/migration-api/export)) or fix the source data and re-import. See
+[Poll an import](/migration-api/poll-an-import) for both paths.
 
 ## Errors
 
