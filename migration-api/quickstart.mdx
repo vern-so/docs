@@ -1,20 +1,16 @@
 ---
 title: Quickstart
-description: Provision a company, import a customer's files, and download clean data — end to end.
+description: Create a migration, upload a customer's files, generate and review a preview, then execute and download clean data — end to end.
 ---
-
-<Note>
-  **Preview.** Part of the Migration API — in active design and not yet generally
-  available. Endpoints and payloads may change. See the
-  [overview](/migration-api/introduction).
-</Note>
 
 This walks through one customer migration from start to finish. All requests
 authenticate with an `x-api-key` header — see [Authentication](/migration-api/authentication).
 
+The base URL is `https://app.vern.so/api/v1`.
+
 <Steps>
-  <Step title="Set up your source and templates (one time, in the UI)">
-    Before any API calls, set up your **source** and **templates** in the Vern
+  <Step title="Set up your sources and templates (one time, in the UI)">
+    Before any API calls, set up your **sources** and **templates** in the Vern
     dashboard — the target shape you want every customer's data to land in.
     There's no import plan to author or freeze: the
     [managed agent](/migration-api/concepts#the-managed-agent) builds and reuses
@@ -24,135 +20,204 @@ authenticate with an `x-api-key` header — see [Authentication](/migration-api/
   <Step title="Discover sources and templates (optional)">
     To let your customer pick which system they're migrating from and which
     objects to import, list your sources and templates and render them in your own
-    UI. Skip this if you already know the IDs.
+    UI. Skip this if you already know the names and slugs.
 
     ```bash
     curl https://app.vern.so/api/v1/sources   -H "x-api-key: $VERN_API_KEY"
     curl https://app.vern.so/api/v1/templates -H "x-api-key: $VERN_API_KEY"
     ```
 
-    Feed the chosen source into `source` and the chosen templates into
-    `template_ids` below. See [List sources](/migration-api/list-sources) and
-    [List templates](/migration-api/list-templates). _(Preview — until these
-    ship, read the IDs from the Vern dashboard.)_
+    Feed the chosen source **name** into `source` and the chosen template
+    **slugs** into `templates` below. See [List sources](/migration-api/list-sources)
+    and [List templates](/migration-api/list-templates).
   </Step>
 
-  <Step title="Provision a company for the customer">
-    Create a company bound to your source. You get back the IDs used by every
-    later call.
+  <Step title="Create a migration for the customer">
+    Create a migration, optionally naming the source the data comes from. You get
+    back the `id` used by every later call.
 
     ```bash
-    curl -X POST https://app.vern.so/api/v1/companies \
+    curl -X POST https://app.vern.so/api/v1/migrations \
       -H "x-api-key: $VERN_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
         "name": "Acme Corp",
-        "source": "01234567-89ab-cdef-0123-456789abcdef",
+        "source": "Salesforce",
         "external_id": "acme-001",
-        "template_ids": ["9e8d7c6b-5a4f-4321-8b2c-1d0e9f8a7b6c"]
+        "templates": ["contacts"]
       }'
     ```
 
     ```json
     {
-      "company": { "id": "c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d", "external_id": "acme-001" },
-      "workbook_id": "b3d9f2a1-6c4e-4a8b-9f1d-2e3c4b5a6d7f",
-      "sheets": [{ "id": "7a1c2b3d-4e5f-4061-8a9b-0c1d2e3f4a5b", "name": "Contacts", "template_id": "9e8d7c6b-5a4f-4321-8b2c-1d0e9f8a7b6c" }],
-      "magic_link_url": "https://app.vern.so/link/abc123"
-    }
-    ```
-
-    Every ID in the response is a UUID. Use `company.id` for every later call.
-
-    See [Provision a company](/migration-api/provision-a-company) for every field.
-  </Step>
-
-  <Step title="Import the customer's files">
-    Push files and Vern starts a managed-agent run. The call is async — it
-    returns a run to poll. (Small tabular sets can be sent inline as `rows`
-    instead of files.)
-
-    ```bash
-    curl -X POST https://app.vern.so/api/v1/companies/c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d/imports \
-      -H "x-api-key: $VERN_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d '{
-        "files": [{ "name": "contacts.csv", "upload_ref": "<from-signed-upload>" }],
-        "idempotency_key": "acme-001-imp-1"
-      }'
-    ```
-
-    ```json
-    { "run_id": "d4c3b2a1-9f8e-47d6-b5a4-c3d2e1f0a9b8", "status": "queued", "poll_url": "/api/v1/companies/c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d/imports/d4c3b2a1-9f8e-47d6-b5a4-c3d2e1f0a9b8" }
-    ```
-
-    See [Import files](/migration-api/import-files) for upload options.
-  </Step>
-
-  <Step title="Poll until the import finishes">
-    Poll the run every couple of seconds until `status` is terminal.
-
-    ```bash
-    curl https://app.vern.so/api/v1/companies/c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d/imports/d4c3b2a1-9f8e-47d6-b5a4-c3d2e1f0a9b8 \
-      -H "x-api-key: $VERN_API_KEY"
-    ```
-
-    ```json
-    {
-      "status": "completed",
-      "report": {
-        "inserted": 1450,
-        "perSheet": [{ "templateName": "Contacts", "sheetId": "7a1c2b3d-4e5f-4061-8a9b-0c1d2e3f4a5b", "rowCount": 1450 }],
-        "invalidCellCount": 12
+      "migration": {
+        "id": "c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d",
+        "name": "Acme Corp",
+        "source": "Salesforce",
+        "status": "awaiting_files",
+        "templates": [{ "slug": "contacts", "name": "Contacts" }]
       }
     }
     ```
 
-    A `completed` run with `invalidCellCount > 0` means that many rows still have
-    at least one cell that failed validation — the rest are clean. The default
-    CSV download (`?filter=valid`) excludes those rows entirely. See
-    [Poll an import](/migration-api/poll-an-import) for recovery and every status
-    shape.
+    Use `migration.id` for every later call. See
+    [Create a migration](/migration-api/create-a-migration) for every field.
+  </Step>
+
+  <Step title="Upload the customer's files">
+    Ask for one signed upload URL per file, then `PUT` the bytes straight to
+    storage. Files are workbook-level — you don't map them to templates.
+
+    ```bash
+    curl -X POST https://app.vern.so/api/v1/migrations/c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d/files \
+      -H "x-api-key: $VERN_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{ "files": [{ "name": "contacts.csv", "content_type": "text/csv" }] }'
+    ```
+
+    ```json
+    {
+      "files": [
+        {
+          "name": "contacts.csv",
+          "storage_path": "workbooks/b3d9.../<uuid>-contacts.csv",
+          "signed_url": "https://storage.vern.so/object/upload/sign/...&token=...",
+          "token": "ey...",
+          "content_type": "text/csv"
+        }
+      ]
+    }
+    ```
+
+    Then `PUT` each file to its `signed_url`:
+
+    ```bash
+    curl -X PUT "$SIGNED_URL" \
+      -H "Content-Type: text/csv" \
+      --data-binary @contacts.csv
+    ```
+
+    See [Upload files](/migration-api/upload-files) for listing and limits.
+  </Step>
+
+  <Step title="Generate a preview">
+    Start a `generate` run. The agent authors the mapping logic and stops at a
+    preview. The call is async — it returns a run to poll.
+
+    ```bash
+    curl -X POST https://app.vern.so/api/v1/migrations/c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d/runs \
+      -H "x-api-key: $VERN_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{ "kind": "generate" }'
+    ```
+
+    ```json
+    {
+      "run_id": "d4c3b2a1-9f8e-47d6-b5a4-c3d2e1f0a9b8",
+      "status": "queued",
+      "poll_url": "https://app.vern.so/api/v1/migrations/c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d/runs/d4c3b2a1-9f8e-47d6-b5a4-c3d2e1f0a9b8"
+    }
+    ```
+
+    See [Start a run](/migration-api/start-a-run) for every `kind`.
+  </Step>
+
+  <Step title="Poll until the run is awaiting approval">
+    Poll the run every couple of seconds until `status` is terminal for this
+    phase — for a `generate` run that's `awaiting_approval`.
+
+    ```bash
+    curl $POLL_URL -H "x-api-key: $VERN_API_KEY"
+    ```
+
+    ```json
+    { "run_id": "d4c3b2a1-...", "status": "awaiting_approval", "created_at": "2026-06-19T15:32:11.000Z" }
+    ```
+
+    If it comes back `blocked` instead, the agent has a question — see the next
+    step. See [Poll a run](/migration-api/poll-a-run) for every status shape.
   </Step>
 
   <Step title="Answer the agent (only if it asks)">
-    If the run comes back `blocked` instead of `completed`, the agent hit a
-    genuinely ambiguous decision and is waiting on you. The poll response carries
-    plain-language `questions` — render them in your own UI, then send the
-    answer to the run's `messages` sub-resource:
+    A `blocked` poll response carries plain-language `questions` — render them in
+    your own UI, then send the answer to the run's `messages` sub-resource:
 
     ```bash
-    curl -X POST https://app.vern.so/api/v1/companies/c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d/imports/d4c3b2a1-9f8e-47d6-b5a4-c3d2e1f0a9b8/messages \
+    curl -X POST $POLL_URL/messages \
       -H "x-api-key: $VERN_API_KEY" \
       -H "Content-Type: application/json" \
-      -d '{
-        "answers": [{ "id": "q1", "value": "Treat CANCELLED as inactive" }]
-      }'
+      -d '{ "answers": [{ "id": "q1", "value": "Treat CANCELLED as inactive" }] }'
     ```
 
-    The agent resumes with your answer — poll again until the run is `completed`
-    (or it blocks once more with a fresh question). You can also send a free-form
-    correction at any time to steer the run. See
+    The agent resumes — poll again until it's `awaiting_approval` (or it blocks
+    once more with a fresh question). See
     [Answer the agent](/migration-api/answer-questions).
   </Step>
 
-  <Step title="Deliver the clean data">
-    Download the validated rows as a clean CSV (valid rows only, by default):
+  <Step title="Review the preview">
+    Fetch the proposed output, sheet-per-template, and show it to your customer.
 
     ```bash
-    curl "https://app.vern.so/api/v1/companies/c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d/export.csv?sheet_id=7a1c2b3d-4e5f-4061-8a9b-0c1d2e3f4a5b" \
+    curl https://app.vern.so/api/v1/migrations/c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d/preview \
+      -H "x-api-key: $VERN_API_KEY"
+    ```
+
+    Not right yet? Refine it with an `update` run (`{ "kind": "update", "message":
+    "Use the company domain for missing emails" }`) or ask a read-only `clarify`
+    question — both produce a fresh preview / answer. See
+    [Get the preview](/migration-api/get-the-preview) and
+    [Start a run](/migration-api/start-a-run).
+  </Step>
+
+  <Step title="Execute the import">
+    Happy with the preview? Start an `execute` run to import for real.
+
+    ```bash
+    curl -X POST https://app.vern.so/api/v1/migrations/c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d/runs \
+      -H "x-api-key: $VERN_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{ "kind": "execute" }'
+    ```
+
+    Poll until it's `completed`:
+
+    ```json
+    {
+      "run_id": "e5d4c3b2-...",
+      "status": "completed",
+      "created_at": "2026-06-19T15:40:02.000Z",
+      "report": {
+        "inserted": 1450,
+        "perSheet": [{ "templateName": "Contacts", "sheetId": "7a1c...", "rowCount": 1450 }],
+        "invalidCellCount": 12,
+        "coverage": null
+      }
+    }
+    ```
+
+    A `completed` execute with `invalidCellCount > 0` means that many rows still
+    have at least one cell that failed validation — the rest are clean. The default
+    CSV download (`?filter=valid`) excludes those rows. See
+    [Poll a run](/migration-api/poll-a-run).
+  </Step>
+
+  <Step title="Deliver the clean data">
+    Download a sheet's validated rows as a CSV, addressed by template slug (valid
+    rows only, by default):
+
+    ```bash
+    curl "https://app.vern.so/api/v1/migrations/c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d/exports/contacts.csv" \
       -H "x-api-key: $VERN_API_KEY" \
       -o contacts-clean.csv
     ```
 
-    Pushing the validated records straight to a destination API — instead of
-    downloading them — arrives in v2. See
-    [Export to a destination](/migration-api/export-to-destination).
+    See [Export CSV](/migration-api/export-csv) for filters and streaming into
+    your own storage.
   </Step>
 </Steps>
 
 ## Next
 
-- [Provision a company](/migration-api/provision-a-company)
-- [Import files](/migration-api/import-files)
-- [Errors & idempotency](/migration-api/errors)
+- [Create a migration](/migration-api/create-a-migration)
+- [Start a run](/migration-api/start-a-run)
+- [Errors & limits](/migration-api/errors)

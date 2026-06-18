@@ -5,30 +5,28 @@ description: List the templates in your account — the importable objects, with
 
 ```http
 GET https://app.vern.so/api/v1/templates
+GET https://app.vern.so/api/v1/templates/{template_slug}
 ```
 
 Returns the **templates** in your account — the importable objects (Contacts,
-Companies, and so on), each with its columns and validation rules. Use it to show
-your customer what they can import and let them choose, then pass the chosen IDs
-as `template_ids` when you
-[provision a company](/migration-api/provision-a-company).
+Companies, and so on), each with its columns and validation rules. Use the list
+to show your customer what they can import and let them choose, then pass the
+chosen **slugs** as `templates` when you
+[create a migration](/migration-api/create-a-migration).
 
 Templates are scoped to your **account**, not to a single source — the same
-object set is available to every source you've authored. List sources and
-templates separately and let your customer pick each.
-
-<Note>
-  **Preview.** Part of the Migration API — in active design and not yet generally
-  available; the shapes below may change. Until this ships, read template IDs from
-  the Vern dashboard; provisioning with no `template_ids` defaults to every
-  template in your account. See the [overview](/migration-api/introduction).
-</Note>
+object set is available to every source. List sources and templates separately
+and let your customer pick each.
 
 ## Authentication
 
 Requires an `x-api-key` header. See [Authentication](/migration-api/authentication).
 
-## Response
+## List all templates
+
+```http
+GET https://app.vern.so/api/v1/templates
+```
 
 `200 OK`. Each template carries its `columns`, so you can render a preview of
 exactly what each object holds.
@@ -37,7 +35,7 @@ exactly what each object holds.
 {
   "templates": [
     {
-      "id": "01234567-89ab-cdef-0123-456789abcdef",
+      "slug": "contacts",
       "name": "Contacts",
       "description": "People at the customer's accounts.",
       "columns": [
@@ -63,14 +61,36 @@ exactly what each object holds.
 }
 ```
 
-<ResponseField name="id" type="string (uuid)">
-  The template's UUID. Pass it in `template_ids` when you
-  [provision a company](/migration-api/provision-a-company).
+## Fetch one template
+
+```http
+GET https://app.vern.so/api/v1/templates/{template_slug}
+```
+
+Returns a single active template by its slug. `404` if no active template has
+that slug.
+
+```json
+{
+  "slug": "contacts",
+  "name": "Contacts",
+  "description": "People at the customer's accounts.",
+  "columns": [ /* … */ ]
+}
+```
+
+## Fields
+
+<ResponseField name="slug" type="string">
+  The template's stable public identifier — a snake_case form of its name (e.g.
+  `contacts`). Pass it in `templates` when you
+  [create a migration](/migration-api/create-a-migration), and use it to address
+  the sheet on [export](/migration-api/export-csv).
 </ResponseField>
 
 <ResponseField name="name" type="string">
   The template's display name — the object (e.g. "Contacts"). Becomes the sheet
-  name on the company's workbook.
+  name on the migration's workbook.
 </ResponseField>
 
 <ResponseField name="description" type="string | null">
@@ -115,6 +135,7 @@ exactly what each object holds.
 | Status | Meaning |
 |---|---|
 | `401` | API key missing or invalid. |
+| `404` | (single fetch) No active template with that slug. |
 | `429` | Rate limit hit — back off and retry. |
 | `500` | Server error. |
 
@@ -123,9 +144,12 @@ exactly what each object holds.
 ```bash
 curl https://app.vern.so/api/v1/templates \
   -H "x-api-key: $VERN_API_KEY"
+
+curl https://app.vern.so/api/v1/templates/contacts \
+  -H "x-api-key: $VERN_API_KEY"
 ```
 
 ## Next
 
 - [List sources](/migration-api/list-sources) — the systems you migrate from.
-- [Provision a company](/migration-api/provision-a-company) — create a company with the chosen templates.
+- [Create a migration](/migration-api/create-a-migration) — create a migration with the chosen templates.

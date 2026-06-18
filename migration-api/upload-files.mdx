@@ -1,0 +1,128 @@
+---
+title: Upload files
+description: Mint signed upload URLs for a migration, PUT the customer's files straight to storage, and list what's been uploaded.
+---
+
+```http
+POST https://app.vern.so/api/v1/migrations/{migration_id}/files
+GET  https://app.vern.so/api/v1/migrations/{migration_id}/files
+```
+
+Files are **workbook-level** — you upload them to the migration, not to a
+specific template; the [`generate`](/migration-api/start-a-run) run reads
+whatever's been uploaded. Uploading is a two-step handshake: ask for a signed URL,
+then `PUT` the bytes straight to storage.
+
+`{migration_id}` is the `id` from
+[creating a migration](/migration-api/create-a-migration).
+
+## Authentication
+
+Requires an `x-api-key` header. See [Authentication](/migration-api/authentication).
+
+## Mint signed upload URLs
+
+```http
+POST https://app.vern.so/api/v1/migrations/{migration_id}/files
+```
+
+Request one entry per file, declaring its name (and, ideally, content type):
+
+<ParamField body="files" type="object[]" required>
+  A non-empty array of files to upload. Each entry is
+  `{ "name": "contacts.csv", "content_type": "text/csv" }`. `name` is required;
+  `content_type` is optional but recommended.
+</ParamField>
+
+```bash
+curl -X POST https://app.vern.so/api/v1/migrations/c0a8012e-.../files \
+  -H "x-api-key: $VERN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "files": [
+      { "name": "contacts.csv", "content_type": "text/csv" }
+    ]
+  }'
+```
+
+`201 Created` — one signed upload per requested file:
+
+```json
+{
+  "files": [
+    {
+      "name": "contacts.csv",
+      "storage_path": "workbooks/b3d9.../<uuid>-contacts.csv",
+      "signed_url": "https://storage.vern.so/object/upload/sign/...&token=...",
+      "token": "ey...",
+      "content_type": "text/csv"
+    }
+  ]
+}
+```
+
+<ResponseField name="files[].name" type="string">
+  The display name you requested, preserved for the round trip.
+</ResponseField>
+<ResponseField name="files[].storage_path" type="string">
+  Where the object will land in storage once uploaded.
+</ResponseField>
+<ResponseField name="files[].signed_url" type="string">
+  The single-use URL to `PUT` the file's bytes to. The upload token is embedded in
+  the URL.
+</ResponseField>
+<ResponseField name="files[].token" type="string">
+  The raw upload token, if you prefer a storage SDK's `uploadToSignedUrl` helper
+  over a plain `PUT`.
+</ResponseField>
+
+## Upload the bytes
+
+`PUT` each file's raw bytes to its `signed_url`, with a `Content-Type` matching
+what you declared:
+
+```bash
+curl -X PUT "$SIGNED_URL" \
+  -H "Content-Type: text/csv" \
+  --data-binary @contacts.csv
+```
+
+Once your files are up, [start a `generate` run](/migration-api/start-a-run).
+
+## List uploaded files
+
+```http
+GET https://app.vern.so/api/v1/migrations/{migration_id}/files
+```
+
+Lists the customer-uploaded files for the migration — useful to confirm an upload
+landed before generating.
+
+```json
+{
+  "files": [
+    {
+      "name": "contacts.csv",
+      "storage_path": "workbooks/b3d9.../<uuid>-contacts.csv",
+      "size": 184320,
+      "content_type": "text/csv",
+      "uploaded_at": "2026-06-19T15:30:02.000Z"
+    }
+  ]
+}
+```
+
+## Errors
+
+| Status | Meaning |
+|---|---|
+| `400` | `files` missing or empty, or an entry is missing `name`. |
+| `401` | API key missing or invalid. |
+| `404` | No migration with that `{migration_id}` in your account. |
+| `429` | Rate limit hit — back off and retry. |
+| `500` | Server error (including a failure to mint the signed URL). |
+
+## Next
+
+- [Start a run](/migration-api/start-a-run) — generate a preview from the uploaded files.
+- [Poll a run](/migration-api/poll-a-run) — track the run to completion.

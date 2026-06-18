@@ -1,0 +1,120 @@
+---
+title: Create a migration
+description: Create an isolated migration workspace for one customer — a workbook with one sheet per template.
+---
+
+```http
+POST https://app.vern.so/api/v1/migrations
+```
+
+Creates a **migration** for one of your customers — a workbook with one sheet per
+template. You can name the system you're migrating from in the `source` field,
+but **no import logic is bound** to the migration: the
+[managed agent](/migration-api/concepts#the-managed-agent) decides what to run.
+Later calls reference only the migration ID.
+
+A new migration starts in `awaiting_files` — your next step is to
+[upload files](/migration-api/upload-files).
+
+## Authentication
+
+Requires an `x-api-key` header — this endpoint requires **API-key auth
+specifically** (a session token is rejected). The key is scoped to your account
+and can address every migration in it. See [Authentication](/migration-api/authentication).
+
+## Request body
+
+<ParamField body="name" type="string" required>
+  Display name for the migration. Typically your customer's organization name.
+</ParamField>
+
+<ParamField body="source" type="string">
+  The **name** of the source this migration comes from — the system its data is
+  coming out of. [List your sources](/migration-api/list-sources) to find it.
+  **Optional**: omit it (or pass `null`/empty) for a **sourceless** migration,
+  where the agent works purely from the uploaded files.
+</ParamField>
+
+<ParamField body="external_id" type="string">
+  Your own identifier for this customer (e.g. their ID in your database). Echoed
+  back so you can match the migration to your records. Max 255 characters;
+  alphanumeric, hyphens, and underscores only. Makes creation **idempotent** —
+  re-sending the same `external_id` (with the same source) returns the existing
+  migration with a `200`. See [Errors & limits](/migration-api/errors#idempotency).
+</ParamField>
+
+<ParamField body="templates" type="string[]">
+  The **slugs** of the templates to create sheets from — the objects this customer
+  will import. [List your templates](/migration-api/list-templates) to choose. If
+  omitted, **every active template in your account** is used.
+</ParamField>
+
+## Response
+
+`201 Created` (or `200 OK` when an existing migration is returned via
+`external_id` idempotency).
+
+```json
+{
+  "migration": {
+    "id": "c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d",
+    "name": "Acme Corp",
+    "source": "Salesforce",
+    "status": "awaiting_files",
+    "templates": [
+      { "slug": "contacts", "name": "Contacts" }
+    ]
+  }
+}
+```
+
+<ResponseField name="migration.id" type="string (uuid)">
+  The migration ID — pass it to every run and export call.
+</ResponseField>
+<ResponseField name="migration.name" type="string">
+  The display name you provided.
+</ResponseField>
+<ResponseField name="migration.source" type="string | null">
+  The source name, or `null` for a sourceless migration.
+</ResponseField>
+<ResponseField name="migration.status" type="string">
+  The migration's overall state. `awaiting_files` for a fresh migration; for one
+  returned via idempotency it reflects progress so far (`awaiting_files`, `ready`,
+  `awaiting_approval`, or `completed`). See
+  [Core concepts → Migration](/migration-api/concepts#migration-the-instance).
+</ResponseField>
+<ResponseField name="migration.templates" type="object[]">
+  The templates that became sheets, each `{ slug, name }`.
+</ResponseField>
+
+## Errors
+
+| Status | Meaning |
+|---|---|
+| `400` | `name` missing; `source` not a string; `external_id` malformed; `templates` not an array of slugs; one or more template slugs not found (`Unknown template slug(s): …`). |
+| `401` | API key missing or invalid, or the request used a session token instead of an API key. |
+| `404` | The named `source` isn't a source in your account. |
+| `409` | `external_id` already used by another migration, the source name is ambiguous (two sources share it), or your account's region isn't live yet. |
+| `429` | Rate limit hit — back off and retry. |
+| `500` | Server error. |
+
+See [Errors & limits](/migration-api/errors) for the shared error model.
+
+## Example
+
+```bash
+curl -X POST https://app.vern.so/api/v1/migrations \
+  -H "x-api-key: $VERN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Acme Corp",
+    "source": "Salesforce",
+    "external_id": "acme-001",
+    "templates": ["contacts"]
+  }'
+```
+
+## Next
+
+- [Upload files](/migration-api/upload-files) — push the customer's data into the migration.
+- [Start a run](/migration-api/start-a-run) — generate a preview once files are uploaded.

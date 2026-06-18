@@ -1,0 +1,78 @@
+---
+title: Pin a source
+description: Pin the recipe a source reuses so one customer's run can't drift the starting point other runs draw from — or unpin to return to "latest working recipe".
+---
+
+```http
+POST https://app.vern.so/api/v1/sources/{source}/pin
+```
+
+By default the [managed agent](/migration-api/concepts#the-managed-agent) reuses
+a source's **most-recent working recipe** as the starting point for each new
+`generate` run, adapting only what the customer's upload changed. Because every
+successful generate writes a fresh recipe, that "latest" naturally **drifts**.
+
+Pinning fixes the starting point to one known-good run's recipe. Pinned runs read
+it read-only — they don't promote their adapted recipe back to "latest" — so one
+customer's run can't move the baseline other runs build on. See
+[Reuse and pinning](/migration-api/concepts#reuse-and-pinning).
+
+`{source}` is the source **name** (URL-encode it if it contains spaces).
+
+## Authentication
+
+Requires an `x-api-key` header. See [Authentication](/migration-api/authentication).
+
+## Request body
+
+<ParamField body="run_id" type="string (uuid) | null" required>
+  The run whose recipe to pin as this source's reuse recipe. The run must belong
+  to your account and have produced a usable recipe (a `generate` or `update` run
+  that reached a preview or executed). Pass **`null`** to unpin and return to
+  "latest working recipe" drift.
+</ParamField>
+
+## Response
+
+`200 OK`
+
+```json
+{
+  "source": "Salesforce",
+  "pinned_recipe_run_id": "d4c3b2a1-9f8e-47d6-b5a4-c3d2e1f0a9b8"
+}
+```
+
+When you unpin, `pinned_recipe_run_id` comes back `null`.
+
+## Errors
+
+| Status | Meaning |
+|---|---|
+| `400` | Malformed body. |
+| `401` | API key missing or invalid. |
+| `404` | The source name isn't in your account, or `run_id` isn't a run in your account. |
+| `409` | The source name is ambiguous (two sources share it — rename one), or the run never produced a usable recipe to pin. |
+| `429` | Rate limit hit — back off and retry. |
+| `500` | Server error. |
+
+## Example
+
+```bash
+# Pin a known-good run's recipe as the source's baseline
+curl -X POST https://app.vern.so/api/v1/sources/Salesforce/pin \
+  -H "x-api-key: $VERN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "run_id": "d4c3b2a1-9f8e-47d6-b5a4-c3d2e1f0a9b8" }'
+
+# Unpin — back to latest-working-recipe drift
+curl -X POST https://app.vern.so/api/v1/sources/Salesforce/pin \
+  -H "x-api-key: $VERN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "run_id": null }'
+```
+
+## Next
+
+- [Core concepts → Reuse and pinning](/migration-api/concepts#reuse-and-pinning)
+- [Start a run](/migration-api/start-a-run) — what produces a recipe to pin.

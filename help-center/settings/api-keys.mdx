@@ -3,7 +3,7 @@ title: API keys
 description: Generate keys for the Vern REST API.
 ---
 
-API keys let your backend create companies and listen for events without anyone logging into the dashboard.
+API keys let your backend run customer migrations end to end without anyone logging into the dashboard.
 
 ## Generate a key
 
@@ -22,7 +22,7 @@ To rotate, create a new key, swap it in your environment, then delete the old on
 Pass the key as an `x-api-key` header on every request:
 
 ```bash
-curl https://app.vern.so/api/v1/companies \
+curl https://app.vern.so/api/v1/migrations \
   -H "x-api-key: YOUR_KEY"
 ```
 
@@ -30,11 +30,11 @@ See the [Migration API quickstart](/migration-api/quickstart) for full setup.
 
 ## What keys let you do
 
-- Create companies and magic links — [`POST /api/v1/companies`](/migration-api/provision-a-company).
+- Create a migration — [`POST /api/v1/migrations`](/migration-api/create-a-migration) — then upload files, run the agent, and export clean data.
 
-Webhook payloads are signed separately via Svix, not authenticated with API keys — see [Webhooks](/migration-api/webhooks).
+Workbook-export webhook payloads are signed separately via Svix, not authenticated with API keys — see [Webhooks](/help-center/send/webhooks).
 
 ## Next
 
 - [Migration API quickstart](/migration-api/quickstart) — make your first API call.
-- [Webhooks](/migration-api/webhooks) — receive events from Vern.
+- [Webhooks](/help-center/send/webhooks) — receive workbook exports from Vern.

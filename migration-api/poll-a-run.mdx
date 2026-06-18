@@ -1,0 +1,165 @@
+---
+title: Poll a run
+description: Track a run to completion, read the import report, recover a run you lost, and cancel one in flight.
+---
+
+```http
+GET   https://app.vern.so/api/v1/migrations/{migration_id}/runs/{run_id}
+PATCH https://app.vern.so/api/v1/migrations/{migration_id}/runs/{run_id}
+```
+
+Reads the state of a [run](/migration-api/concepts#runs). Poll it on an interval
+(≈2s, backing off) until `status` is terminal for its phase. For live progress,
+prefer the [thread stream](/migration-api/stream-the-thread).
+
+## Authentication
+
+Requires an `x-api-key` header. See [Authentication](/migration-api/authentication).
+
+## Response by status
+
+Every response carries `run_id`, `status`, and `created_at`. The rest depends on
+`status`:
+
+<ParamField path="status" type="string">
+  One of `queued`, `running`, `blocked`, `awaiting_approval`, `completed`,
+  `failed`, or `canceled`.
+</ParamField>
+
+| `status` | Extra fields |
+|---|---|
+| `queued` / `running` | `message` — a human-readable update (e.g. `"Cleaning your data"`, `"Retrying (attempt 2 of 5)"`), or `null`. |
+| `blocked` | `questions[]` — the agent hit a genuinely ambiguous decision and is waiting on you. Answer via the [messages](/migration-api/answer-questions) sub-resource. |
+| `awaiting_approval` | _(none)_ — a `generate`/`update` run produced a preview. Fetch it from [`GET /preview`](/migration-api/get-the-preview). |
+| `completed` | `report` for an `execute` run (see below); nothing extra for a `clarify` run. |
+| `failed` | `error` — the agent couldn't produce a working result even after self-healing. For an execute, no rows were inserted. |
+| `canceled` | _(none)_ — the run was stopped before it finished. |
+
+A **completed `execute`** carries a report:
+
+```json
+{
+  "run_id": "e5d4c3b2-...",
+  "status": "completed",
+  "created_at": "2026-06-19T15:40:02.000Z",
+  "report": {
+    "inserted": 1450,
+    "perSheet": [
+      { "templateName": "Contacts", "sheetId": "7a1c2b3d-...", "rowCount": 1450 }
+    ],
+    "invalidCellCount": 12,
+    "coverage": null
+  }
+}
+```
+
+<ResponseField name="report.inserted" type="number">
+  Total rows imported across all sheets.
+</ResponseField>
+<ResponseField name="report.perSheet" type="object[]">
+  Per-template counts — `{ templateName, sheetId, rowCount }`.
+</ResponseField>
+<ResponseField name="report.invalidCellCount" type="number">
+  The number of **rows** that still have at least one cell that failed validation
+  — not a count of individual cells. The import succeeded; those rows are simply
+  flagged. The default CSV download (`?filter=valid`) excludes any flagged row
+  entirely, so a single bad cell drops its whole row. See
+  [Export CSV](/migration-api/export-csv).
+</ResponseField>
+<ResponseField name="report.coverage" type="object | null">
+  An optional value-completeness profile — per-column fill/distinct stats for the
+  source inputs and the imported outputs — so a hollow import (right row count,
+  dropped fields) is detectable programmatically. `null` when profiling wasn't
+  available for the run.
+</ResponseField>
+
+## A blocked run
+
+When a run is `blocked`, the poll response carries the `questions` you need to
+**render in your own UI**. Each question is self-describing —
+`{ id, question, context?, options[], allowCustom }`:
+
+```json
+{
+  "run_id": "d4c3b2a1-...",
+  "status": "blocked",
+  "created_at": "2026-06-19T15:32:11.000Z",
+  "questions": [
+    {
+      "id": "q1",
+      "question": "Some Status values aren't one of the allowed options (Open, Closed, Pending). How should I handle them?",
+      "options": [
+        { "id": "a", "label": "Map them all to 'Open'" },
+        { "id": "b", "label": "Drop those rows" }
+      ],
+      "allowCustom": true
+    }
+  ]
+}
+```
+
+Answer through the run's [messages](/migration-api/answer-questions) sub-resource —
+not the poll. The agent resumes and may block again with a fresh question.
+
+## Recovering a run
+
+If you lose a `run_id` (a crash, a dropped response, a page reload), re-issue the
+same [run](/migration-api/start-a-run) you were running. Because **only one run
+runs at a time per migration**, the call returns `409` with the active run's ID:
+
+```json
+{ "error": "A run is already in progress for this migration.", "run_id": "d4c3b2a1-..." }
+```
+
+Poll that `run_id` as usual.
+
+<Note>
+  A run whose engine dies without writing a terminal status is swept to `failed`
+  ("Import timed out") once it goes stale — so a lookup never reports a zombie run
+  as forever-running.
+</Note>
+
+## Cancel a run
+
+```http
+PATCH https://app.vern.so/api/v1/migrations/{migration_id}/runs/{run_id}
+```
+
+Cancels an in-flight run — it stops the durable workflow and any active import
+task. The only accepted body is:
+
+```json
+{ "status": "cancel_requested" }
+```
+
+The response is the run in its updated (`canceled`) shape.
+
+```bash
+curl -X PATCH https://app.vern.so/api/v1/migrations/c0a8012e-.../runs/d4c3b2a1-... \
+  -H "x-api-key: $VERN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "status": "cancel_requested" }'
+```
+
+## Errors
+
+| Status | Meaning |
+|---|---|
+| `400` | (PATCH) body isn't `{ "status": "cancel_requested" }`. |
+| `401` | API key missing or invalid. |
+| `404` | No such run, or the migration isn't in your account. |
+| `429` | Rate limit hit — back off and retry. |
+| `500` | Server error. |
+
+## Example
+
+```bash
+curl https://app.vern.so/api/v1/migrations/c0a8012e-.../runs/d4c3b2a1-... \
+  -H "x-api-key: $VERN_API_KEY"
+```
+
+## Next
+
+- [Answer the agent](/migration-api/answer-questions) — resume a `blocked` run.
+- [Get the preview](/migration-api/get-the-preview) — read what a generate/update produced.
+- [Export CSV](/migration-api/export-csv) — get the validated rows out.

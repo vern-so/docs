@@ -1,0 +1,41 @@
+---
+title: API Reference
+description: Interactive reference for every Migration API endpoint — try each request live with your own API key.
+---
+
+This is the interactive reference for the **Migration API**. Every endpoint below
+has a live playground: set your API key once and send real requests straight from
+the page.
+
+New here? Start with the [Migration API guides](/migration-api/introduction) for
+concepts and end-to-end walkthroughs, then come back to try the calls.
+
+## Base URL
+
+```
+https://app.vern.so/api/v1
+```
+
+## Authentication
+
+Every request authenticates with your API key in the `x-api-key` header. Create a
+key at [Settings → API keys](https://app.vern.so/api-keys), then paste it into the
+**Authorization** field of any playground on this tab to send live requests.
+
+```bash
+curl https://app.vern.so/api/v1/sources \
+  -H "x-api-key: $VERN_API_KEY"
+```
+
+See [Authentication](/migration-api/authentication) for details and
+[Errors & limits](/migration-api/errors) for the shared error model, status codes,
+and rate limits.
+
+## The flow
+
+1. **[Create a migration](/migration-api/create-a-migration)** — `POST /migrations`
+2. **[Upload files](/migration-api/upload-files)** — `POST /migrations/{id}/files`
+3. **[Generate a preview](/migration-api/start-a-run)** — `POST /migrations/{id}/runs` with `{ "kind": "generate" }`
+4. **[Review](/migration-api/get-the-preview)** — `GET /migrations/{id}/preview`
+5. **Execute** — `POST /migrations/{id}/runs` with `{ "kind": "execute" }`
+6. **[Export](/migration-api/export-csv)** — `GET /migrations/{id}/exports/{slug}.csv`

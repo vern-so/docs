@@ -1,30 +1,25 @@
 ---
-title: Errors & idempotency
-description: The shared error model, idempotency and recovery semantics, and data region notes.
+title: Errors & limits
+description: The shared error model, idempotency, rate limits, polling conventions, and data region notes.
 ---
 
-<Note>
-  **Preview.** Part of the Migration API — in active design and not yet generally
-  available. Endpoints and payloads may change. See the
-  [overview](/migration-api/introduction).
-</Note>
-
-Every Migration API endpoint shares one error model and one idempotency model.
+Every Migration API endpoint shares one error model, one idempotency model, and
+one rate limit.
 
 ## Status codes
 
 | Status | Meaning |
 |---|---|
-| `400` | Malformed request — a required field is missing or a value is invalid. |
+| `400` | Malformed request — a required field is missing or a value is invalid (e.g. an unknown template slug, a bad `external_id`, an invalid run `kind`). |
 | `401` | API key missing, malformed, or revoked. |
-| `404` | The referenced company, run, or sheet isn't in your account. |
-| `409` | A uniqueness or idempotency conflict (e.g. a reused `external_id`, or the same `idempotency_key` with a different payload). |
+| `404` | The referenced migration, run, source, or template isn't in your account. |
+| `409` | A conflict — a reused `external_id`, an ambiguous source name, a run already in progress, or a state precondition (e.g. executing with no ready preview). |
 | `429` | Rate limit hit — back off and retry. |
 | `500` | Server error — safe to retry idempotent requests. |
 
-Run-level failures are different from request errors: an import or export request
-can return `201` (accepted) and then resolve to a `failed` run. Read the run's
-`error` field for the reason. See [Poll an import](/migration-api/poll-an-import).
+Run-level failures are different from request errors: a `POST /runs` request can
+return `201` (accepted) and then resolve to a `failed` run. Read the run's
+`error` field for the reason. See [Poll a run](/migration-api/poll-a-run).
 
 ## Error body
 
@@ -32,7 +27,7 @@ Every error response is a JSON object with a single human-readable `error`
 string:
 
 ```json
-{ "error": "external_id must contain only alphanumeric characters, hyphens, and underscores (max 255 chars)" }
+{ "error": "external_id must be alphanumeric (hyphens/underscores allowed), max 255 chars" }
 ```
 
 There is no machine-readable error code, field pointer, or request-id header
@@ -47,36 +42,35 @@ fleet of concurrent migrations doesn't burn the budget on status checks.
 
 ## Idempotency
 
-Import creation (and, in v2, export creation) accepts an **`idempotency_key`**
-you choose. The key is unique per company: re-sending the same key for the same
-company returns the **existing run** instead of creating a second one.
+Migration **creation** is idempotent on the `external_id` you choose. Re-sending
+[`POST /migrations`](/migration-api/create-a-migration) with the same `external_id`
+(and the same source) returns the **existing migration** — with a `200` instead
+of a `201` — rather than creating a second one. This makes create retries safe
+and doubles as recovery: if you lose a migration ID, re-POST with the same
+`external_id` to get it back.
 
-This makes retries safe and doubles as recovery — if you lose a `run_id`, re-POST
-the original request with the same key to get the run back. (For imports you can
-also look up the active run; see [Poll an import](/migration-api/poll-an-import#recovering-a-run).)
-
-<Tip>
-  An `idempotency_key` dedupes **run creation only**. For destination export, it
-  does not prevent a retried write from duplicating a record in the destination —
-  that's handled by a required natural key at publish time. See
-  [Export to a destination](/migration-api/export-to-destination).
-</Tip>
+Runs are **not** keyed by an idempotency token. Instead, only **one run runs at a
+time per migration** — starting a second while one is in flight returns `409` with
+the active `run_id`, which is how you recover a run you lost track of. See
+[Start a run](/migration-api/start-a-run).
 
 ## Polling conventions
 
 - Poll runs on an interval of ≈2s, backing off as the run ages.
-- Treat `completed`, `failed`, and `canceled` as terminal; stop polling.
-- Make your handling idempotent — the same terminal state can be read more than once.
-- Only one import runs at a time per company; starting a second while one is in
-  flight returns `409`.
+- Treat `awaiting_approval`, `completed`, `failed`, and `canceled` as terminal
+  for a given run; stop polling.
+- Make your handling idempotent — the same terminal state can be read more than
+  once.
+- Prefer the [thread stream](/migration-api/stream-the-thread) (SSE) over tight
+  polling when you want live progress.
 
 ## Data region
 
-Companies are provisioned in a default region (`iad`). If you need data to land
-in a specific region for residency reasons, talk to us at
+Migrations are created in your **account's region**. If you need data to land in
+a specific region for residency reasons, talk to us at
 [vish@vern.so](mailto:vish@vern.so) — additional regions are enabled per account.
 
 ## Next
 
-- [Poll an import](/migration-api/poll-an-import)
-- [Export to a destination](/migration-api/export-to-destination)
+- [Poll a run](/migration-api/poll-a-run)
+- [Start a run](/migration-api/start-a-run)

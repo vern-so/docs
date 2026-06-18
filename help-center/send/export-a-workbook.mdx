@@ -25,7 +25,7 @@ Use this when:
 - You're integrating Vern into your existing onboarding pipeline.
 - You're sending data more than once (it's slow to manually export CSVs every time).
 
-You'll need to [set up a webhook endpoint](/migration-api/webhooks) first.
+You'll need to [set up a webhook endpoint](/help-center/send/webhooks) first.
 
 ## Writer
 
@@ -48,8 +48,8 @@ For webhook exports, you can choose how related sheets are delivered:
 - **Flat** — each sheet is its own array of rows. Good for independent sheets.
 - **Nested** — child sheets are nested under their parents via link rules. Good when sheets have foreign-key relationships and you want them grouped.
 
-Vern handles circular links between sheets cleanly. The payload schemas for both formats are in the [Webhooks](/migration-api/webhooks#payload-format) reference.
+Vern handles circular links between sheets cleanly. The payload schemas for both formats are in the [Webhooks](/help-center/send/webhooks#payload-format) reference.
 
 ## Next
 
-- [Webhooks](/migration-api/webhooks) — set up the endpoint that catches exports.
+- [Webhooks](/help-center/send/webhooks) — set up the endpoint that catches exports.

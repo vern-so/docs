@@ -1,13 +1,7 @@
 ---
 title: Core concepts
-description: Integrations, templates, companies, and the managed agent that turns messy files into clean records.
+description: Sources, templates, migrations, runs, and the managed agent that turns messy files into clean records.
 ---
-
-<Note>
-  **Preview.** Part of the Migration API — in active design and not yet generally
-  available. Endpoints and payloads may change. See the
-  [overview](/migration-api/introduction).
-</Note>
 
 The Migration API has a small vocabulary. Once these few ideas click, the
 endpoints are obvious.
@@ -15,15 +9,17 @@ endpoints are obvious.
 ## Source — the system you migrate from
 
 A **source** is one system you migrate customers off of (Salesforce, a legacy
-CRM, a pile of spreadsheets). You set it up **once**, in the Vern UI — naming the
-source and pointing it at your templates. You can
-[list your sources](/migration-api/list-sources) over the API to let a customer
-pick which system they're migrating from, then pass its ID as `source` when you
-[provision a company](/migration-api/provision-a-company).
+CRM, a pile of spreadsheets). You set it up **once**, in the Vern UI. Over the
+API a source is addressed by its **name** — Vern never exposes a source ID. You
+can [list your sources](/migration-api/list-sources) to let a customer pick which
+system they're migrating from, then pass that name as `source` when you
+[create a migration](/migration-api/create-a-migration).
 
-A source is **not** a frozen import plan. There's nothing to hand-author and
-publish: the import logic is produced by the [managed agent](#the-managed-agent)
-at run time, and reused across customers as an optimization.
+A source is **optional**. A migration that doesn't name one is "sourceless" — the
+agent works purely from the uploaded files. A source is **not** a frozen import
+plan, either: there's nothing to hand-author and publish. The import logic is
+produced by the [managed agent](#the-managed-agent) at run time, and reused across
+customers as an optimization.
 
 ## Template — the object
 
@@ -32,42 +28,52 @@ Contacts or Companies — with its columns and validation rules (which columns
 exist, which are required, which must be unique, how they link to other objects).
 
 Templates are scoped to your **account**, not to a single source: the same set of
-objects is available to every source you migrate from. When you provision a
-company, each template you select becomes one **sheet** on its workbook. You can
+objects is available to every source you migrate from. Over the API a template is
+addressed by its **slug** — a stable snake_case identifier derived from its name
+(e.g. `contacts`). When you create a migration, each template you select becomes
+one **sheet** on its workbook. You can
 [list your templates](/migration-api/list-templates) over the API — columns and
 all — to show a customer what they can import and let them choose.
 
-## Company — the instance
+## Migration — the instance
 
-A **company** is one customer's migration — their isolated workspace. You create
-it with the first API call, and it holds:
+A **migration** is one customer's migration — their isolated workspace. You
+create it with the first API call and it holds a **workbook**: their data, with
+one **sheet** per template. The `id` returned at creation is the **migration ID**
+you pass to every later call.
 
-- A **workbook** — their data, with one **sheet** per template.
-- A **magic link** — an optional hosted link the customer can use to share data
-  directly (you can ignore it for a fully headless flow).
+A migration is created against a source (or none), but **nothing is bound to
+it** — there's no frozen plan to replay. **Your run and export calls only ever
+reference the migration**; you never pass plan or recipe IDs. The agent decides
+what logic to run each time.
 
-A company is created against a source, but **nothing is bound to it** — there's
-no frozen plan to replay. **Your import and export calls only ever reference the
-company**; you never pass plan or recipe IDs. The agent decides what logic to run
-each time.
+A migration moves through a small set of overall states, derived from what's
+happened so far:
+
+- **`awaiting_files`** — created, no files uploaded yet.
+- **`ready`** — files uploaded, no preview generated yet.
+- **`awaiting_approval`** — a preview has been generated and is waiting for you to
+  execute or refine it.
+- **`completed`** — an execute run has imported the data.
 
 ## The managed agent
 
-Every import runs on **one durable, tool-using agent** — the same agent that
-powers Vern's interactive import UI, driven headlessly. Each import call starts a
-[run](#runs) and the agent:
+Every run executes on **one durable, tool-using agent** — the same agent that
+powers Vern's interactive import UI, driven headlessly. Across a migration's runs
+the agent:
 
-1. **Builds.** It **reuses-or-authors** the import logic — a portable mapping +
-   transform recipe — and verifies it in a sandbox before touching real data.
+1. **Builds.** On a `generate` run it **reuses-or-authors** the import logic — a
+   portable mapping + transform recipe — and verifies it in a sandbox before
+   touching real data, stopping at a **preview**.
 2. **Self-heals.** When a customer's file drifts from what the recipe expected,
    it edits and re-verifies until it passes.
 3. **Asks, when it has to.** If a mapping is genuinely ambiguous and neither the
    data nor your templates settle it, the run pauses at
    [`blocked`](#runs) with a plain-language question. You answer through the run's
    [messages](/migration-api/answer-questions) sub-resource and it resumes.
-4. **Executes.** It runs the real import, then self-heals invalid cells.
-   Surviving invalid cells are **reported, not parked** — the run completes and
-   the bad cells show up in the report.
+4. **Executes.** On an `execute` run it runs the real import, then self-heals
+   invalid cells. Surviving invalid cells are **reported, not parked** — the run
+   completes and the bad cells show up in the report.
 
 The migration is a managed agent, **not a frozen-recipe replay**. Robustness
 comes from the agent's self-heal and its ability to ask — not from a pinned
@@ -77,41 +83,31 @@ artifact.
 
 By default the agent **reuses the source's most-recent working recipe** as a
 starting point, adapting only what each customer's upload changed. Because every
-successful import writes a fresh recipe, "latest" naturally **drifts** as
+successful generate writes a fresh recipe, "latest" naturally **drifts** as
 different end-customers import slightly different shapes.
 
-If you'd rather isolate that drift, you can **pin** one known-good recipe version
-for a source. Pinned runs read it read-only and don't promote their adapted
-recipe back to the shared "latest", so one customer's run can't change the
-starting point other runs draw from. _(Pinning is optional and still being
-built — talk to us if you need it.)_
-
-## Writer — the destination (v2)
-
-A **writer** is the published logic that pushes validated records *out* to a
-destination API. Like templates, it's defined **once** at the account level — it
-maps a set of templates to a destination — and it's **not** part of a source. The
-import side (sources and templates) is independent of it; you bring in a writer
-only when you deliver by [export to a destination](/migration-api/export-to-destination),
-which lands in **v2**. The v1 download flow ([Export CSV](/migration-api/export))
-needs none. Unlike import, a writer export is a **deterministic replay** — there's
-no agent in the loop.
-
-## Identifiers
-
-Every resource ID the API returns — companies, workbooks, sheets, runs,
-templates, and sources — is a **UUID**. The `external_id` you set on a company is
-the one exception: it's your own string, echoed back untouched. Store IDs as
-opaque strings; don't assume a typed prefix.
+If you'd rather isolate that drift, you can **pin** one known-good run's recipe
+for a source. Pinned runs read it as a starting point and don't promote their
+adapted recipe back to the shared "latest", so one customer's run can't change the
+starting point other runs draw from. See [Pin a source](/migration-api/pin-a-source).
 
 ## Runs
 
-Anything asynchronous is a **run**. Each import (and, in v2, each writer export)
-creates one run that you poll until it reaches a terminal state:
+Anything the agent does is a **run**. You start a run with
+[`POST /migrations/{id}/runs`](/migration-api/start-a-run) and a `kind`:
+
+- **`generate`** — author the recipe and produce a preview.
+- **`update`** — edit the recipe per a message, producing a new preview.
+- **`clarify`** — a read-only question about the current preview (changes
+  nothing).
+- **`execute`** — run the approved preview for real.
+
+**One run at a time per migration** — starting a second while one is in flight
+returns `409`. Each run you poll until it reaches a terminal state:
 
 ```
-queued → running → completed
-                 ↘ blocked → (answer) → running → completed
+queued → running → awaiting_approval → (execute) → completed
+                 ↘ blocked → (answer) → running → …
                  ↘ failed
                  ↘ canceled
 ```
@@ -121,18 +117,31 @@ queued → running → completed
   human-readable `message`.
 - **`blocked`** — the agent hit a genuinely ambiguous decision and is waiting on
   your answer. The poll response carries the agent's `questions`. Answer them via
-  the run's [messages](/migration-api/answer-questions) sub-resource. (Imports
-  only.)
-- **`completed`** — finished. The `report` tells you what landed (rows inserted,
-  per-sheet counts, and how many rows still carry an invalid cell).
-- **`failed`** — the agent couldn't produce a working import even after
-  self-healing. Nothing was inserted.
-- **`canceled`** — the run was stopped before it finished.
+  the run's [messages](/migration-api/answer-questions) sub-resource.
+- **`awaiting_approval`** — a `generate`/`update` run finished and produced a
+  preview. Fetch it from [`GET /preview`](/migration-api/get-the-preview), then
+  refine or [execute](/migration-api/start-a-run).
+- **`completed`** — finished. An `execute` run carries a `report` (rows inserted,
+  per-sheet counts, how many rows still carry an invalid cell). A `clarify` run
+  completes with no report.
+- **`failed`** — the agent couldn't produce a working result even after
+  self-healing. For an execute, nothing was inserted.
+- **`canceled`** — the run was stopped before it finished (see
+  [cancel a run](/migration-api/poll-a-run#cancel-a-run)).
 
 CSV download is **not** a run — it's a synchronous stream of the validated data
-that already exists in the company.
+that already exists in the migration.
+
+## Identifiers
+
+- **Migrations** and **runs** are identified by a **UUID** — store them as opaque
+  strings; don't assume a typed prefix.
+- **Sources** are addressed by their **name**, **templates** by their **slug** —
+  there are no public source or template IDs.
+- The **`external_id`** you set on a migration is your own string, echoed back
+  untouched, and makes creation idempotent.
 
 ## Next
 
 - [Quickstart](/migration-api/quickstart) — see all of this in one flow.
-- [Provision a company](/migration-api/provision-a-company) — the first call.
+- [Create a migration](/migration-api/create-a-migration) — the first call.

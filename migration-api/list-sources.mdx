@@ -7,18 +7,11 @@ description: List the sources in your account so your end-customers can pick whi
 GET https://app.vern.so/api/v1/sources
 ```
 
-Returns the **sources** in your account — the migration definitions you've
-authored in the Vern UI. Use it to build a source picker in your own product so
-each customer can choose which system they're migrating from, then pass the
-chosen `id` as `source` when you
-[provision a company](/migration-api/provision-a-company).
-
-<Note>
-  **Preview.** Part of the Migration API — in active design and not yet generally
-  available; the shapes below may change. Until this ships, read source IDs from
-  [Settings → Sources](https://app.vern.so/sources) in the dashboard. See the
-  [overview](/migration-api/introduction).
-</Note>
+Returns the **sources** in your account — the systems you migrate customers off
+of, defined in the Vern UI. Use it to build a source picker in your own product
+so each customer can choose which system they're migrating from, then pass the
+chosen `name` as `source` when you
+[create a migration](/migration-api/create-a-migration).
 
 ## Authentication
 
@@ -32,7 +25,6 @@ Requires an `x-api-key` header. See [Authentication](/migration-api/authenticati
 {
   "sources": [
     {
-      "id": "01234567-89ab-cdef-0123-456789abcdef",
       "name": "Salesforce",
       "logo_url": "https://logo.clearbit.com/salesforce.com"
     }
@@ -40,19 +32,23 @@ Requires an `x-api-key` header. See [Authentication](/migration-api/authenticati
 }
 ```
 
-<ResponseField name="id" type="string (uuid)">
-  The source's UUID. Pass it as `source` when you
-  [provision a company](/migration-api/provision-a-company).
-</ResponseField>
-
 <ResponseField name="name" type="string">
-  The source's display name — the system you migrate from (e.g. "Salesforce").
+  The source's name — the system you migrate from (e.g. "Salesforce"). This is
+  the public identifier: pass it as `source` when you
+  [create a migration](/migration-api/create-a-migration). Names are deduped, so
+  each appears once.
 </ResponseField>
 
 <ResponseField name="logo_url" type="string | null">
   A logo for the source, suitable for rendering in your picker. `null` if none is
   set.
 </ResponseField>
+
+<Note>
+  Sources are addressed by **name**, never by an ID. If two sources in your
+  account share a name, referencing it is ambiguous and create / pin calls return
+  `409` until you rename one in the UI.
+</Note>
 
 <Note>
   Sources and templates are **independent** lists. A source is the system you
@@ -79,4 +75,5 @@ curl https://app.vern.so/api/v1/sources \
 ## Next
 
 - [List templates](/migration-api/list-templates) — the importable objects.
-- [Provision a company](/migration-api/provision-a-company) — create a company bound to a source.
+- [Pin a source](/migration-api/pin-a-source) — fix the recipe a source reuses.
+- [Create a migration](/migration-api/create-a-migration) — create a migration against a source.

@@ -1,0 +1,108 @@
+---
+title: Export CSV
+description: Get a migration's validated data out as a clean CSV — addressed by template slug, downloaded or streamed straight into your own storage bucket.
+---
+
+```http
+GET https://app.vern.so/api/v1/migrations/{migration_id}/exports/{template_slug}.csv
+```
+
+Streams one sheet's **validated data** as a CSV, addressed by **template slug**.
+This is synchronous — there's no run to poll. Columns come out in template order,
+RFC 4180-escaped, and the body is streamed (gzip-compressed when your client
+sends `Accept-Encoding: gzip`).
+
+One call exports one sheet. To export a whole workbook, request each template's
+slug in turn.
+
+## Authentication
+
+Requires an `x-api-key` header. See [Authentication](/migration-api/authentication).
+
+## Path & query
+
+<ParamField path="template_slug" type="string" required>
+  The slug of the template whose sheet you want, with a `.csv` suffix — e.g.
+  `contacts.csv`. [List your templates](/migration-api/list-templates) for slugs.
+</ParamField>
+
+<ParamField query="filter" type="string" default="valid">
+  Which rows to include:
+
+  - **`valid`** (default) — only fully clean rows. Any row with even one cell that
+    failed validation is **excluded entirely**, so the count can be lower than the
+    sheet's total.
+  - **`all`** — every row, including those with invalid cells.
+  - **`invalid`** — only the flagged rows (those with at least one invalid cell) —
+    useful for surfacing what needs fixing.
+</ParamField>
+
+## Response
+
+`200 OK` with `Content-Type: text/csv; charset=utf-8` and a `Content-Disposition`
+attachment header. The body is streamed. An `X-Total-Records` header reports how
+many records match the filter. When the request advertises gzip, the response is
+gzip-encoded (`Content-Encoding: gzip`).
+
+## Errors
+
+| Status | Meaning |
+|---|---|
+| `400` | The path doesn't end in `.csv`, or `filter` isn't one of `valid` / `all` / `invalid`. |
+| `401` | API key missing or invalid. |
+| `404` | No template with that slug, no sheet for it in this migration, or the migration isn't in your account. |
+| `429` | Rate limit hit — back off and retry. |
+| `500` | Server error. |
+
+## Example
+
+```bash
+# valid rows only (default)
+curl "https://app.vern.so/api/v1/migrations/c0a8012e-.../exports/contacts.csv" \
+  -H "x-api-key: $VERN_API_KEY" \
+  -o contacts-clean.csv
+
+# include rows with invalid cells
+curl "https://app.vern.so/api/v1/migrations/c0a8012e-.../exports/contacts.csv?filter=all" \
+  -H "x-api-key: $VERN_API_KEY" \
+  -o contacts-all.csv
+
+# only the flagged rows
+curl "https://app.vern.so/api/v1/migrations/c0a8012e-.../exports/contacts.csv?filter=invalid" \
+  -H "x-api-key: $VERN_API_KEY" \
+  -o contacts-flagged.csv
+```
+
+## Into your own storage
+
+The endpoint hands you the file in the HTTP response — Vern doesn't push it
+anywhere. To land the clean CSV in **your own bucket**, pull it from your backend
+and pipe it straight into object storage. The body streams, so you never have to
+buffer the whole file:
+
+```bash
+# Amazon S3
+curl -s "https://app.vern.so/api/v1/migrations/c0a8012e-.../exports/contacts.csv" \
+  -H "x-api-key: $VERN_API_KEY" \
+  | aws s3 cp - s3://your-bucket/acme/contacts.csv
+
+# Google Cloud Storage
+curl -s "https://app.vern.so/api/v1/migrations/c0a8012e-.../exports/contacts.csv" \
+  -H "x-api-key: $VERN_API_KEY" \
+  | gcloud storage cp - gs://your-bucket/acme/contacts.csv
+```
+
+Any S3-compatible store (R2, MinIO, Spaces) works the same way. Keep your
+`x-api-key` server-side — run this from your backend, never the browser. Vern
+never receives your storage credentials; your backend relays the bytes.
+
+<Note>
+  Prefer Vern to deliver **directly** into a bucket you own — via a presigned URL
+  or stored bucket credentials — instead of relaying it yourself? That's not
+  available today. Tell us at [vish@vern.so](mailto:vish@vern.so) if you'd use it.
+</Note>
+
+## Next
+
+- [Poll a run](/migration-api/poll-a-run) — confirm the execute completed before exporting.
+- [Errors & limits](/migration-api/errors) — shared conventions.

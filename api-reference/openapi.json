@@ -1,0 +1,692 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Vern Migration API",
+    "version": "1.0.0",
+    "description": "Run Vern as a headless migration engine. Create a migration, upload a customer's files, run the managed agent to generate a preview, then execute and export clean data. See the Migration API guides for concepts and walkthroughs."
+  },
+  "servers": [
+    { "url": "https://app.vern.so/api/v1" }
+  ],
+  "security": [
+    { "apiKey": [] }
+  ],
+  "tags": [
+    { "name": "Catalog", "description": "Discover the sources and templates you set up in the Vern UI." },
+    { "name": "Migrations", "description": "Create a migration workspace and upload a customer's files." },
+    { "name": "Runs", "description": "Drive the managed agent: generate, refine, execute, answer, and observe." },
+    { "name": "Export", "description": "Download a migration's validated data as CSV." }
+  ],
+  "paths": {
+    "/sources": {
+      "get": {
+        "operationId": "listSources",
+        "summary": "List sources",
+        "description": "Returns the sources in your account — the systems you migrate customers off of. Sources are addressed by **name** throughout the API; no source ID is exposed.",
+        "tags": ["Catalog"],
+        "responses": {
+          "200": {
+            "description": "The sources in your account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sources": { "type": "array", "items": { "$ref": "#/components/schemas/Source" } }
+                  }
+                },
+                "example": { "sources": [ { "name": "Salesforce", "logo_url": "https://logo.clearbit.com/salesforce.com" } ] }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/sources/{source}/pin": {
+      "post": {
+        "operationId": "pinSource",
+        "summary": "Pin a source's recipe",
+        "description": "Pin the recipe a source reuses as the starting point for future `generate` runs, so one customer's run can't drift the baseline others draw from. Pass `run_id: null` to unpin.",
+        "tags": ["Catalog"],
+        "parameters": [
+          { "name": "source", "in": "path", "required": true, "description": "The source name (URL-encode spaces).", "schema": { "type": "string" }, "example": "Salesforce" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "run_id": { "type": ["string", "null"], "format": "uuid", "description": "The run whose recipe to pin, or null to unpin." }
+                },
+                "required": ["run_id"]
+              },
+              "example": { "run_id": "d4c3b2a1-9f8e-47d6-b5a4-c3d2e1f0a9b8" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated pin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "source": { "type": "string" },
+                    "pinned_recipe_run_id": { "type": ["string", "null"], "format": "uuid" }
+                  }
+                },
+                "example": { "source": "Salesforce", "pinned_recipe_run_id": "d4c3b2a1-9f8e-47d6-b5a4-c3d2e1f0a9b8" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/templates": {
+      "get": {
+        "operationId": "listTemplates",
+        "summary": "List templates",
+        "description": "Returns the active templates in your account — the importable objects, each with its columns and validation rules. Templates are addressed by **slug**.",
+        "tags": ["Catalog"],
+        "responses": {
+          "200": {
+            "description": "The active templates in your account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "templates": { "type": "array", "items": { "$ref": "#/components/schemas/Template" } }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/templates/{template_slug}": {
+      "get": {
+        "operationId": "getTemplate",
+        "summary": "Get a template",
+        "description": "Fetch one active template by its slug.",
+        "tags": ["Catalog"],
+        "parameters": [
+          { "name": "template_slug", "in": "path", "required": true, "schema": { "type": "string" }, "example": "contacts" }
+        ],
+        "responses": {
+          "200": {
+            "description": "The template.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Template" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/migrations": {
+      "post": {
+        "operationId": "createMigration",
+        "summary": "Create a migration",
+        "description": "Create a migration workspace for one customer — a workbook with one sheet per template. Requires API-key auth specifically. `external_id` makes creation idempotent: re-sending the same one (with the same source) returns the existing migration with a 200.",
+        "tags": ["Migrations"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": { "type": "string", "description": "Display name for the migration (e.g. the customer's org name)." },
+                  "source": { "type": "string", "description": "The source name this migration comes from. Optional — omit for a sourceless migration." },
+                  "external_id": { "type": "string", "maxLength": 255, "pattern": "^[a-zA-Z0-9_-]+$", "description": "Your own identifier for this customer. Alphanumeric, hyphens, underscores. Makes creation idempotent." },
+                  "templates": { "type": "array", "items": { "type": "string" }, "description": "Template slugs to create sheets from. Omit to use every active template." }
+                }
+              },
+              "example": { "name": "Acme Corp", "source": "Salesforce", "external_id": "acme-001", "templates": ["contacts"] }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created migration (200 when an existing migration is returned via external_id idempotency).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "migration": { "$ref": "#/components/schemas/Migration" } }
+                },
+                "example": {
+                  "migration": {
+                    "id": "c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d",
+                    "name": "Acme Corp",
+                    "source": "Salesforce",
+                    "status": "awaiting_files",
+                    "templates": [ { "slug": "contacts", "name": "Contacts" } ]
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/migrations/{migration_id}/files": {
+      "parameters": [ { "$ref": "#/components/parameters/MigrationId" } ],
+      "post": {
+        "operationId": "createUploads",
+        "summary": "Mint signed upload URLs",
+        "description": "Request one signed upload URL per file, then PUT each file's bytes to its `signed_url`. Files are workbook-level — not mapped to templates.",
+        "tags": ["Migrations"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["files"],
+                "properties": {
+                  "files": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "required": ["name"],
+                      "properties": {
+                        "name": { "type": "string" },
+                        "content_type": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              },
+              "example": { "files": [ { "name": "contacts.csv", "content_type": "text/csv" } ] }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "One signed upload per requested file.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "files": { "type": "array", "items": { "$ref": "#/components/schemas/SignedUpload" } } }
+                },
+                "example": { "files": [ { "name": "contacts.csv", "storage_path": "workbooks/b3d9.../<uuid>-contacts.csv", "signed_url": "https://storage.vern.so/object/upload/sign/...&token=...", "token": "ey...", "content_type": "text/csv" } ] }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      },
+      "get": {
+        "operationId": "listFiles",
+        "summary": "List uploaded files",
+        "description": "List the customer-uploaded files for the migration.",
+        "tags": ["Migrations"],
+        "responses": {
+          "200": {
+            "description": "The uploaded files.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "files": { "type": "array", "items": { "$ref": "#/components/schemas/ListedFile" } } }
+                },
+                "example": { "files": [ { "name": "contacts.csv", "storage_path": "workbooks/b3d9.../<uuid>-contacts.csv", "size": 184320, "content_type": "text/csv", "uploaded_at": "2026-06-19T15:30:02.000Z" } ] }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/migrations/{migration_id}/runs": {
+      "parameters": [ { "$ref": "#/components/parameters/MigrationId" } ],
+      "post": {
+        "operationId": "startRun",
+        "summary": "Start a run",
+        "description": "Start one managed-agent run. `generate` authors the recipe and stops at a preview; `update` edits it per `message`; `clarify` asks a read-only question; `execute` runs the approved preview for real. Only one run runs at a time per migration (409 with the active run_id otherwise).",
+        "tags": ["Runs"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["kind"],
+                "properties": {
+                  "kind": { "type": "string", "enum": ["generate", "update", "clarify", "execute"] },
+                  "message": { "type": "string", "description": "Required for update and clarify — your instruction or question in plain language." }
+                }
+              },
+              "examples": {
+                "generate": { "summary": "Generate a preview", "value": { "kind": "generate" } },
+                "update": { "summary": "Refine the recipe", "value": { "kind": "update", "message": "Trim whitespace from every phone number." } },
+                "clarify": { "summary": "Ask a read-only question", "value": { "kind": "clarify", "message": "Which column did you map Email from?" } },
+                "execute": { "summary": "Execute for real", "value": { "kind": "execute" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The run was accepted and queued. Poll `poll_url`.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RunAccepted" },
+                "example": { "run_id": "d4c3b2a1-9f8e-47d6-b5a4-c3d2e1f0a9b8", "status": "queued", "poll_url": "https://app.vern.so/api/v1/migrations/c0a8012e-.../runs/d4c3b2a1-9f8e-47d6-b5a4-c3d2e1f0a9b8" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": {
+            "description": "A run is already in progress (the body carries the active run_id), or there is no preview to act on / execute.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" }, "example": { "error": "A run is already in progress for this migration.", "run_id": "d4c3b2a1-9f8e-47d6-b5a4-c3d2e1f0a9b8" } } }
+          },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/migrations/{migration_id}/runs/{run_id}": {
+      "parameters": [ { "$ref": "#/components/parameters/MigrationId" }, { "$ref": "#/components/parameters/RunId" } ],
+      "get": {
+        "operationId": "getRun",
+        "summary": "Poll a run",
+        "description": "Read a run's state. Every response carries `run_id`, `status`, and `created_at`; the rest depends on status (`message` while running, `questions` when blocked, `report` on a completed execute, `error` on failure).",
+        "tags": ["Runs"],
+        "responses": {
+          "200": {
+            "description": "The run's current state.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Run" },
+                "examples": {
+                  "running": { "summary": "running", "value": { "run_id": "d4c3b2a1-...", "status": "running", "created_at": "2026-06-19T15:32:11.000Z", "message": "Cleaning your data" } },
+                  "blocked": { "summary": "blocked", "value": { "run_id": "d4c3b2a1-...", "status": "blocked", "created_at": "2026-06-19T15:32:11.000Z", "questions": [ { "id": "q1", "question": "Some Status values aren't one of the allowed options. How should I handle them?", "options": [ { "id": "a", "label": "Map them all to 'Open'" }, { "id": "b", "label": "Drop those rows" } ], "allowCustom": true } ] } },
+                  "awaiting_approval": { "summary": "awaiting_approval", "value": { "run_id": "d4c3b2a1-...", "status": "awaiting_approval", "created_at": "2026-06-19T15:32:11.000Z" } },
+                  "completed": { "summary": "completed (execute)", "value": { "run_id": "e5d4c3b2-...", "status": "completed", "created_at": "2026-06-19T15:40:02.000Z", "report": { "inserted": 1450, "perSheet": [ { "templateName": "Contacts", "sheetId": "7a1c2b3d-...", "rowCount": 1450 } ], "invalidCellCount": 12, "coverage": null } } },
+                  "failed": { "summary": "failed", "value": { "run_id": "d4c3b2a1-...", "status": "failed", "created_at": "2026-06-19T15:32:11.000Z", "error": "Run failed or timed out" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      },
+      "patch": {
+        "operationId": "cancelRun",
+        "summary": "Cancel a run",
+        "description": "Cancel an in-flight run. The only accepted body is `{ \"status\": \"cancel_requested\" }`.",
+        "tags": ["Runs"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["status"],
+                "properties": { "status": { "type": "string", "enum": ["cancel_requested"] } }
+              },
+              "example": { "status": "cancel_requested" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The run in its updated (canceled) shape.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Run" }, "example": { "run_id": "d4c3b2a1-...", "status": "canceled", "created_at": "2026-06-19T15:32:11.000Z" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/migrations/{migration_id}/runs/{run_id}/messages": {
+      "parameters": [ { "$ref": "#/components/parameters/MigrationId" }, { "$ref": "#/components/parameters/RunId" } ],
+      "post": {
+        "operationId": "answerRun",
+        "summary": "Answer a blocked run",
+        "description": "Resume a run paused at `blocked`. Send `answers` as the structured `[{id,value}]` form (one per question) or a free-form string. Only a blocked run accepts this (409 otherwise).",
+        "tags": ["Runs"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["answers"],
+                "properties": {
+                  "answers": {
+                    "description": "Structured answers (one {id,value} per question) or a free-form string.",
+                    "oneOf": [
+                      { "type": "array", "items": { "type": "object", "properties": { "id": { "type": "string" }, "value": { "type": "string" } } } },
+                      { "type": "string" }
+                    ]
+                  }
+                }
+              },
+              "examples": {
+                "structured": { "summary": "Structured", "value": { "answers": [ { "id": "q1", "value": "Treat CANCELLED as inactive" } ] } },
+                "freeform": { "summary": "Free-form", "value": { "answers": "Use the company domain for any missing Email, don't drop the row." } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The run resumed and is running again.",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "run_id": { "type": "string", "format": "uuid" }, "status": { "type": "string", "example": "running" } } }, "example": { "run_id": "d4c3b2a1-9f8e-47d6-b5a4-c3d2e1f0a9b8", "status": "running" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/migrations/{migration_id}/preview": {
+      "parameters": [ { "$ref": "#/components/parameters/MigrationId" } ],
+      "get": {
+        "operationId": "getPreview",
+        "summary": "Get the preview",
+        "description": "The latest generated preview — the proposed output, sheet-per-template. 404 until a generate/update run has produced one.",
+        "tags": ["Runs"],
+        "responses": {
+          "200": {
+            "description": "The current preview.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Preview" },
+                "example": {
+                  "status": "awaiting_approval",
+                  "templates": [ { "slug": "contacts", "name": "Contacts" } ],
+                  "sheets": [ { "template": { "slug": "contacts", "name": "Contacts" }, "rows": [ ["Email", "First Name", "Last Name"], ["jane@acme.com", "Jane", "Doe"] ], "invalid_cells": [] } ]
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/migrations/{migration_id}/thread": {
+      "parameters": [ { "$ref": "#/components/parameters/MigrationId" } ],
+      "get": {
+        "operationId": "getThread",
+        "summary": "Get the thread (snapshot)",
+        "description": "A snapshot of the agent's activity thread across all of the migration's runs, ordered by a stable cross-run sequence. Page forward by passing the previous `last_sequence` as `after`.",
+        "tags": ["Runs"],
+        "parameters": [
+          { "name": "after", "in": "query", "required": false, "description": "Return only events with sequence greater than this.", "schema": { "type": "integer" } },
+          { "name": "include", "in": "query", "required": false, "description": "Verbosity.", "schema": { "type": "string", "enum": ["user", "tools", "all"], "default": "user" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of thread events.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "events": { "type": "array", "items": { "$ref": "#/components/schemas/ThreadEvent" } },
+                    "last_sequence": { "type": ["integer", "null"] }
+                  }
+                },
+                "example": { "events": [ { "sequence": 1042, "type": "status", "data": { "message": "Reading your files" }, "created_at": "2026-06-19T15:32:13.000Z" } ], "last_sequence": 1042 }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/migrations/{migration_id}/thread/stream": {
+      "parameters": [ { "$ref": "#/components/parameters/MigrationId" } ],
+      "get": {
+        "operationId": "streamThread",
+        "summary": "Stream the thread (SSE)",
+        "description": "A Server-Sent Events stream of the same thread events. Each message is `event: <type>` + `data: <json>`. The stream ends with `event: done` and closes after ~5 minutes; reconnect with `?after=<last_sequence>` to continue.",
+        "tags": ["Runs"],
+        "parameters": [
+          { "name": "after", "in": "query", "required": false, "schema": { "type": "integer" } },
+          { "name": "include", "in": "query", "required": false, "schema": { "type": "string", "enum": ["user", "tools", "all"], "default": "user" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "An SSE stream.",
+            "content": { "text/event-stream": { "schema": { "type": "string" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/migrations/{migration_id}/exports/{file}": {
+      "parameters": [ { "$ref": "#/components/parameters/MigrationId" } ],
+      "get": {
+        "operationId": "exportCsv",
+        "summary": "Export a sheet as CSV",
+        "description": "Stream one sheet's validated data as a CSV, addressed by `{template_slug}.csv`. The body is streamed (gzip-compressed when the request advertises it) and an `X-Total-Records` header reports the matching count.",
+        "tags": ["Export"],
+        "parameters": [
+          { "name": "file", "in": "path", "required": true, "description": "The template slug with a .csv suffix, e.g. contacts.csv.", "schema": { "type": "string" }, "example": "contacts.csv" },
+          { "name": "filter", "in": "query", "required": false, "description": "Which rows to include.", "schema": { "type": "string", "enum": ["valid", "all", "invalid"], "default": "valid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "The CSV stream.",
+            "content": { "text/csv": { "schema": { "type": "string", "format": "binary" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key",
+        "description": "Your Vern API key. Create one at Settings → API keys."
+      }
+    },
+    "parameters": {
+      "MigrationId": {
+        "name": "migration_id",
+        "in": "path",
+        "required": true,
+        "description": "The migration ID returned by Create a migration.",
+        "schema": { "type": "string", "format": "uuid" },
+        "example": "c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d"
+      },
+      "RunId": {
+        "name": "run_id",
+        "in": "path",
+        "required": true,
+        "description": "The run ID returned by Start a run.",
+        "schema": { "type": "string", "format": "uuid" },
+        "example": "d4c3b2a1-9f8e-47d6-b5a4-c3d2e1f0a9b8"
+      }
+    },
+    "responses": {
+      "BadRequest": { "description": "Malformed request.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "Unauthorized": { "description": "API key missing, malformed, or revoked.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "NotFound": { "description": "The referenced resource isn't in your account.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "Conflict": { "description": "A uniqueness or state conflict.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "RateLimited": { "description": "Rate limit hit — back off and retry.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" }, "example": { "error": "Too many requests" } } } }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": { "error": { "type": "string", "description": "A human-readable error message." } },
+        "required": ["error"]
+      },
+      "Source": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "description": "The source's public identifier." },
+          "logo_url": { "type": ["string", "null"] }
+        }
+      },
+      "TemplateColumn": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "required": { "type": "boolean" },
+          "unique": { "type": "boolean" },
+          "desiredRule": { "type": "string", "enum": ["none", "ai", "strict", "link"] },
+          "strictRule": { "type": "string", "description": "Regex the value must match (when desiredRule is strict)." },
+          "linkRule": { "type": "array", "items": { "type": "object", "properties": { "templateId": { "type": "string" }, "columnName": { "type": "string" } } }, "description": "Cross-template references (when desiredRule is link)." }
+        }
+      },
+      "Template": {
+        "type": "object",
+        "properties": {
+          "slug": { "type": "string", "description": "Stable public identifier." },
+          "name": { "type": "string" },
+          "description": { "type": ["string", "null"] },
+          "columns": { "type": "array", "items": { "$ref": "#/components/schemas/TemplateColumn" } }
+        }
+      },
+      "Migration": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "description": "The migration ID — pass it to every later call." },
+          "name": { "type": "string" },
+          "source": { "type": ["string", "null"] },
+          "status": { "type": "string", "enum": ["awaiting_files", "ready", "awaiting_approval", "completed"] },
+          "templates": { "type": "array", "items": { "type": "object", "properties": { "slug": { "type": "string" }, "name": { "type": "string" } } } }
+        }
+      },
+      "SignedUpload": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "storage_path": { "type": "string" },
+          "signed_url": { "type": "string", "description": "PUT the file's bytes here." },
+          "token": { "type": "string" },
+          "content_type": { "type": "string" }
+        }
+      },
+      "ListedFile": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "storage_path": { "type": "string" },
+          "size": { "type": ["integer", "null"] },
+          "content_type": { "type": ["string", "null"] },
+          "uploaded_at": { "type": ["string", "null"], "format": "date-time" }
+        }
+      },
+      "RunAccepted": {
+        "type": "object",
+        "properties": {
+          "run_id": { "type": "string", "format": "uuid" },
+          "status": { "type": "string", "example": "queued" },
+          "poll_url": { "type": "string", "format": "uri" }
+        }
+      },
+      "Question": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "question": { "type": "string" },
+          "context": { "type": "string" },
+          "options": { "type": "array", "items": { "type": "object", "properties": { "id": { "type": "string" }, "label": { "type": "string" } } } },
+          "allowCustom": { "type": "boolean" }
+        }
+      },
+      "Report": {
+        "type": "object",
+        "properties": {
+          "inserted": { "type": "integer", "description": "Total rows imported across all sheets." },
+          "perSheet": { "type": "array", "items": { "type": "object", "properties": { "templateName": { "type": "string" }, "sheetId": { "type": "string" }, "rowCount": { "type": "integer" } } } },
+          "invalidCellCount": { "type": "integer", "description": "Rows that still carry at least one invalid cell." },
+          "coverage": { "type": ["object", "null"], "description": "Optional per-column fill/distinct profile of sources vs. outputs." }
+        }
+      },
+      "Run": {
+        "type": "object",
+        "description": "A run's polled state. Fields beyond run_id/status/created_at depend on status.",
+        "properties": {
+          "run_id": { "type": "string", "format": "uuid" },
+          "status": { "type": "string", "enum": ["queued", "running", "blocked", "awaiting_approval", "completed", "failed", "canceled"] },
+          "created_at": { "type": "string", "format": "date-time" },
+          "message": { "type": ["string", "null"], "description": "Present while queued/running." },
+          "questions": { "type": "array", "items": { "$ref": "#/components/schemas/Question" }, "description": "Present when blocked." },
+          "report": { "$ref": "#/components/schemas/Report" },
+          "error": { "type": "string", "description": "Present when failed." }
+        }
+      },
+      "Preview": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "awaiting_approval" },
+          "templates": { "type": "array", "items": { "type": "object", "properties": { "slug": { "type": "string" }, "name": { "type": "string" } } } },
+          "sheets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "template": { "type": "object", "properties": { "slug": { "type": "string" }, "name": { "type": "string" } } },
+                "rows": { "type": "array", "items": { "type": "array", "items": { "type": "string" } }, "description": "Rows as a grid, header row first." },
+                "invalid_cells": { "type": "array", "items": {} }
+              }
+            }
+          }
+        }
+      },
+      "ThreadEvent": {
+        "type": "object",
+        "properties": {
+          "sequence": { "type": "integer", "description": "Stable cross-run ordinal; use as the next `after`." },
+          "type": { "type": "string", "description": "message | thinking | status | tool_call | tool_result | task | request_input | prepared | preview | completed | error." },
+          "data": { "type": "object", "description": "The event payload, kept intact." },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,87 @@
+---
+title: Get the preview
+description: Read the latest generated preview — the proposed output, sheet-per-template — so your customer can review it before you execute.
+---
+
+```http
+GET https://app.vern.so/api/v1/migrations/{migration_id}/preview
+```
+
+Returns the **current preview** — the output of the latest
+[`generate` or `update` run](/migration-api/start-a-run), mapped to your templates
+sheet-by-sheet. This is exactly what the agent proposes to import; show it to your
+customer, then refine or [execute](/migration-api/start-a-run).
+
+A migration has a preview once a `generate`/`update` run reaches
+`awaiting_approval`. Before that, this returns `404`.
+
+## Authentication
+
+Requires an `x-api-key` header. See [Authentication](/migration-api/authentication).
+
+## Response
+
+`200 OK`
+
+```json
+{
+  "status": "awaiting_approval",
+  "templates": [
+    { "slug": "contacts", "name": "Contacts" }
+  ],
+  "sheets": [
+    {
+      "template": { "slug": "contacts", "name": "Contacts" },
+      "rows": [
+        ["Email", "First Name", "Last Name", "Account"],
+        ["jane@acme.com", "Jane", "Doe", "Acme Corp"],
+        ["john@acme.com", "John", "Smith", "Acme Corp"]
+      ],
+      "invalid_cells": []
+    }
+  ]
+}
+```
+
+<ResponseField name="status" type="string">
+  Always `awaiting_approval` when a preview exists.
+</ResponseField>
+<ResponseField name="templates" type="object[]">
+  The templates this migration targets, each `{ slug, name }`.
+</ResponseField>
+<ResponseField name="sheets" type="object[]">
+  One entry per output sheet:
+
+  <Expandable title="sheet">
+    <ResponseField name="template" type="object">
+      `{ slug, name }` — the template this sheet maps to.
+    </ResponseField>
+    <ResponseField name="rows" type="string[][]">
+      The proposed rows as a grid, header row first.
+    </ResponseField>
+    <ResponseField name="invalid_cells" type="object[]">
+      Cells flagged invalid in the preview. Empty in the common case.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Errors
+
+| Status | Meaning |
+|---|---|
+| `401` | API key missing or invalid. |
+| `404` | No preview generated yet, or the migration isn't in your account. |
+| `429` | Rate limit hit — back off and retry. |
+| `500` | Server error. |
+
+## Example
+
+```bash
+curl https://app.vern.so/api/v1/migrations/c0a8012e-.../preview \
+  -H "x-api-key: $VERN_API_KEY"
+```
+
+## Next
+
+- [Start a run](/migration-api/start-a-run) — `update` to refine, or `execute` to import.
+- [Export CSV](/migration-api/export-csv) — get the validated rows after execute.

@@ -1,24 +1,17 @@
 ---
 title: Migration API
-description: Embed Vern's migration engine inside your own product — provision, run a managed-agent import, and deliver clean data with a few API calls.
+description: Embed Vern's migration engine inside your own product — create a migration, run a managed-agent import, review the preview, and deliver clean data over the API.
 ---
-
-<Note>
-  **Preview.** The Migration API is in active design with a small group of
-  design partners. The surface below is what we're building and how we're
-  thinking about it — endpoints and payloads may change before general
-  availability. Want early access? Email [vish@vern.so](mailto:vish@vern.so).
-</Note>
 
 The Migration API lets you run Vern as a **headless migration engine** inside
 your own product. Your end-customers never see a Vern dashboard — they stay in
 your UI while Vern does the messy work of turning a customer's old data into
 clean, validated records ready for your system.
 
-You set up your **integration and templates once**, in the Vern UI — the target
-shape you want every customer's data to land in. After that, each new customer
-migration is **three API calls**, and a **managed agent** does the mapping,
-cleaning, and validation for you.
+You set up your **sources and templates once**, in the Vern UI — the target
+shape you want every customer's data to land in. After that, each customer
+migration is a short sequence of API calls, and a **managed agent** does the
+mapping, cleaning, and validation for you.
 
 ```mermaid
 %%{init: {'theme':'base','themeVariables':{
@@ -29,48 +22,55 @@ cleaning, and validation for you.
 flowchart TB
   subgraph author["One time · in the Vern UI"]
     direction TB
-    S["<b>Integration + templates</b><br/>the target shape"]
+    S["<b>Sources + templates</b><br/>the target shape"]
   end
 
   subgraph runtime["Per customer · via the API"]
     direction TB
-    P["<b>1 · Provision</b><br/>POST /companies"]
-    I["<b>2 · Import</b><br/>POST /imports<br/><i>managed-agent run</i>"]
+    P["<b>1 · Create</b><br/>POST /migrations"]
+    U["<b>2 · Upload</b><br/>POST /migrations/{id}/files"]
+    G["<b>3 · Generate</b><br/>POST /runs · kind: generate"]
     Q{"blocked?<br/>(agent asks)"}
-    R["<b>Answer</b><br/>POST /messages"]
-    D{"<b>3 · Deliver</b>"}
-    CSV["Export CSV<br/>GET /export.csv"]
-    EXP["Export to destination<br/>POST /exports · v2"]
+    A["<b>Answer</b><br/>POST /runs/{id}/messages"]
+    PV["<b>4 · Review</b><br/>GET /preview"]
+    E["<b>5 · Execute</b><br/>POST /runs · kind: execute"]
+    D["<b>6 · Deliver</b><br/>GET /exports/{slug}.csv"]
   end
 
   S -. shapes .-> P
-  P --> I --> Q
-  Q -- "yes" --> R
-  R -- "resume" --> Q
-  Q -- "validated" --> D
-  D --> CSV
-  D -. v2 .-> EXP
+  P --> U --> G --> Q
+  Q -- "yes" --> A
+  A -- "resume" --> Q
+  Q -- "preview ready" --> PV
+  PV -- "approve" --> E --> D
 
   classDef step fill:#10B981,stroke:#059669,stroke-width:1px,color:#ffffff;
   classDef soft fill:#D1FAE5,stroke:#10B981,stroke-width:1px,color:#065F46;
 
-  class P,I,D step;
-  class S,Q,R,CSV,EXP soft;
+  class P,U,G,E,D step;
+  class S,Q,A,PV soft;
 ```
 
-## The three calls
+## The lifecycle
 
-A migration is three calls, all scoped to one **company** (one customer's
-workspace):
+Every call after setup is scoped to one **migration** — one customer's isolated
+workspace:
 
-1. **Provision** — `POST /api/v1/companies` creates a company (a workbook with
+1. **Create** — `POST /api/v1/migrations` creates a migration (a workbook with
    one sheet per template) for one customer.
-2. **Import** — `POST /api/v1/companies/{id}/imports` pushes their files and
-   starts a **managed-agent run**. It's async; you poll for the result. The run
-   can pause at **`blocked`** to ask you a question (see below).
-3. **Deliver** — download the validated data as CSV with
-   `GET /api/v1/companies/{id}/export.csv`. _(Pushing straight to a destination
-   API with `POST /api/v1/companies/{id}/exports` is [v2](/migration-api/export-to-destination).)_
+2. **Upload** — `POST /api/v1/migrations/{id}/files` mints signed upload URLs;
+   your customer's files are `PUT` straight to storage.
+3. **Generate** — `POST /api/v1/migrations/{id}/runs` with `{ "kind": "generate" }`
+   starts a **managed-agent run** that authors the mapping logic and stops at a
+   **preview**. It's async; you poll the run. The agent can pause at **`blocked`**
+   to ask you a question.
+4. **Review** — `GET /api/v1/migrations/{id}/preview` returns the proposed
+   output, sheet-per-template. Refine it with an `update` or `clarify` run, or
+   approve it.
+5. **Execute** — `POST /api/v1/migrations/{id}/runs` with `{ "kind": "execute" }`
+   runs the approved recipe for real.
+6. **Deliver** — download the validated data with
+   `GET /api/v1/migrations/{id}/exports/{template_slug}.csv`.
 
 To let your customer choose what to migrate, you can
 [list sources](/migration-api/list-sources) and
@@ -83,14 +83,15 @@ See [Quickstart](/migration-api/quickstart) for the end-to-end flow.
 
 The migration runs on **one durable, tool-using agent** — the same agent that
 powers Vern's interactive import UI, driven headlessly. The public API is a thin
-**create → poll → message** shell over it.
+shell over it: you start discrete **runs** (generate, update, clarify, execute)
+and poll each to a terminal state.
 
-For each import the agent **reuses-or-authors** the mapping and validation logic,
-verifies it in a sandbox, and **self-heals** through the rough edges of a real
-customer file — renamed headers, reordered columns, stray formats — until it
+For each migration the agent **reuses-or-authors** the mapping and validation
+logic, verifies it in a sandbox, and **self-heals** through the rough edges of a
+real customer file — renamed headers, reordered columns, stray formats — until it
 passes. A correct migration may author fresh logic each time; **reuse is an
-optimization, not a contract**. Your runtime calls only ever reference the
-**company** — you never pass plan or recipe IDs.
+optimization, not a contract**. Your calls only ever reference the **migration** —
+you never pass plan or recipe IDs.
 
 Robustness comes from the agent's intrinsic ability to self-heal **and to ask**.
 When a mapping is genuinely ambiguous — and neither the data nor your templates
@@ -99,11 +100,11 @@ question for you to render in your own UI. You answer (or send a free-form
 correction) and the run resumes. Surviving invalid cells at the end are
 **reported, not parked**, so you can take the valid rows and move on.
 
-See [Core concepts](/migration-api/concepts) for how integrations, templates,
-companies, and runs fit together, and
+See [Core concepts](/migration-api/concepts) for how sources, templates,
+migrations, and runs fit together, and
 [Answer the agent](/migration-api/answer-questions) for the question flow.
 
 ## Next
 
 - [Core concepts](/migration-api/concepts) — the model behind the API.
-- [Quickstart](/migration-api/quickstart) — provision, import, and download in one sitting.
+- [Quickstart](/migration-api/quickstart) — create, generate, review, and deliver in one sitting.

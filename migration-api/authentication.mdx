@@ -3,18 +3,15 @@ title: Authentication
 description: API keys, headers, and basic security guidance.
 ---
 
-<Note>
-  **Preview.** Part of the Migration API — in active design and not yet generally
-  available. Endpoints and payloads may change. See the
-  [overview](/migration-api/introduction).
-</Note>
-
 All Vern API requests authenticate with an API key passed in the `x-api-key` header.
 
 ```bash
-curl https://app.vern.so/api/v1/companies \
+curl https://app.vern.so/api/v1/migrations \
   -H "x-api-key: YOUR_API_KEY"
 ```
+
+A key is scoped to your **account** and can address every migration in it. The
+key's creator becomes the owner of any migration it provisions.
 
 ## Get a key
 
@@ -24,8 +21,11 @@ For details on generating, rotating, and revoking keys, see [API keys](/help-cen
 
 ## What can go wrong
 
-- **401 Unauthorized** — key is missing, malformed, or revoked.
-- **429 Too many requests** — you've hit the rate limit. Back off and retry.
+- **401 Unauthorized** — key is missing, malformed, or revoked. Creating a
+  migration additionally requires API-key auth specifically (a session token is
+  rejected).
+- **429 Too many requests** — you've hit the rate limit. Back off and retry. See
+  [Errors & limits](/migration-api/errors#rate-limits).
 
 ## Security
 
@@ -33,8 +33,7 @@ For details on generating, rotating, and revoking keys, see [API keys](/help-cen
 - Use environment variables, not hardcoded strings.
 - Rotate keys periodically and immediately if you suspect leakage.
 
-Webhook payloads are signed separately via Svix — see [Webhooks](/migration-api/webhooks) for signature verification.
-
 ## Next
 
 - [Quickstart](/migration-api/quickstart) — make your first API call.
+- [Errors & limits](/migration-api/errors) — the shared error and rate-limit model.

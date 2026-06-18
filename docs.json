@@ -40,7 +40,8 @@
             "group": "Send data to your app",
             "pages": [
               "help-center/send/export-a-workbook",
-              "help-center/send/write-to-an-api"
+              "help-center/send/write-to-an-api",
+              "help-center/send/webhooks"
             ]
           },
           {
@@ -54,8 +55,8 @@
         ]
       },
       {
-        "tab": "Migration API",
-        "icon": "right-left",
+        "tab": "Developer",
+        "icon": "terminal",
         "groups": [
           {
             "group": "Overview",
@@ -74,20 +75,94 @@
           {
             "group": "API reference",
             "pages": [
-              "migration-api/list-sources",
-              "migration-api/list-templates",
-              "migration-api/provision-a-company",
-              "migration-api/import-files",
-              "migration-api/poll-an-import",
-              "migration-api/answer-questions",
-              "migration-api/export",
-              "migration-api/export-to-destination"
+              {
+                "group": "Sources & templates",
+                "pages": [
+                  "migration-api/list-sources",
+                  "migration-api/list-templates",
+                  "migration-api/pin-a-source"
+                ]
+              },
+              {
+                "group": "Migrations",
+                "pages": [
+                  "migration-api/create-a-migration",
+                  "migration-api/upload-files"
+                ]
+              },
+              {
+                "group": "Runs",
+                "pages": [
+                  "migration-api/start-a-run",
+                  "migration-api/poll-a-run",
+                  "migration-api/answer-questions",
+                  "migration-api/get-the-preview",
+                  "migration-api/stream-the-thread"
+                ]
+              },
+              {
+                "group": "Export",
+                "pages": [
+                  "migration-api/export-csv"
+                ]
+              }
             ]
           },
           {
             "group": "Reference",
             "pages": [
               "migration-api/errors"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "icon": "code",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api-reference/introduction"
+            ]
+          },
+          {
+            "group": "Catalog",
+            "openapi": "api-reference/openapi.json",
+            "pages": [
+              "GET /sources",
+              "POST /sources/{source}/pin",
+              "GET /templates",
+              "GET /templates/{template_slug}"
+            ]
+          },
+          {
+            "group": "Migrations",
+            "openapi": "api-reference/openapi.json",
+            "pages": [
+              "POST /migrations",
+              "POST /migrations/{migration_id}/files",
+              "GET /migrations/{migration_id}/files"
+            ]
+          },
+          {
+            "group": "Runs",
+            "openapi": "api-reference/openapi.json",
+            "pages": [
+              "POST /migrations/{migration_id}/runs",
+              "GET /migrations/{migration_id}/runs/{run_id}",
+              "PATCH /migrations/{migration_id}/runs/{run_id}",
+              "POST /migrations/{migration_id}/runs/{run_id}/messages",
+              "GET /migrations/{migration_id}/preview",
+              "GET /migrations/{migration_id}/thread",
+              "GET /migrations/{migration_id}/thread/stream"
+            ]
+          },
+          {
+            "group": "Export",
+            "openapi": "api-reference/openapi.json",
+            "pages": [
+              "GET /migrations/{migration_id}/exports/{file}"
             ]
           }
         ]

@@ -1,0 +1,132 @@
+---
+title: Start a run
+description: Start a managed-agent run — generate a preview, refine it with update or clarify, or execute the approved import.
+---
+
+```http
+POST https://app.vern.so/api/v1/migrations/{migration_id}/runs
+```
+
+Starts one **managed-agent run**. A run does a single phase of work and returns a
+`run_id` you [poll](/migration-api/poll-a-run) to a terminal state. **Only one run
+runs at a time per migration** — starting a second while one is in flight returns
+`409`.
+
+`{migration_id}` is the `id` from
+[creating a migration](/migration-api/create-a-migration).
+
+## Authentication
+
+Requires an `x-api-key` header. See [Authentication](/migration-api/authentication).
+
+## Request body
+
+<ParamField body="kind" type="string" required>
+  Which phase to run:
+
+  - **`generate`** — author the mapping recipe from the uploaded files and stop at
+    a preview. Requires at least one [uploaded file](/migration-api/upload-files).
+  - **`update`** — edit the current recipe per `message`, producing a **new**
+    preview that replaces the current one. Requires an existing preview.
+  - **`clarify`** — ask a read-only question about the current preview. Returns an
+    answer in the run thread and **changes nothing**. Requires an existing
+    preview.
+  - **`execute`** — run the approved preview's recipe as the **real** import.
+    Requires a ready preview.
+</ParamField>
+
+<ParamField body="message" type="string">
+  Required for `update` and `clarify` — your instruction or question in plain
+  language (e.g. `"Use the company domain for any missing Email, don't drop the
+  row."`). Ignored for `generate` and `execute`.
+</ParamField>
+
+The recipe and preview state are copied **server-side** between phases — you never
+send recipe, preview, or build IDs. `execute` runs the recipe behind the current
+preview; `update`/`clarify` act on it.
+
+## Response
+
+`201 Created`
+
+```json
+{
+  "run_id": "d4c3b2a1-9f8e-47d6-b5a4-c3d2e1f0a9b8",
+  "status": "queued",
+  "poll_url": "https://app.vern.so/api/v1/migrations/c0a8012e-.../runs/d4c3b2a1-9f8e-47d6-b5a4-c3d2e1f0a9b8"
+}
+```
+
+Poll `poll_url` until the run is terminal for its phase:
+
+- `generate` / `update` → `awaiting_approval` (a preview is ready), or `blocked`
+  if the agent has a question.
+- `clarify` → `completed` (read the answer from the [thread](/migration-api/stream-the-thread)).
+- `execute` → `completed` with a `report`, or `failed`.
+
+See [Poll a run](/migration-api/poll-a-run) for every status shape, and
+[Get the preview](/migration-api/get-the-preview) to read what `generate`/`update`
+produced.
+
+## The typical loop
+
+```
+generate ──▶ awaiting_approval ──▶ execute ──▶ completed
+                  │  ▲
+        update /  │  │ new preview
+        clarify ──┘──┘
+```
+
+1. `generate` once, after uploading files.
+2. Review the [preview](/migration-api/get-the-preview). Refine with `update`
+   (changes the recipe) or ask via `clarify` (read-only) as many times as you
+   need — each `update` yields a fresh preview.
+3. `execute` when you're happy. The `report` tells you what landed.
+
+## Errors
+
+| Status | Meaning |
+|---|---|
+| `400` | `kind` missing or invalid; `generate` with no files uploaded; `update`/`clarify` with no `message`. |
+| `401` | API key missing or invalid. |
+| `404` | No migration with that `{migration_id}` in your account. |
+| `409` | A run is already in progress (the body includes the active `run_id`); the migration has no target templates; `update`/`clarify`/`execute` with no current preview to act on. |
+| `429` | Rate limit hit — back off and retry. |
+| `500` | Server error. |
+
+A `409` from an in-flight run is how you **recover a run** you lost track of — the
+response carries its `run_id`:
+
+```json
+{ "error": "A run is already in progress for this migration.", "run_id": "d4c3b2a1-..." }
+```
+
+## Examples
+
+```bash
+# 1 · generate a preview
+curl -X POST https://app.vern.so/api/v1/migrations/c0a8012e-.../runs \
+  -H "x-api-key: $VERN_API_KEY" -H "Content-Type: application/json" \
+  -d '{ "kind": "generate" }'
+
+# 2 · refine it
+curl -X POST https://app.vern.so/api/v1/migrations/c0a8012e-.../runs \
+  -H "x-api-key: $VERN_API_KEY" -H "Content-Type: application/json" \
+  -d '{ "kind": "update", "message": "Trim whitespace from every phone number." }'
+
+# 3 · ask a read-only question
+curl -X POST https://app.vern.so/api/v1/migrations/c0a8012e-.../runs \
+  -H "x-api-key: $VERN_API_KEY" -H "Content-Type: application/json" \
+  -d '{ "kind": "clarify", "message": "Which column did you map Email from?" }'
+
+# 4 · execute for real
+curl -X POST https://app.vern.so/api/v1/migrations/c0a8012e-.../runs \
+  -H "x-api-key: $VERN_API_KEY" -H "Content-Type: application/json" \
+  -d '{ "kind": "execute" }'
+```
+
+## Next
+
+- [Poll a run](/migration-api/poll-a-run) — track the run, read the report, cancel it.
+- [Get the preview](/migration-api/get-the-preview) — read the generated output.
+- [Answer the agent](/migration-api/answer-questions) — resume a `blocked` run.

@@ -1,0 +1,134 @@
+---
+title: Stream the thread
+description: Read the agent's full activity thread across all of a migration's runs — as a snapshot you cursor through, or a live SSE stream.
+---
+
+```http
+GET https://app.vern.so/api/v1/migrations/{migration_id}/thread
+GET https://app.vern.so/api/v1/migrations/{migration_id}/thread/stream
+```
+
+The agent records every step it takes to a durable **thread**. A migration's
+thread is the union of those events across **all** its runs (generate, update,
+clarify, execute), in a stable order — so you can render a live activity feed, a
+transcript, or just watch progress without tight-polling the run.
+
+Read it two ways: a **snapshot** you page through with a cursor, or a **live SSE
+stream**.
+
+## Authentication
+
+Requires an `x-api-key` header. See [Authentication](/migration-api/authentication).
+
+## Query parameters
+
+Both endpoints accept the same parameters:
+
+<ParamField query="after" type="number">
+  Return only events with a `sequence` greater than this. Pass the previous
+  response's `last_sequence` to page forward (snapshot) or resume (stream). Omit
+  to start from the beginning.
+</ParamField>
+
+<ParamField query="include" type="string" default="user">
+  Verbosity:
+
+  - **`user`** (default) — prose, status, preview, the agent's questions,
+    completion, and errors.
+  - **`tools`** — the above plus tool calls, tool results, and task IDs.
+  - **`all`** — everything, including the agent's thinking and internal prepared
+    inputs.
+</ParamField>
+
+## Snapshot
+
+```http
+GET https://app.vern.so/api/v1/migrations/{migration_id}/thread
+```
+
+`200 OK`
+
+```json
+{
+  "events": [
+    {
+      "sequence": 1042,
+      "type": "status",
+      "data": { "message": "Reading your files" },
+      "created_at": "2026-06-19T15:32:13.000Z"
+    },
+    {
+      "sequence": 1043,
+      "type": "message",
+      "data": { "text": "Mapped 4 of 5 columns; one needs your input." },
+      "created_at": "2026-06-19T15:32:20.000Z"
+    }
+  ],
+  "last_sequence": 1043
+}
+```
+
+<ResponseField name="events[].sequence" type="number">
+  The event's stable cross-run ordinal. Use the response's `last_sequence` as the
+  next `after`.
+</ResponseField>
+<ResponseField name="events[].type" type="string">
+  The public event type — one of `message`, `thinking`, `status`, `tool_call`,
+  `tool_result`, `task`, `request_input`, `prepared`, `preview`, `completed`,
+  `error`. Which types appear depends on `include`.
+</ResponseField>
+<ResponseField name="events[].data" type="object">
+  The event payload, kept intact so you can render tool calls, previews, and
+  prompts.
+</ResponseField>
+<ResponseField name="events[].created_at" type="string">
+  ISO 8601 timestamp.
+</ResponseField>
+<ResponseField name="last_sequence" type="number | null">
+  The highest sequence in this page — pass it as `after` to fetch what's next.
+</ResponseField>
+
+## Live stream (SSE)
+
+```http
+GET https://app.vern.so/api/v1/migrations/{migration_id}/thread/stream
+```
+
+A [Server-Sent Events](https://developer.mozilla.org/docs/Web/API/Server-sent_events)
+stream of the same events. Each message is `event: <type>` + `data: <json>`:
+
+```
+event: status
+data: {"sequence":1042,"type":"status","data":{"message":"Reading your files"},"created_at":"2026-06-19T15:32:13.000Z"}
+
+event: message
+data: {"sequence":1043,"type":"message","data":{"text":"Mapped 4 of 5 columns; one needs your input."},"created_at":"2026-06-19T15:32:20.000Z"}
+
+event: done
+data: {"last_sequence":1043}
+```
+
+The stream tails new events until the migration has no active run and the backlog
+is drained, then sends a final `event: done` carrying the last sequence. It also
+closes after a time budget (~5 minutes) — when it does, **reconnect** with
+`?after=<last_sequence>` to continue exactly where you left off. Watch for an
+`event: error` message, which signals a stream-side error before close.
+
+```bash
+curl -N "https://app.vern.so/api/v1/migrations/c0a8012e-.../thread/stream?include=tools" \
+  -H "x-api-key: $VERN_API_KEY"
+```
+
+## Errors
+
+| Status | Meaning |
+|---|---|
+| `401` | API key missing or invalid. |
+| `404` | The migration isn't in your account. |
+| `429` | Rate limit hit — back off and retry. |
+| `500` | Server error. |
+
+## Next
+
+- [Poll a run](/migration-api/poll-a-run) — the per-run status and report.
+- [Get the preview](/migration-api/get-the-preview) — the structured output.
