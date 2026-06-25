@@ -18,8 +18,9 @@ Requires an `x-api-key` header. See [Authentication](/migration-api/authenticati
 
 ## Response by status
 
-Every response carries `run_id`, `status`, and `created_at`. The rest depends on
-`status`:
+Every response carries `run_id`, `status`, and `created_at`. Once you've answered
+the agent, the response also echoes `answers` (your reply, read back). The rest
+depends on `status`:
 
 <ParamField path="status" type="string">
   One of `queued`, `running`, `blocked`, `awaiting_approval`, `completed`,
@@ -29,11 +30,16 @@ Every response carries `run_id`, `status`, and `created_at`. The rest depends on
 | `status` | Extra fields |
 |---|---|
 | `queued` / `running` | `message` — a human-readable update (e.g. `"Cleaning your data"`, `"Retrying (attempt 2 of 5)"`), or `null`. |
-| `blocked` | `questions[]` — the agent hit a genuinely ambiguous decision and is waiting on you. Answer via the [messages](/migration-api/answer-questions) sub-resource. |
+| `blocked` | `blocked_reason` — `"question"` (the agent needs a decision; carries `questions[]`) or `"credentials"` (a live source needs secrets; carries `credential_request`). See [below](#a-blocked-run). |
 | `awaiting_approval` | _(none)_ — a `generate`/`update` run produced a preview. Fetch it from [`GET /preview`](/migration-api/get-the-preview). |
 | `completed` | `report` for an `execute` run (see below); nothing extra for a `clarify` run. |
 | `failed` | `error` — the agent couldn't produce a working result even after self-healing. For an execute, no rows were inserted. |
 | `canceled` | _(none)_ — the run was stopped before it finished. |
+
+<ResponseField name="answers" type="object | null">
+  Present once you've answered a block — a normalized read-back of your last
+  reply, so a UI can show what was submitted. Absent before the first answer.
+</ResponseField>
 
 A **completed `execute`** carries a report:
 
@@ -75,15 +81,25 @@ A **completed `execute`** carries a report:
 
 ## A blocked run
 
-When a run is `blocked`, the poll response carries the `questions` you need to
-**render in your own UI**. Each question is self-describing —
-`{ id, question, context?, options[], allowCustom }`:
+A `blocked` run is waiting on you. **`blocked_reason` tells you which kind of
+block it is** and which sub-resource resumes it:
+
+| `blocked_reason` | Carries | Resume with |
+|---|---|---|
+| `question` | `questions[]` | [`POST .../messages`](/migration-api/answer-questions) |
+| `credentials` | `credential_request` | [`POST .../credentials`](/migration-api/submit-credentials) |
+
+### A question block
+
+`blocked_reason: "question"` carries the `questions` you **render in your own
+UI**. Each is self-describing — `{ id, question, context?, options[], allowCustom }`:
 
 ```json
 {
   "run_id": "d4c3b2a1-...",
   "status": "blocked",
   "created_at": "2026-06-19T15:32:11.000Z",
+  "blocked_reason": "question",
   "questions": [
     {
       "id": "q1",
@@ -100,6 +116,34 @@ When a run is `blocked`, the poll response carries the `questions` you need to
 
 Answer through the run's [messages](/migration-api/answer-questions) sub-resource —
 not the poll. The agent resumes and may block again with a fresh question.
+
+### A credential block
+
+`blocked_reason: "credentials"` means a [connected live
+source](/migration-api/source-connection) needs secrets. The response carries a
+`credential_request` — the connection it's for, plus a `schema` and `guidance`
+you render into a form — and **no question**:
+
+```json
+{
+  "run_id": "d4c3b2a1-...",
+  "status": "blocked",
+  "created_at": "2026-06-19T15:32:11.000Z",
+  "blocked_reason": "credentials",
+  "credential_request": {
+    "connection_id": "9b1f2c3d-...",
+    "source_key": "salesforce",
+    "source_name": "Salesforce",
+    "reason": "I need API access to read your contacts.",
+    "guidance": { "summary": "Create a connected app and copy its OAuth credentials." },
+    "schema": { "client_id": { "type": "string" }, "client_secret": { "type": "string", "secret": true } }
+  }
+}
+```
+
+Submit the secrets through the dedicated
+[credentials](/migration-api/submit-credentials) sub-resource — **never** as a
+message answer, which would leak them into the agent thread.
 
 ## Recovering a run
 
@@ -160,6 +204,7 @@ curl https://app.vern.so/api/v1/migrations/c0a8012e-.../runs/d4c3b2a1-... \
 
 ## Next
 
-- [Answer the agent](/migration-api/answer-questions) — resume a `blocked` run.
+- [Answer the agent](/migration-api/answer-questions) — resume a question block.
+- [Submit credentials](/migration-api/submit-credentials) — resume a credential block.
 - [Get the preview](/migration-api/get-the-preview) — read what a generate/update produced.
 - [Export CSV](/migration-api/export-csv) — get the validated rows out.

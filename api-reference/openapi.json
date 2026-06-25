@@ -271,7 +271,7 @@
       "post": {
         "operationId": "startRun",
         "summary": "Start a run",
-        "description": "Start one managed-agent run. `generate` authors the recipe and stops at a preview; `update` edits it per `message`; `clarify` asks a read-only question; `execute` runs the approved preview for real. Only one run runs at a time per migration (409 with the active run_id otherwise).",
+        "description": "Start one managed-agent run. `generate` authors the recipe and stops at a preview; `update` edits it per `message`; `clarify` asks a read-only question; `execute` runs the approved preview for real. `generate` opens a preview run and `update`/`clarify`/`execute` resume that same run, so the `run_id` stays stable from preview through execution (a resuming call returns `status: \"running\"`). Only one run runs at a time per migration (409 with the active run_id otherwise).",
         "tags": ["Runs"],
         "requestBody": {
           "required": true,
@@ -282,11 +282,13 @@
                 "required": ["kind"],
                 "properties": {
                   "kind": { "type": "string", "enum": ["generate", "update", "clarify", "execute"] },
-                  "message": { "type": "string", "description": "Required for update and clarify — your instruction or question in plain language." }
+                  "message": { "type": "string", "description": "Required for update and clarify — your instruction or question in plain language." },
+                  "extract_via_api": { "type": "boolean", "description": "generate only. Controls live API extraction from a connected source: true extracts via the connection (alongside any files), false forces file-only, omitted extracts via API only when no files were uploaded and a connection exists." }
                 }
               },
               "examples": {
                 "generate": { "summary": "Generate a preview", "value": { "kind": "generate" } },
+                "generate_api": { "summary": "Generate from a live source", "value": { "kind": "generate", "extract_via_api": true } },
                 "update": { "summary": "Refine the recipe", "value": { "kind": "update", "message": "Trim whitespace from every phone number." } },
                 "clarify": { "summary": "Ask a read-only question", "value": { "kind": "clarify", "message": "Which column did you map Email from?" } },
                 "execute": { "summary": "Execute for real", "value": { "kind": "execute" } }
@@ -296,7 +298,7 @@
         },
         "responses": {
           "201": {
-            "description": "The run was accepted and queued. Poll `poll_url`.",
+            "description": "The run was accepted. A `generate` is `queued`; a resuming `update`/`clarify`/`execute` is `running`. Poll `poll_url`.",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/RunAccepted" },
@@ -308,7 +310,7 @@
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
           "409": {
-            "description": "A run is already in progress (the body carries the active run_id), or there is no preview to act on / execute.",
+            "description": "A run is already in progress (the body carries the active run_id), there is no preview to act on / execute, or the approved preview is no longer resumable (generate a fresh one).",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" }, "example": { "error": "A run is already in progress for this migration.", "run_id": "d4c3b2a1-9f8e-47d6-b5a4-c3d2e1f0a9b8" } } }
           },
           "429": { "$ref": "#/components/responses/RateLimited" }
@@ -320,7 +322,7 @@
       "get": {
         "operationId": "getRun",
         "summary": "Poll a run",
-        "description": "Read a run's state. Every response carries `run_id`, `status`, and `created_at`; the rest depends on status (`message` while running, `questions` when blocked, `report` on a completed execute, `error` on failure).",
+        "description": "Read a run's state. Every response carries `run_id`, `status`, and `created_at` (plus `answers`, a read-back of your last reply, once you've answered a block); the rest depends on status (`message` while running, `blocked_reason` + `questions`/`credential_request` when blocked, `report` on a completed execute, `error` on failure).",
         "tags": ["Runs"],
         "responses": {
           "200": {
@@ -330,7 +332,8 @@
                 "schema": { "$ref": "#/components/schemas/Run" },
                 "examples": {
                   "running": { "summary": "running", "value": { "run_id": "d4c3b2a1-...", "status": "running", "created_at": "2026-06-19T15:32:11.000Z", "message": "Cleaning your data" } },
-                  "blocked": { "summary": "blocked", "value": { "run_id": "d4c3b2a1-...", "status": "blocked", "created_at": "2026-06-19T15:32:11.000Z", "questions": [ { "id": "q1", "question": "Some Status values aren't one of the allowed options. How should I handle them?", "options": [ { "id": "a", "label": "Map them all to 'Open'" }, { "id": "b", "label": "Drop those rows" } ], "allowCustom": true } ] } },
+                  "blocked": { "summary": "blocked (question)", "value": { "run_id": "d4c3b2a1-...", "status": "blocked", "created_at": "2026-06-19T15:32:11.000Z", "blocked_reason": "question", "questions": [ { "id": "q1", "question": "Some Status values aren't one of the allowed options. How should I handle them?", "options": [ { "id": "a", "label": "Map them all to 'Open'" }, { "id": "b", "label": "Drop those rows" } ], "allowCustom": true } ] } },
+                  "blocked_credentials": { "summary": "blocked (credentials)", "value": { "run_id": "d4c3b2a1-...", "status": "blocked", "created_at": "2026-06-19T15:32:11.000Z", "blocked_reason": "credentials", "credential_request": { "connection_id": "9b1f2c3d-...", "source_key": "salesforce", "source_name": "Salesforce", "reason": "I need API access to read your contacts.", "schema": { "client_id": { "type": "string" }, "client_secret": { "type": "string", "secret": true } } } } },
                   "awaiting_approval": { "summary": "awaiting_approval", "value": { "run_id": "d4c3b2a1-...", "status": "awaiting_approval", "created_at": "2026-06-19T15:32:11.000Z" } },
                   "completed": { "summary": "completed (execute)", "value": { "run_id": "e5d4c3b2-...", "status": "completed", "created_at": "2026-06-19T15:40:02.000Z", "report": { "inserted": 1450, "perSheet": [ { "templateName": "Contacts", "sheetId": "7a1c2b3d-...", "rowCount": 1450 } ], "invalidCellCount": 12, "coverage": null } } },
                   "failed": { "summary": "failed", "value": { "run_id": "d4c3b2a1-...", "status": "failed", "created_at": "2026-06-19T15:32:11.000Z", "error": "Run failed or timed out" } }
@@ -378,7 +381,7 @@
       "post": {
         "operationId": "answerRun",
         "summary": "Answer a blocked run",
-        "description": "Resume a run paused at `blocked`. Send `answers` as the structured `[{id,value}]` form (one per question) or a free-form string. Only a blocked run accepts this (409 otherwise).",
+        "description": "Resume a run paused at `blocked` with `blocked_reason: \"question\"`. Send `answers` as the structured `[{id,value}]` form (one per question) or a free-form string. Only a question-blocked run accepts this (409 otherwise) — a credentials-blocked run is rejected so secrets never enter the agent thread; submit those to `POST .../credentials` instead.",
         "tags": ["Runs"],
         "requestBody": {
           "required": true,
@@ -413,6 +416,122 @@
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
           "409": { "$ref": "#/components/responses/Conflict" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/migrations/{migration_id}/runs/{run_id}/credentials": {
+      "parameters": [ { "$ref": "#/components/parameters/MigrationId" }, { "$ref": "#/components/parameters/RunId" } ],
+      "post": {
+        "operationId": "submitCredentials",
+        "summary": "Submit source credentials",
+        "description": "Resume a run paused at `blocked` with `blocked_reason: \"credentials\"`. The secrets are stored in a secured vault and never enter the agent thread, the run row, or logs. The target connection is taken from the run's own `credential_request` — a key can only fill the connection the agent asked about. Re-submitting overwrites the stored secret so a rejected credential can be re-entered.",
+        "tags": ["Runs"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["credentials"],
+                "properties": {
+                  "credentials": { "type": "object", "description": "Secret values keyed to the request's schema. Must be a non-empty object.", "additionalProperties": true },
+                  "connection_id": { "type": "string", "format": "uuid", "description": "Optional guard — if sent, must match the run's credential_request.connection_id." }
+                }
+              },
+              "example": { "credentials": { "client_id": "…", "client_secret": "…", "refresh_token": "…" } }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Credentials stored; the run resumed and is running again.",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "run_id": { "type": "string", "format": "uuid" }, "status": { "type": "string", "example": "running" } } }, "example": { "run_id": "d4c3b2a1-9f8e-47d6-b5a4-c3d2e1f0a9b8", "status": "running" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": {
+            "description": "The run isn't awaiting credentials (not blocked, or blocked on a question), connection_id doesn't match, or there's no active credential request yet — retry shortly.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" }, "example": { "error": "This run is not awaiting credentials." } } }
+          },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/migrations/{migration_id}/source-connection": {
+      "parameters": [ { "$ref": "#/components/parameters/MigrationId" } ],
+      "get": {
+        "operationId": "getSourceConnection",
+        "summary": "Get the source connection",
+        "description": "Read the migration's live API source connection, or 404 if none is configured. Never returns secret values — `creds_configured` reports whether credentials are on file.",
+        "tags": ["Migrations"],
+        "parameters": [
+          { "name": "source_key", "in": "query", "required": false, "description": "Filter to a specific connector.", "schema": { "type": "string" }, "example": "salesforce" },
+          { "name": "profile_id", "in": "query", "required": false, "description": "Profile to read; pass the literal `workbook` for the workbook-bound connection.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "The current source connection.",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "source_connection": { "$ref": "#/components/schemas/SourceConnection" } } } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      },
+      "post": {
+        "operationId": "saveSourceConnection",
+        "summary": "Create or update the source connection",
+        "description": "Attach a live API source to the migration, or update it in place. `credentials` (optional here) go to a secured vault and are never returned; you can also supply them later via Submit credentials.",
+        "tags": ["Migrations"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["source_key"],
+                "properties": {
+                  "source_key": { "type": "string", "description": "The connector to attach, lower-cased. Unknown or not-yet-enabled keys return 400." },
+                  "profile_id": { "type": ["string", "null"], "description": "Scope to a profile; null binds to the workbook; omit for the default profile." },
+                  "config": { "type": "object", "description": "Non-secret connector configuration.", "additionalProperties": true },
+                  "selected_streams": { "type": ["array", "null"], "items": { "type": "string" }, "description": "Streams to extract, or null for connector default." },
+                  "stream_state": { "type": "object", "description": "Incremental-sync cursor state.", "additionalProperties": true },
+                  "credentials": { "type": "object", "description": "Secret values, vaulted and never returned.", "additionalProperties": true }
+                }
+              },
+              "example": { "source_key": "salesforce", "config": { "instance_url": "https://acme.my.salesforce.com" }, "selected_streams": ["contacts", "accounts"], "credentials": { "client_id": "…", "client_secret": "…" } }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created or updated connection.",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "source_connection": { "$ref": "#/components/schemas/SourceConnection" } } } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      },
+      "delete": {
+        "operationId": "deleteSourceConnection",
+        "summary": "Delete the source connection",
+        "description": "Remove the migration's source connection and its stored secrets. Accepts the same optional source_key and profile_id query parameters as GET.",
+        "tags": ["Migrations"],
+        "parameters": [
+          { "name": "source_key", "in": "query", "required": false, "schema": { "type": "string" } },
+          { "name": "profile_id", "in": "query", "required": false, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Whether a connection was deleted.",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "deleted": { "type": "boolean" } } }, "example": { "deleted": true } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
           "429": { "$ref": "#/components/responses/RateLimited" }
         }
       }
@@ -654,10 +773,43 @@
           "run_id": { "type": "string", "format": "uuid" },
           "status": { "type": "string", "enum": ["queued", "running", "blocked", "awaiting_approval", "completed", "failed", "canceled"] },
           "created_at": { "type": "string", "format": "date-time" },
+          "answers": { "type": ["object", "null"], "description": "A read-back of your last reply, present once you've answered a block." },
           "message": { "type": ["string", "null"], "description": "Present while queued/running." },
-          "questions": { "type": "array", "items": { "$ref": "#/components/schemas/Question" }, "description": "Present when blocked." },
+          "blocked_reason": { "type": "string", "enum": ["question", "credentials"], "description": "Present when blocked — which kind of block it is." },
+          "questions": { "type": "array", "items": { "$ref": "#/components/schemas/Question" }, "description": "Present when blocked for a question." },
+          "credential_request": { "$ref": "#/components/schemas/CredentialRequest" },
           "report": { "$ref": "#/components/schemas/Report" },
           "error": { "type": "string", "description": "Present when failed." }
+        }
+      },
+      "CredentialRequest": {
+        "type": "object",
+        "description": "Present when a run is blocked for credentials. Describes the live source needing secrets — render a form from `schema` and POST to .../credentials. Carries no secret values.",
+        "properties": {
+          "connection_id": { "type": "string", "format": "uuid", "description": "The source connection the secrets belong to." },
+          "source_key": { "type": "string" },
+          "source_name": { "type": "string" },
+          "reason": { "type": "string", "description": "Why the agent needs access. May be absent." },
+          "guidance": { "type": "object", "description": "Optional help — { summary?, steps?, links? } — for where to find the credentials." },
+          "schema": { "type": "object", "description": "The fields to collect, keyed by name.", "additionalProperties": true }
+        }
+      },
+      "SourceConnection": {
+        "type": "object",
+        "description": "A migration's live API source connection. Never includes secret values; `creds_configured` reports whether credentials are stored.",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "profile_id": { "type": ["string", "null"] },
+          "source_key": { "type": "string" },
+          "name": { "type": "string", "description": "Connector display name; falls back to source_key." },
+          "category": { "type": ["string", "null"] },
+          "config": { "type": "object", "description": "Non-secret connector configuration.", "additionalProperties": true },
+          "selected_streams": { "type": ["array", "null"], "items": { "type": "string" } },
+          "stream_state": { "type": "object", "additionalProperties": true },
+          "creds_configured": { "type": "boolean" },
+          "bound_source_extractor_id": { "type": ["string", "null"] },
+          "last_snapshot": { "type": ["object", "null"], "description": "Metadata about the most recent extraction." },
+          "last_sync_at": { "type": ["string", "null"], "format": "date-time" }
         }
       },
       "Preview": {
