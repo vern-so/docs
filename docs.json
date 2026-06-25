@@ -87,7 +87,8 @@
                 "group": "Migrations",
                 "pages": [
                   "migration-api/create-a-migration",
-                  "migration-api/upload-files"
+                  "migration-api/upload-files",
+                  "migration-api/source-connection"
                 ]
               },
               {
@@ -96,6 +97,7 @@
                   "migration-api/start-a-run",
                   "migration-api/poll-a-run",
                   "migration-api/answer-questions",
+                  "migration-api/submit-credentials",
                   "migration-api/get-the-preview",
                   "migration-api/stream-the-thread"
                 ]
@@ -142,7 +144,10 @@
             "pages": [
               "POST /migrations",
               "POST /migrations/{migration_id}/files",
-              "GET /migrations/{migration_id}/files"
+              "GET /migrations/{migration_id}/files",
+              "POST /migrations/{migration_id}/source-connection",
+              "GET /migrations/{migration_id}/source-connection",
+              "DELETE /migrations/{migration_id}/source-connection"
             ]
           },
           {
@@ -153,6 +158,7 @@
               "GET /migrations/{migration_id}/runs/{run_id}",
               "PATCH /migrations/{migration_id}/runs/{run_id}",
               "POST /migrations/{migration_id}/runs/{run_id}/messages",
+              "POST /migrations/{migration_id}/runs/{run_id}/credentials",
               "GET /migrations/{migration_id}/preview",
               "GET /migrations/{migration_id}/thread",
               "GET /migrations/{migration_id}/thread/stream"

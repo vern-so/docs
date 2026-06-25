@@ -13,8 +13,9 @@ but **no import logic is bound** to the migration: the
 [managed agent](/migration-api/concepts#the-managed-agent) decides what to run.
 Later calls reference only the migration ID.
 
-A new migration starts in `awaiting_files` — your next step is to
-[upload files](/migration-api/upload-files).
+A new migration starts in `awaiting_files` — your next step is to give it data,
+either by [uploading files](/migration-api/upload-files) or by
+[connecting a live source](/migration-api/source-connection).
 
 ## Authentication
 
@@ -117,4 +118,5 @@ curl -X POST https://app.vern.so/api/v1/migrations \
 ## Next
 
 - [Upload files](/migration-api/upload-files) — push the customer's data into the migration.
-- [Start a run](/migration-api/start-a-run) — generate a preview once files are uploaded.
+- [Connect a live source](/migration-api/source-connection) — extract from an API instead of files.
+- [Start a run](/migration-api/start-a-run) — generate a preview once data is in place.

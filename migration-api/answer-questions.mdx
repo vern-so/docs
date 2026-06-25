@@ -29,6 +29,7 @@ A `blocked` poll response looks like this:
 ```json
 {
   "status": "blocked",
+  "blocked_reason": "question",
   "questions": [
     {
       "id": "q1",
@@ -101,6 +102,16 @@ still ambiguous, it blocks again with a fresh question — keep
   [`update` or `clarify` run](/migration-api/start-a-run) instead.
 </Note>
 
+<Warning>
+  This endpoint is for **question** blocks (`blocked_reason: "question"`) only. A
+  run blocked for **credentials** (`blocked_reason: "credentials"`) rejects a
+  message with `409` — so secrets never land in the agent thread. Send those
+  through [Submit credentials](/migration-api/submit-credentials) instead.
+</Warning>
+
+Your reply is echoed back on later [poll responses](/migration-api/poll-a-run) as
+`answers`, so a UI can show what was submitted.
+
 ## Response
 
 `200 OK`
@@ -122,7 +133,7 @@ status.
 | `400` | `answers` missing or empty. |
 | `401` | API key missing or invalid. |
 | `404` | No such run, or the migration isn't in your account. |
-| `409` | The run isn't `blocked` (already resumed, or never paused), or the agent has no active question to answer yet — retry shortly. |
+| `409` | The run isn't `blocked` (already resumed, or never paused), the run is blocked for **credentials** (use [Submit credentials](/migration-api/submit-credentials)), or the agent has no active question to answer yet — retry shortly. |
 | `429` | Rate limit hit — back off and retry. |
 | `500` | Server error. |
 
@@ -139,4 +150,5 @@ curl -X POST \
 ## Next
 
 - [Poll a run](/migration-api/poll-a-run) — track the resumed run.
+- [Submit credentials](/migration-api/submit-credentials) — resume a credential block instead.
 - [Get the preview](/migration-api/get-the-preview) — review the result.

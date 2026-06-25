@@ -1,0 +1,194 @@
+---
+title: Connect a live source
+description: Attach a live API source to a migration so the agent extracts data directly — as an alternative to, or alongside, uploaded files.
+---
+
+```http
+GET    https://app.vern.so/api/v1/migrations/{migration_id}/source-connection
+POST   https://app.vern.so/api/v1/migrations/{migration_id}/source-connection
+DELETE https://app.vern.so/api/v1/migrations/{migration_id}/source-connection
+```
+
+Instead of (or in addition to) [uploading files](/migration-api/upload-files), a
+migration can pull its data straight from a **live API source** — a connector the
+[managed agent](/migration-api/concepts#the-managed-agent) reads from at run time.
+This endpoint configures, reads, and removes that connection.
+
+Once a connection exists, a [`generate` run](/migration-api/start-a-run) can
+extract from it with no files uploaded — see
+[`extract_via_api`](/migration-api/start-a-run#request-body). If the connector
+still needs secrets, the run pauses at `blocked` and you
+[submit credentials](/migration-api/submit-credentials).
+
+`{migration_id}` is the `id` from
+[creating a migration](/migration-api/create-a-migration).
+
+## Authentication
+
+Requires an `x-api-key` header. See [Authentication](/migration-api/authentication).
+
+## Create or update a connection
+
+```http
+POST https://app.vern.so/api/v1/migrations/{migration_id}/source-connection
+```
+
+Creates the connection for the migration's workbook, or updates it in place when
+one already exists for the same `source_key` and profile.
+
+<ParamField body="source_key" type="string" required>
+  The connector to attach, lower-cased (e.g. `salesforce`, `hubspot`). An unknown
+  or not-yet-enabled key returns `400`.
+</ParamField>
+
+<ParamField body="profile_id" type="string | null">
+  Scopes the connection to a profile. Omit to use the request's default profile;
+  pass `null` to bind it to the workbook itself rather than a profile.
+</ParamField>
+
+<ParamField body="config" type="object">
+  Connector configuration (non-secret) — host, account, region, and similar
+  fields the connector needs. Defaults to `{}`.
+</ParamField>
+
+<ParamField body="selected_streams" type="string[] | null">
+  The streams (objects) to extract. Omit or pass `null` to let the connector
+  decide.
+</ParamField>
+
+<ParamField body="stream_state" type="object">
+  Incremental-sync cursor state to resume from. Defaults to `{}`.
+</ParamField>
+
+<ParamField body="credentials" type="object">
+  Secret values for the connector. Written to a secured vault and **never**
+  returned, persisted on the connection row, or placed in the agent thread. You
+  can also supply them later via
+  [Submit credentials](/migration-api/submit-credentials).
+</ParamField>
+
+### Response
+
+`201 Created`
+
+```json
+{
+  "source_connection": {
+    "id": "9b1f2c3d-4e5a-46b7-8c9d-0e1f2a3b4c5d",
+    "profile_id": null,
+    "source_key": "salesforce",
+    "name": "Salesforce",
+    "category": "CRM",
+    "config": { "instance_url": "https://acme.my.salesforce.com" },
+    "selected_streams": ["contacts", "accounts"],
+    "stream_state": {},
+    "creds_configured": true,
+    "bound_source_extractor_id": null,
+    "last_snapshot": null,
+    "last_sync_at": null
+  }
+}
+```
+
+## Read the connection
+
+```http
+GET https://app.vern.so/api/v1/migrations/{migration_id}/source-connection
+```
+
+Returns the migration's current connection, or `404` if none is configured. The
+response never includes secret values — use `creds_configured` to tell whether
+credentials are on file.
+
+<ParamField query="source_key" type="string">
+  Filter to a specific connector when more than one could match.
+</ParamField>
+
+<ParamField query="profile_id" type="string">
+  The profile to read. Pass the literal `workbook` to read the workbook-bound
+  connection (the one saved with `profile_id: null`).
+</ParamField>
+
+### The connection object
+
+<ResponseField name="id" type="string (uuid)">
+  The connection ID. Echoed in a run's
+  [`credential_request`](/migration-api/poll-a-run#a-credential-block) so you know
+  which connection a credential prompt belongs to.
+</ResponseField>
+<ResponseField name="source_key" type="string">
+  The connector key you created it with.
+</ResponseField>
+<ResponseField name="name" type="string">
+  The connector's display name, suitable for your UI. Falls back to `source_key`.
+</ResponseField>
+<ResponseField name="category" type="string | null">
+  The connector's grouping (e.g. `CRM`), or `null`.
+</ResponseField>
+<ResponseField name="config" type="object">
+  The non-secret configuration you set.
+</ResponseField>
+<ResponseField name="selected_streams" type="string[] | null">
+  The streams to extract, or `null` for connector default.
+</ResponseField>
+<ResponseField name="stream_state" type="object">
+  The incremental-sync cursor state.
+</ResponseField>
+<ResponseField name="creds_configured" type="boolean">
+  `true` once credentials are stored — the only signal exposed about secrets.
+</ResponseField>
+<ResponseField name="bound_source_extractor_id" type="string | null">
+  The authored extractor bound to this connection, once the agent has built one.
+</ResponseField>
+<ResponseField name="last_snapshot" type="object | null">
+  Metadata about the most recent extraction (streams, file count, timestamp), or
+  `null` before the first run.
+</ResponseField>
+<ResponseField name="last_sync_at" type="string | null">
+  When data was last pulled, or `null`.
+</ResponseField>
+
+## Remove the connection
+
+```http
+DELETE https://app.vern.so/api/v1/migrations/{migration_id}/source-connection
+```
+
+Deletes the connection (and its stored secrets). Accepts the same optional
+`source_key` and `profile_id` query parameters as `GET`.
+
+```json
+{ "deleted": true }
+```
+
+## Errors
+
+| Status | Meaning |
+|---|---|
+| `400` | (POST) `source_key` missing, unknown, or not enabled for your account; malformed JSON. |
+| `401` | API key missing or invalid. |
+| `404` | (GET) no connection configured for the migration; the migration isn't in your account. |
+| `429` | Rate limit hit — back off and retry. |
+| `500` | Server error. |
+
+## Example
+
+```bash
+# Attach a connector and store its credentials
+curl -X POST \
+  https://app.vern.so/api/v1/migrations/c0a8012e-.../source-connection \
+  -H "x-api-key: $VERN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "source_key": "salesforce",
+    "config": { "instance_url": "https://acme.my.salesforce.com" },
+    "selected_streams": ["contacts", "accounts"],
+    "credentials": { "client_id": "…", "client_secret": "…", "refresh_token": "…" }
+  }'
+```
+
+## Next
+
+- [Start a run](/migration-api/start-a-run) — set `extract_via_api` to pull from the connection.
+- [Submit credentials](/migration-api/submit-credentials) — answer a run that paused for secrets.
+- [Poll a run](/migration-api/poll-a-run) — watch the extraction and read the report.

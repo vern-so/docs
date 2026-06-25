@@ -50,11 +50,23 @@ what logic to run each time.
 A migration moves through a small set of overall states, derived from what's
 happened so far:
 
-- **`awaiting_files`** — created, no files uploaded yet.
-- **`ready`** — files uploaded, no preview generated yet.
+- **`awaiting_files`** — created, with no data source yet: no files uploaded and
+  no [live source connected](#live-sources).
+- **`ready`** — a data source is in place (files uploaded or a source connected),
+  no preview generated yet.
 - **`awaiting_approval`** — a preview has been generated and is waiting for you to
   execute or refine it.
 - **`completed`** — an execute run has imported the data.
+
+### Live sources
+
+A migration's data can come from **uploaded files**, a **live API source**, or
+both. A live source is a connector the agent reads from directly at run time — you
+attach one with [`POST /source-connection`](/migration-api/source-connection).
+Once a connection exists, the migration leaves `awaiting_files` even with nothing
+uploaded, and a `generate` run can extract from it (see
+[`extract_via_api`](/migration-api/start-a-run#request-body)). If the connector
+needs secrets, the run pauses for [credentials](/migration-api/submit-credentials).
 
 ## The managed agent
 
@@ -103,7 +115,9 @@ Anything the agent does is a **run**. You start a run with
 - **`execute`** — run the approved preview for real.
 
 **One run at a time per migration** — starting a second while one is in flight
-returns `409`. Each run you poll until it reaches a terminal state:
+returns `409`. A `generate` opens a preview run and `update`/`clarify`/`execute`
+**resume that same run**, so a single `run_id` stays pollable from preview through
+the real import. Each run you poll until it reaches a terminal state:
 
 ```
 queued → running → awaiting_approval → (execute) → completed
@@ -115,9 +129,12 @@ queued → running → awaiting_approval → (execute) → completed
 - **`queued`** — accepted, not started yet.
 - **`running`** — the agent is working; the poll response carries a
   human-readable `message`.
-- **`blocked`** — the agent hit a genuinely ambiguous decision and is waiting on
-  your answer. The poll response carries the agent's `questions`. Answer them via
-  the run's [messages](/migration-api/answer-questions) sub-resource.
+- **`blocked`** — the agent is waiting on you. `blocked_reason` says which kind:
+  `"question"` (an ambiguous decision; the poll carries `questions`, answered via
+  the run's [messages](/migration-api/answer-questions) sub-resource) or
+  `"credentials"` (a live source needs secrets; the poll carries a
+  `credential_request`, answered via
+  [credentials](/migration-api/submit-credentials)).
 - **`awaiting_approval`** — a `generate`/`update` run finished and produced a
   preview. Fetch it from [`GET /preview`](/migration-api/get-the-preview), then
   refine or [execute](/migration-api/start-a-run).

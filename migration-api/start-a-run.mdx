@@ -24,8 +24,9 @@ Requires an `x-api-key` header. See [Authentication](/migration-api/authenticati
 <ParamField body="kind" type="string" required>
   Which phase to run:
 
-  - **`generate`** — author the mapping recipe from the uploaded files and stop at
-    a preview. Requires at least one [uploaded file](/migration-api/upload-files).
+  - **`generate`** — author the mapping recipe and stop at a preview. Needs a data
+    source: at least one [uploaded file](/migration-api/upload-files), a
+    [connected live source](/migration-api/source-connection), or both.
   - **`update`** — edit the current recipe per `message`, producing a **new**
     preview that replaces the current one. Requires an existing preview.
   - **`clarify`** — ask a read-only question about the current preview. Returns an
@@ -41,9 +42,28 @@ Requires an `x-api-key` header. See [Authentication](/migration-api/authenticati
   row."`). Ignored for `generate` and `execute`.
 </ParamField>
 
-The recipe and preview state are copied **server-side** between phases — you never
-send recipe, preview, or build IDs. `execute` runs the recipe behind the current
-preview; `update`/`clarify` act on it.
+<ParamField body="extract_via_api" type="boolean">
+  **`generate` only.** Explicitly controls live API extraction from a
+  [connected source](/migration-api/source-connection):
+
+  - **`true`** — extract via the connection (alongside any uploaded files).
+  - **`false`** — file-only; never extract via API, even with no files.
+  - **omitted** — the default: extract via API only when no files were uploaded
+    **and** a connection exists.
+
+  Ignored for `update`, `clarify`, and `execute`. Must be a boolean.
+</ParamField>
+
+The recipe and preview state are carried **server-side** between phases — you
+never send recipe, preview, or build IDs. `execute` runs the recipe behind the
+current preview; `update`/`clarify` act on it.
+
+<Note>
+  `generate` opens a preview run; `update`, `clarify`, and `execute` **resume that
+  same run**, so the `run_id` stays stable from preview all the way through the
+  real import. A resuming call comes back with `status: "running"` rather than
+  `queued`.
+</Note>
 
 ## Response
 
@@ -87,10 +107,10 @@ generate ──▶ awaiting_approval ──▶ execute ──▶ completed
 
 | Status | Meaning |
 |---|---|
-| `400` | `kind` missing or invalid; `generate` with no files uploaded; `update`/`clarify` with no `message`. |
+| `400` | `kind` missing or invalid; `generate` with no files **and** no connected source; `extract_via_api` not a boolean; `update`/`clarify` with no `message`. |
 | `401` | API key missing or invalid. |
 | `404` | No migration with that `{migration_id}` in your account. |
-| `409` | A run is already in progress (the body includes the active `run_id`); the migration has no target templates; `update`/`clarify`/`execute` with no current preview to act on. |
+| `409` | A run is already in progress (the body includes the active `run_id`); the migration has no target templates; `update`/`clarify`/`execute` with no current preview to act on; the approved preview is no longer resumable (generate a fresh one). |
 | `429` | Rate limit hit — back off and retry. |
 | `500` | Server error. |
 
@@ -130,3 +150,4 @@ curl -X POST https://app.vern.so/api/v1/migrations/c0a8012e-.../runs \
 - [Poll a run](/migration-api/poll-a-run) — track the run, read the report, cancel it.
 - [Get the preview](/migration-api/get-the-preview) — read the generated output.
 - [Answer the agent](/migration-api/answer-questions) — resume a `blocked` run.
+- [Connect a live source](/migration-api/source-connection) — extract via API with `extract_via_api`.
