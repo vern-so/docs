@@ -1,32 +1,84 @@
 ---
 title: Data retention
-description: Set how long workbook data sticks around before it's automatically purged.
+description: Set how long workbook data sticks around before it's automatically purged, and what happens when an account is closed.
 ---
 
 By default, workbook data stays in Vern indefinitely. If your compliance posture requires bounded retention, set a retention policy and Vern will purge automatically on a schedule.
 
 ## Set the policy
 
-Go to **Settings → Data retention**. Pick a preset:
+Go to **Settings → Data retention**. Pick a window:
 
-- **Forever** — data stays until you delete it.
-- **30 days** — workbook data is purged 30 days after the workbook's last activity.
-- **90 days** — same, on a 90-day window.
-- **Custom** — set any retention window.
+- **Forever** — data stays until you delete it. This is the default.
+- **7 days**
+- **30 days**
+- **90 days**
+- **180 days**
+- **365 days**
+
+Each window is measured from the workbook's **last activity**. These are the only
+accepted values — retention is a fixed set of presets rather than a free-text
+number of days, so there's no "custom" window.
 
 The policy applies to every company under your account.
 
 ## What gets purged
 
-- Workbook sheet data (cell values).
-- Uploaded source files.
-- Import run history for the affected workbook.
+When a workbook passes its retention window, Vern deletes:
 
-The company itself, magic links, and templates aren't touched — only customer data within workbooks.
+- Workbook sheet data (cell values)
+- Uploaded source files
+- Import run history, the agent conversation, and any saved migration state
+- Export files generated from that workbook
+
+Separately, and regardless of workbook activity, Vern sweeps company-scoped data
+that used to accumulate indefinitely:
+
+- **Integration logs** — including the datasets and embeddings derived from them
+- **Cached import questions and answers** — free text reused across runs
+
+Short-lived artefacts have their own fixed windows and are removed independently
+of your policy:
+
+- **Export jobs** and their files — 24 hours
+- **Document extractions** and their results — 24 hours
+
+The company itself, magic links, and templates aren't touched — only customer data.
 
 ## What "last activity" means
 
 The clock resets every time a user edits a sheet, runs an import, or makes other changes within the workbook. A workbook in active onboarding never expires; an abandoned one will.
+
+## Closing an account
+
+When you offboard a customer or close an account, Vern removes **everything
+belonging to that tenant** — workbooks and their files, integration logs, cached
+questions, stored credentials, and cached values — not just the data a retention
+window would have caught.
+
+Stored source credentials are purged from the secret store and any cached copies
+cleared at the same time, so a deleted tenant leaves no usable credential behind.
+
+<Note>
+  Offboarding is deliberately not a self-serve button. It's irreversible bulk
+  deletion, so it runs as a confirmed operation with a dry-run first — ask us and
+  we'll walk it through with you.
+</Note>
+
+## Access and audit
+
+Two things worth knowing when someone asks how customer data is protected day to
+day:
+
+- **Exporting is Admin-only.** Downloading a sheet or workbook is restricted to
+  Admins, because it materialises a full dataset into a file that leaves Vern.
+  See [Team](/help-center/settings/team).
+- **Administrative actions and data access are logged.** Vern keeps an
+  append-only record of privileged operations, so "who exported this, and when?"
+  has an answer.
+
+Uploaded logos and avatars are stored privately and served through short-lived
+signed links rather than public URLs.
 
 ## Compliance posture
 
@@ -36,4 +88,5 @@ For stronger guarantees (per-workbook policies, immediate purge), [contact us](m
 
 ## Next
 
+- [Team](/help-center/settings/team) — roles, and who can export.
 - [API keys](/help-center/settings/api-keys) — control programmatic access.
