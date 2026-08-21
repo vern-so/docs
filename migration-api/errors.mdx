@@ -13,9 +13,14 @@ one rate limit.
 | `400` | Malformed request — a required field is missing or a value is invalid (e.g. an unknown template slug, a bad `external_id`, an invalid run `kind`). |
 | `401` | API key missing, malformed, or revoked. |
 | `404` | The referenced migration, run, source, or template isn't in your account. |
-| `409` | A conflict — a reused `external_id`, an ambiguous source name, a run already in progress, or a state precondition (e.g. executing with no ready preview). |
+| `409` | A conflict — a reused `external_id`, an ambiguous source name, a run already in progress, or a state precondition (e.g. asking for the [session log](/migration-api/session-log) before the migration settles). |
+| `410` | The resource expired and its data was deleted — an [extraction](/migration-api/extract-a-document) or [export job](/migration-api/export-jobs) past its retention window. Start a new one. |
+| `412` | A guarded write lost a race. Only from [knowledge](/migration-api/knowledge) writes sent with `if_unmodified_since` — re-read, merge, and write again. |
+| `413` | The uploaded file is too large. [Extraction](/migration-api/extract-a-document) caps a single document at 100 MB. |
 | `429` | Rate limit hit — back off and retry. |
 | `500` | Server error — safe to retry idempotent requests. |
+| `502` | An upstream worker couldn't be reached — document parsing or the export executor. Retry. |
+| `503` | The feature isn't available in your account's data region. |
 
 Run-level failures are different from request errors: a `POST /runs` request can
 return `201` (accepted) and then resolve to a `failed` run. Read the run's
@@ -68,7 +73,7 @@ the active `run_id`, which is how you recover a run you lost track of. See
 
 Migrations are created in your **account's region**. If you need data to land in
 a specific region for residency reasons, talk to us at
-[vish@vern.so](mailto:vish@vern.so) — additional regions are enabled per account.
+[roupen@vern.so](mailto:roupen@vern.so) — additional regions are enabled per account.
 
 ## Next
 

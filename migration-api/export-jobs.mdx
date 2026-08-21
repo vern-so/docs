@@ -1,0 +1,129 @@
+---
+title: Export jobs
+description: Queue a large export and poll for a download link — for sheets too big to stream inline, or when you want several sheets as one ZIP.
+---
+
+```http
+POST https://app.vern.so/api/v1/migrations/{migration_id}/exports
+GET  https://app.vern.so/api/v1/migrations/{migration_id}/exports/jobs/{job_id}
+```
+
+Queues an export and hands back a `job_id` to poll. Use this instead of
+[Export CSV](/migration-api/export-csv) when the sheet is large enough that a
+synchronous download would time out, or when you want **several sheets in one
+ZIP** rather than a request per sheet.
+
+The trade-off is simple: `GET .../exports/{slug}.csv` is one call and streams
+immediately but holds the connection for the whole download; this is two calls
+plus polling but doesn't.
+
+## Authentication
+
+Requires an `x-api-key` header. See [Authentication](/migration-api/authentication).
+
+## Queue the export
+
+```http
+POST https://app.vern.so/api/v1/migrations/{migration_id}/exports
+```
+
+<ParamField body="slug" type="string">
+  One template slug — produces a **CSV**.
+</ParamField>
+
+<ParamField body="slugs" type="string[]">
+  Several template slugs — produces a **ZIP**, one CSV per sheet. Wins if both
+  fields are sent.
+</ParamField>
+
+`202 Accepted`:
+
+```json
+{
+  "job_id": "9f3a7c21-...",
+  "status": "pending",
+  "format": "zip",
+  "total_rows": 148213,
+  "status_url": "/api/v1/migrations/c0a8012e-.../exports/jobs/9f3a7c21-..."
+}
+```
+
+`total_rows` is known up front, so you can show a progress bar from the first
+response.
+
+## Poll the job
+
+```http
+GET https://app.vern.so/api/v1/migrations/{migration_id}/exports/jobs/{job_id}
+```
+
+`200 OK`. Poll until `status` is `completed` or `failed`.
+
+```json
+{
+  "job_id": "9f3a7c21-...",
+  "status": "completed",
+  "format": "zip",
+  "rows_processed": 148213,
+  "total_rows": 148213,
+  "file_size": 20431882,
+  "error": null,
+  "expires_at": "2026-08-22T09:18:44.000Z",
+  "download_url": "https://…"
+}
+```
+
+<ResponseField name="status" type="string">
+  `pending` → `running` → `completed`, or `failed`.
+</ResponseField>
+<ResponseField name="rows_processed" type="integer | null">
+  Rows written so far. With `total_rows`, this drives a progress indicator.
+</ResponseField>
+<ResponseField name="file_size" type="integer | null">
+  Size in bytes, once known.
+</ResponseField>
+<ResponseField name="download_url" type="string | null">
+  A **time-limited** link, present once the job completes. Fetch it promptly and
+  don't store it — mint a fresh one by polling again if it lapses.
+</ResponseField>
+<ResponseField name="expires_at" type="string">
+  When the export file is deleted. After this the job returns nothing to
+  download; queue a new one.
+</ResponseField>
+<ResponseField name="error" type="string | null">
+  Why the export failed, when it did.
+</ResponseField>
+
+## Errors
+
+| Status | Meaning |
+|---|---|
+| `400` | Neither `slug` nor `slugs` supplied, or a slug doesn't match a template. |
+| `401` | API key missing or invalid. |
+| `404` | No migration with that id in your account, or no such job. |
+| `409` | An export for this migration is already running. |
+| `429` | Rate limit hit — back off and retry. |
+| `500` | Server error. |
+| `502` | The export worker could not be reached. |
+
+## Example
+
+```bash
+# queue a multi-sheet export
+JOB=$(curl -s -X POST "https://app.vern.so/api/v1/migrations/c0a8012e-.../exports" \
+  -H "x-api-key: $VERN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"slugs":["contacts","companies","deals"]}' | jq -r .job_id)
+
+# poll until it completes
+curl -s "https://app.vern.so/api/v1/migrations/c0a8012e-.../exports/jobs/$JOB" \
+  -H "x-api-key: $VERN_API_KEY"
+
+# then download
+curl -L "<download_url>" -o export.zip
+```
+
+## Next
+
+- [Export CSV](/migration-api/export-csv) — the synchronous, single-sheet download.
+- [Session log](/migration-api/session-log) — the record of what was imported.

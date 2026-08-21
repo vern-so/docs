@@ -15,7 +15,14 @@
     { "name": "Catalog", "description": "Discover the sources and templates you set up in the Vern UI." },
     { "name": "Migrations", "description": "Create a migration workspace and upload a customer's files." },
     { "name": "Runs", "description": "Drive the managed agent: generate, refine, execute, answer, and observe." },
-    { "name": "Export", "description": "Download a migration's validated data as CSV." }
+    { "name": "Export", "description": "Download a migration's validated data as CSV." },
+    {"name":"Log","description":"The settled record of what a migration did."},
+    {"name":"Knowledge","description":"Durable context the agent reads before every run."},
+    {"name":"Exports","description":"Download imported data."},
+    {
+      "name": "Extractions",
+      "description": "Turn an unstructured file into structured data, without running a migration."
+    }
   ],
   "paths": {
     "/sources": {
@@ -639,6 +646,356 @@
           "429": { "$ref": "#/components/responses/RateLimited" }
         }
       }
+    },
+    "/migrations/{migration_id}/log": {
+      "parameters": [{"$ref":"#/components/parameters/MigrationId"}],
+      "get": {
+        "tags": ["Log"],
+        "summary": "Get the session log",
+        "description": "The settled record of a migration: what was planned, which files went\nin, who approved what, how many rows were written, and whether existing\nrows were replaced.\n\nIntended to be fetched once and stored, so you can explain a migration\nto your own customer later. It does **not** include the conversation\ntranscript — that is `/thread` — and it does not include individual row\nvalues.\n\nAvailable once nothing is in flight, including for migrations that\nfailed: a run can write rows and then fail, which is exactly when this\nmatters. While a run is active the endpoint returns `409`.\n\nPass `?format=md` for the same record as a readable Markdown report.\n\nA migration can be imported again later, so the log always covers every\nrun to date — a re-fetch is a superset of an earlier one. Use\n`generated_at` to tell snapshots apart.\n",
+        "operationId": "getSessionLog",
+        "parameters": [
+          {
+            "name": "format",
+            "in": "query",
+            "schema": {"type":"string","enum":["json","md","markdown"],"default":"json"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The session log.",
+            "content": {
+              "application/json": {"schema":{"$ref":"#/components/schemas/SessionLog"}},
+              "text/markdown": {"schema":{"type":"string"}}
+            }
+          },
+          "401": {"$ref":"#/components/responses/Unauthorized"},
+          "404": {"$ref":"#/components/responses/MigrationNotFound"},
+          "409": {
+            "description": "The migration is still in progress. Body carries the current `status` and `retry_after_seconds`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {"$ref":"#/components/schemas/Error"},
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {"$ref":"#/components/schemas/MigrationStatus"},
+                        "retry_after_seconds": {"type":"integer","example":30}
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {"$ref":"#/components/responses/RateLimited"},
+          "500": {"$ref":"#/components/responses/ServerError"},
+          "503": {
+            "description": "The log could not be assembled. Retryable.",
+            "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}
+          }
+        }
+      },
+      "options": {
+        "tags": ["Log"],
+        "summary": "CORS preflight",
+        "security": [],
+        "responses": {"204":{"description":"No content."}}
+      }
+    },
+    "/migrations/{migration_id}/knowledge": {
+      "parameters": [{"$ref":"#/components/parameters/MigrationId"}],
+      "get": {
+        "tags": ["Knowledge"],
+        "summary": "Read customer knowledge",
+        "description": "Durable facts about this customer that the agent honours on every run — \"amounts are always USD\", \"skip internal test records\". Distinct from source knowledge, which is about the source software itself.",
+        "operationId": "getMigrationKnowledge",
+        "responses": {
+          "200": {
+            "description": "The stored knowledge.",
+            "content": {"application/json":{"schema":{"$ref":"#/components/schemas/MigrationKnowledge"}}}
+          },
+          "401": {"$ref":"#/components/responses/Unauthorized"},
+          "404": {"$ref":"#/components/responses/MigrationNotFound"},
+          "429": {"$ref":"#/components/responses/RateLimited"},
+          "500": {"$ref":"#/components/responses/ServerError"}
+        }
+      },
+      "patch": {
+        "tags": ["Knowledge"],
+        "summary": "Replace customer knowledge",
+        "description": "`knowledge` **replaces** the whole document; an empty string clears it.\nThe agent rewrites this field the same way, so read, merge, then write.\n\nPass `if_unmodified_since` with the `updated_at` you read to make that\nsafe: if it changed underneath you the write is refused with `412`\nrather than overwriting.\n",
+        "operationId": "updateMigrationKnowledge",
+        "requestBody": {
+          "required": true,
+          "content": {"application/json":{"schema":{"$ref":"#/components/schemas/KnowledgeWrite"}}}
+        },
+        "responses": {
+          "200": {
+            "description": "Knowledge updated.",
+            "content": {"application/json":{"schema":{"$ref":"#/components/schemas/MigrationKnowledge"}}}
+          },
+          "400": {"$ref":"#/components/responses/BadRequest"},
+          "401": {"$ref":"#/components/responses/Unauthorized"},
+          "404": {"$ref":"#/components/responses/MigrationNotFound"},
+          "409": {"$ref":"#/components/responses/KnowledgeLocked"},
+          "412": {"$ref":"#/components/responses/KnowledgeStale"},
+          "429": {"$ref":"#/components/responses/RateLimited"},
+          "500": {"$ref":"#/components/responses/ServerError"}
+        }
+      },
+      "options": {
+        "tags": ["Knowledge"],
+        "summary": "CORS preflight",
+        "security": [],
+        "responses": {"204":{"description":"No content."}}
+      }
+    },
+    "/migrations/{migration_id}/exports": {
+      "parameters": [{"$ref":"#/components/parameters/MigrationId"}],
+      "post": {
+        "tags": ["Exports"],
+        "summary": "Start an export",
+        "description": "Queues an export of one or more destination sheets. One slug produces a CSV, several produce a ZIP. Poll the returned `status_url` for the download link.",
+        "operationId": "createExport",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {"slug":{"type":"string"},"slugs":{"type":"array","items":{"type":"string"}}},
+                "description": "Provide `slug` or `slugs`; `slugs` wins if both are sent."
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Export queued.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "job_id": {"type":"string"},
+                    "status": {"type":"string","enum":["pending"]},
+                    "format": {"type":"string","enum":["csv","zip"]},
+                    "total_rows": {"type":"integer"},
+                    "status_url": {"type":"string","description":"Relative path of this job's status endpoint."}
+                  }
+                }
+              }
+            }
+          },
+          "400": {"$ref":"#/components/responses/BadRequest"},
+          "401": {"$ref":"#/components/responses/Unauthorized"},
+          "404": {
+            "description": "Migration not found, or an unknown template slug.",
+            "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}
+          },
+          "409": {
+            "description": "A sheet has no exportable data.",
+            "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}
+          },
+          "429": {"$ref":"#/components/responses/RateLimited"},
+          "500": {"$ref":"#/components/responses/ServerError"},
+          "502": {
+            "description": "The export worker could not be started. Retryable.",
+            "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}
+          }
+        }
+      },
+      "options": {
+        "tags": ["Exports"],
+        "summary": "CORS preflight",
+        "security": [],
+        "responses": {"204":{"description":"No content."}}
+      }
+    },
+    "/migrations/{migration_id}/exports/jobs/{job_id}": {
+      "parameters": [
+        {"$ref":"#/components/parameters/MigrationId"},
+        {"name":"job_id","in":"path","required":true,"schema":{"type":"string"}}
+      ],
+      "get": {
+        "tags": ["Exports"],
+        "summary": "Poll an export job",
+        "operationId": "getExportJob",
+        "responses": {
+          "200": {
+            "description": "Job state. `download_url` is set once `status` is `completed`.",
+            "content": {"application/json":{"schema":{"$ref":"#/components/schemas/ExportJob"}}}
+          },
+          "401": {"$ref":"#/components/responses/Unauthorized"},
+          "404": {
+            "description": "Migration or job not found.",
+            "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}
+          },
+          "429": {"$ref":"#/components/responses/RateLimited"},
+          "500": {"$ref":"#/components/responses/ServerError"}
+        }
+      },
+      "options": {
+        "tags": ["Exports"],
+        "summary": "CORS preflight",
+        "security": [],
+        "responses": {"204":{"description":"No content."}}
+      }
+    },
+    "/sources/{source}/knowledge": {
+      "parameters": [{"$ref":"#/components/parameters/SourceName"}],
+      "get": {
+        "tags": ["Knowledge"],
+        "summary": "Read source knowledge",
+        "description": "Durable facts about the source software itself — field meanings, enum codes, export quirks. Seeding this means a run does not relearn what you already know.",
+        "operationId": "getSourceKnowledge",
+        "responses": {
+          "200": {
+            "description": "The stored knowledge.",
+            "content": {"application/json":{"schema":{"$ref":"#/components/schemas/SourceKnowledge"}}}
+          },
+          "401": {"$ref":"#/components/responses/Unauthorized"},
+          "404": {"$ref":"#/components/responses/SourceNotFound"},
+          "409": {"$ref":"#/components/responses/AmbiguousSource"},
+          "429": {"$ref":"#/components/responses/RateLimited"},
+          "500": {"$ref":"#/components/responses/ServerError"}
+        }
+      },
+      "patch": {
+        "tags": ["Knowledge"],
+        "summary": "Replace source knowledge",
+        "description": "`knowledge` replaces the whole document; an empty string clears it. Use `if_unmodified_since` for safe read-modify-write.",
+        "operationId": "updateSourceKnowledge",
+        "requestBody": {
+          "required": true,
+          "content": {"application/json":{"schema":{"$ref":"#/components/schemas/KnowledgeWrite"}}}
+        },
+        "responses": {
+          "200": {
+            "description": "Knowledge updated.",
+            "content": {"application/json":{"schema":{"$ref":"#/components/schemas/SourceKnowledge"}}}
+          },
+          "400": {"$ref":"#/components/responses/BadRequest"},
+          "401": {"$ref":"#/components/responses/Unauthorized"},
+          "404": {"$ref":"#/components/responses/SourceNotFound"},
+          "409": {
+            "description": "The source name is ambiguous, or a migration is currently running for this source and holds the knowledge lock.",
+            "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}
+          },
+          "412": {"$ref":"#/components/responses/KnowledgeStale"},
+          "429": {"$ref":"#/components/responses/RateLimited"},
+          "500": {"$ref":"#/components/responses/ServerError"}
+        }
+      },
+      "options": {
+        "tags": ["Knowledge"],
+        "summary": "CORS preflight",
+        "security": [],
+        "responses": {"204":{"description":"No content."}}
+      }
+    },
+    "/extractions": {
+      "post": {
+        "tags": ["Extractions"],
+        "summary": "Extract structured data from a document",
+        "operationId": "createExtraction",
+        "description": "Upload an unstructured file (PDF, Word document, or spreadsheet) and extract it against one or more of your templates. Reducto parses the file, an LLM designs a per-section extraction schema from the templates you name, and the extracted rows come back shaped like those templates.\n\nThe whole chain takes 30 seconds to several minutes, so this returns `202` immediately with an `extraction_id`. Poll `GET /extractions/{extraction_id}` until `status` is no longer `processing`.\n\nThis endpoint is **stateless**: nothing is written into your workbooks or sheets. The extracted rows are retained for 24 hours and then deleted. Capture them yourself if you need them longer.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "The document to extract. Max 100 MB. Supported: pdf, docx, xlsx, xlsm, xls, xltx, xltm, csv."
+                  },
+                  "templates": {
+                    "type": "array",
+                    "items": {"type":"string"},
+                    "description": "Template slugs to extract against, as returned by `GET /templates`. Repeat the field or pass one comma-separated value. Omit to use every active template.",
+                    "example": ["lots","owners"]
+                  },
+                  "instruction": {
+                    "type": "string",
+                    "description": "Optional free-text guidance for the extraction, e.g. \"only the first schedule\"."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted. Poll the returned id for the result.",
+            "content": {"application/json":{"schema":{"$ref":"#/components/schemas/ExtractionAccepted"}}}
+          },
+          "400": {"$ref":"#/components/responses/BadRequest"},
+          "401": {"$ref":"#/components/responses/Unauthorized"},
+          "413": {
+            "description": "The file exceeds the 100 MB limit.",
+            "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}
+          },
+          "429": {"$ref":"#/components/responses/RateLimited"},
+          "500": {"$ref":"#/components/responses/ServerError"},
+          "502": {
+            "description": "The document could not be submitted to the parsing service.",
+            "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}
+          },
+          "503": {
+            "description": "Extraction is not available for your data region.",
+            "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}
+          }
+        }
+      },
+      "options": {
+        "tags": ["Extractions"],
+        "summary": "CORS preflight",
+        "security": [],
+        "responses": {"204":{"description":"No content."}}
+      }
+    },
+    "/extractions/{extraction_id}": {
+      "parameters": [{"$ref":"#/components/parameters/ExtractionId"}],
+      "get": {
+        "tags": ["Extractions"],
+        "summary": "Poll an extraction and read its rows",
+        "operationId": "getExtraction",
+        "description": "Returns `processing` until the extraction settles, then `completed` with the extracted tables, or `failed` with a reason.\n\nResults expire 24 hours after creation, after which this returns `410`.",
+        "responses": {
+          "200": {
+            "description": "The extraction's current state.",
+            "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Extraction"}}}
+          },
+          "401": {"$ref":"#/components/responses/Unauthorized"},
+          "404": {
+            "description": "No such extraction. Also returned for an extraction belonging to another organisation.",
+            "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}
+          },
+          "410": {
+            "description": "The extraction has expired and its results were deleted.",
+            "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Extraction"}}}
+          },
+          "429": {"$ref":"#/components/responses/RateLimited"},
+          "500": {"$ref":"#/components/responses/ServerError"},
+          "503": {
+            "description": "Extraction is not available for your data region.",
+            "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}
+          }
+        }
+      },
+      "options": {
+        "tags": ["Extractions"],
+        "summary": "CORS preflight",
+        "security": [],
+        "responses": {"204":{"description":"No content."}}
+      }
     }
   },
   "components": {
@@ -666,6 +1023,21 @@
         "description": "The run ID returned by Start a run.",
         "schema": { "type": "string", "format": "uuid" },
         "example": "d4c3b2a1-9f8e-47d6-b5a4-c3d2e1f0a9b8"
+      },
+      "SourceName": {
+        "name": "source",
+        "in": "path",
+        "required": true,
+        "schema": {"type":"string"},
+        "description": "The source's name, as returned by `GET /sources`. URL-encode names containing spaces.",
+        "example": "HubSpot"
+      },
+      "ExtractionId": {
+        "name": "extraction_id",
+        "in": "path",
+        "required": true,
+        "schema": {"type":"string","format":"uuid"},
+        "description": "The id returned by `POST /extractions`."
       }
     },
     "responses": {
@@ -673,7 +1045,40 @@
       "Unauthorized": { "description": "API key missing, malformed, or revoked.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
       "NotFound": { "description": "The referenced resource isn't in your account.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
       "Conflict": { "description": "A uniqueness or state conflict.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-      "RateLimited": { "description": "Rate limit hit — back off and retry.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" }, "example": { "error": "Too many requests" } } } }
+      "RateLimited": { "description": "Rate limit hit — back off and retry.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" }, "example": { "error": "Too many requests" } } } },
+      "MigrationNotFound": {
+        "description": "No migration with this id in your organisation. Returned rather than `403` so the existence of another organisation's migration is not disclosed.",
+        "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}
+      },
+      "ServerError": {
+        "description": "Unexpected server error.",
+        "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}
+      },
+      "KnowledgeLocked": {
+        "description": "A migration is currently running and may be rewriting this document.",
+        "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}
+      },
+      "KnowledgeStale": {
+        "description": "The document changed after the `if_unmodified_since` you supplied. The body carries the current `updated_at`; re-read, merge, and retry.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {"$ref":"#/components/schemas/Error"},
+                {"type":"object","properties":{"updated_at":{"type":"string","nullable":true}}}
+              ]
+            }
+          }
+        }
+      },
+      "SourceNotFound": {
+        "description": "No source with this name in your organisation.",
+        "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}
+      },
+      "AmbiguousSource": {
+        "description": "More than one source shares this name. Rename one so the reference is unambiguous.",
+        "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}
+      }
     },
     "schemas": {
       "Error": {
@@ -837,6 +1242,198 @@
           "type": { "type": "string", "description": "message | thinking | status | tool_call | tool_result | task | request_input | prepared | preview | completed | error." },
           "data": { "type": "object", "description": "The event payload, kept intact." },
           "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "SessionLog": {
+        "type": "object",
+        "properties": {
+          "migration_id": {"type":"string"},
+          "generated_at": {"type":"string"},
+          "status": {"$ref":"#/components/schemas/MigrationStatus"},
+          "covers": {
+            "type": "object",
+            "properties": {
+              "runs": {"type":"integer"},
+              "from": {"type":"string","nullable":true},
+              "to": {"type":"string","nullable":true}
+            }
+          },
+          "runs": {"type":"array","items":{"$ref":"#/components/schemas/SessionLogRun"}}
+        }
+      },
+      "MigrationStatus": {
+        "type": "string",
+        "enum": ["awaiting_files","ready","awaiting_approval","completed"],
+        "description": "- `awaiting_files` — no files uploaded and no source connection\n- `ready` — inputs present, no plan yet\n- `awaiting_approval` — a preview is waiting to be executed\n- `completed` — an import has run successfully\n"
+      },
+      "MigrationKnowledge": {
+        "type": "object",
+        "properties": {
+          "migration_id": {"type":"string"},
+          "knowledge": {"type":"string","nullable":true},
+          "updated_at": {"type":"string","nullable":true}
+        }
+      },
+      "KnowledgeWrite": {
+        "type": "object",
+        "required": ["knowledge"],
+        "properties": {
+          "knowledge": {
+            "type": "string",
+            "nullable": true,
+            "description": "Replaces the whole document. Empty string clears it."
+          },
+          "if_unmodified_since": {
+            "type": "string",
+            "description": "The `updated_at` you last read. Supply it to get `412` instead of silently overwriting a concurrent change."
+          }
+        }
+      },
+      "ExportJob": {
+        "type": "object",
+        "properties": {
+          "job_id": {"type":"string"},
+          "status": {"type":"string","enum":["pending","running","completed","failed"]},
+          "format": {"type":"string","enum":["csv","zip"]},
+          "rows_processed": {"type":"integer","nullable":true},
+          "total_rows": {"type":"integer","nullable":true},
+          "file_size": {"type":"integer","nullable":true},
+          "error": {"type":"string","nullable":true},
+          "expires_at": {"type":"string"},
+          "download_url": {
+            "type": "string",
+            "nullable": true,
+            "description": "A time-limited link, present once the job is complete."
+          }
+        }
+      },
+      "SourceKnowledge": {
+        "type": "object",
+        "properties": {
+          "source": {"type":"string"},
+          "knowledge": {"type":"string","nullable":true},
+          "updated_at": {"type":"string","nullable":true}
+        }
+      },
+      "ExtractionAccepted": {
+        "type": "object",
+        "required": ["extraction_id","status"],
+        "properties": {
+          "extraction_id": {"type":"string","format":"uuid"},
+          "status": {"type":"string","enum":["processing"]},
+          "file_name": {"type":"string"},
+          "templates": {
+            "type": "array",
+            "items": {"type":"string"},
+            "description": "The template slugs this extraction runs against."
+          },
+          "created_at": {"type":"string","format":"date-time"},
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "After this, the result is deleted and GET returns 410."
+          }
+        }
+      },
+      "Extraction": {
+        "type": "object",
+        "required": ["extraction_id","status"],
+        "properties": {
+          "extraction_id": {"type":"string","format":"uuid"},
+          "status": {"type":"string","enum":["processing","completed","failed","expired"]},
+          "file_name": {"type":"string"},
+          "templates": {"type":"array","items":{"type":"string"}},
+          "created_at": {"type":"string","format":"date-time"},
+          "completed_at": {"type":"string","format":"date-time","nullable":true},
+          "expires_at": {"type":"string","format":"date-time"},
+          "table_count": {"type":"integer","description":"Present when status is `completed`."},
+          "row_count": {"type":"integer","description":"Total rows across all tables. Present when `completed`."},
+          "tables": {
+            "type": "array",
+            "description": "Present when status is `completed`.",
+            "items": {"$ref":"#/components/schemas/ExtractedTable"}
+          },
+          "error": {"type":"string","description":"Present when status is `failed` or `expired`."}
+        }
+      },
+      "SessionLogRun": {
+        "type": "object",
+        "properties": {
+          "run_id": {"type":"string"},
+          "kind": {"type":"string","description":"`generate`, `update`, `reuse`, `clarify` or `execute`."},
+          "status": {"type":"string"},
+          "started_at": {"type":"string","nullable":true},
+          "completed_at": {"type":"string","nullable":true},
+          "started_by": {
+            "type": "string",
+            "nullable": true,
+            "description": "Null when the run was started through this API."
+          },
+          "files": {"type":"array","items":{"type":"string"}},
+          "plan": {"type":"string","nullable":true},
+          "questions": {"type":"array","items":{"type":"object"}},
+          "answers": {"type":"object"},
+          "outcome": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "ok": {"type":"boolean","nullable":true},
+              "rows_written": {"type":"integer","nullable":true},
+              "per_sheet": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {"sheet":{"type":"string","nullable":true},"rows":{"type":"integer","nullable":true}}
+                }
+              },
+              "invalid_rows": {"type":"integer","nullable":true},
+              "error": {"type":"string","nullable":true},
+              "replaced_existing_data": {
+                "type": "boolean",
+                "description": "True when this run emptied its destination sheets before writing — it replaced the previous import rather than adding to it."
+              }
+            }
+          },
+          "audit": {
+            "type": "array",
+            "description": "Who did what, in order.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "at": {"type":"string"},
+                "event": {"type":"string","enum":["started","resumed","templates_adjusted","plan_approved","unknown"]},
+                "actor": {"type":"string","nullable":true},
+                "mode": {"type":"string"},
+                "answers_excerpt": {"type":"string"},
+                "changes": {"type":"array","items":{"type":"object"}},
+                "plan": {"type":"string"}
+              }
+            }
+          }
+        }
+      },
+      "ExtractedTable": {
+        "type": "object",
+        "required": ["headers","rows","row_count"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true,
+            "description": "The section this table came from, when the extraction identified one. Null for an unnamed table."
+          },
+          "headers": {"type":"array","items":{"type":"string"},"description":"Column names, in extraction order."},
+          "rows": {
+            "type": "array",
+            "description": "One object per row, keyed by header.",
+            "items": {"type":"object","additionalProperties":{"type":"string"}}
+          },
+          "row_count": {"type":"integer"},
+          "ordinal": {"type":"integer","description":"1-based position of this table within the document."},
+          "pages": {
+            "type": "array",
+            "items": {"type":"integer"},
+            "description": "Source pages this table was drawn from, when known."
+          }
         }
       }
     }
