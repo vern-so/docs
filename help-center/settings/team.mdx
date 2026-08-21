@@ -1,6 +1,6 @@
 ---
 title: Team
-description: Invite teammates to your Vern account.
+description: Invite teammates to your Vern account, and understand what each role can do.
 ---
 
 Vern accounts are shared across your team. Add anyone who needs to manage customers, run imports, or configure templates.
@@ -9,12 +9,47 @@ Vern accounts are shared across your team. Add anyone who needs to manage custom
 
 Go to **Settings → Team** and click **Invite**. Enter their email and pick a role.
 
-They get an email with a sign-up link. Once they create an account, they have access to all your companies, templates, sources, and workbooks.
+They receive an email containing a **one-time invite link**. Opening it lets them
+set their own password and join your account. Once they're in, they can see your
+companies, templates, sources, and workbooks — subject to their role.
+
+<Note>
+  Invite links expire after **72 hours** and can be used **once**. If one lapses
+  or has already been used, send a fresh invite — the old link can't be revived.
+  Vern never emails a password.
+</Note>
 
 ## Roles
 
-- **Admin** — full access. Can invite teammates, manage billing, configure data retention, generate API keys.
-- **Member** — full access to companies and data. Can't change account-level settings.
+Two roles. The difference is about **account-level control and data leaving
+Vern** — not about who can do day-to-day import work.
+
+<ResponseField name="Admin" type="role">
+  Everything a Member can do, plus:
+
+  - Invite and remove teammates
+  - Manage billing
+  - Configure [data retention](/help-center/settings/data-retention)
+  - Create and revoke [API keys](/help-center/settings/api-keys)
+  - **Export data** — downloading a sheet or workbook as CSV/ZIP
+  - Configure source credentials and [API writers](/help-center/send/write-to-an-api)
+</ResponseField>
+
+<ResponseField name="Member" type="role">
+  Full access to the day-to-day work: open companies, upload files, run imports,
+  review and fix flagged rows, edit templates.
+
+  Members **cannot** export data, manage API keys, or configure credentials.
+  Attempting one of those returns a permission error rather than failing
+  silently.
+</ResponseField>
+
+<Warning>
+  Export is Admin-only deliberately: it materialises a customer's entire dataset
+  into a file that leaves Vern, so it belongs with billing and API keys rather
+  than with import work. If teammates who used to export now can't, this is why —
+  make them Admins, or have an Admin run the export.
+</Warning>
 
 ## Remove a teammate
 
