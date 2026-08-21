@@ -80,7 +80,8 @@
                 "pages": [
                   "migration-api/list-sources",
                   "migration-api/list-templates",
-                  "migration-api/pin-a-source"
+                  "migration-api/pin-a-source",
+                  "migration-api/knowledge"
                 ]
               },
               {
@@ -105,7 +106,20 @@
               {
                 "group": "Export",
                 "pages": [
-                  "migration-api/export-csv"
+                  "migration-api/export-csv",
+                  "migration-api/export-jobs"
+                ]
+              },
+              {
+                "group": "Records",
+                "pages": [
+                  "migration-api/session-log"
+                ]
+              },
+              {
+                "group": "Documents",
+                "pages": [
+                  "migration-api/extract-a-document"
                 ]
               }
             ]
@@ -135,7 +149,9 @@
               "GET /sources",
               "POST /sources/{source}/pin",
               "GET /templates",
-              "GET /templates/{template_slug}"
+              "GET /templates/{template_slug}",
+              "GET /sources/{source}/knowledge",
+              "PATCH /sources/{source}/knowledge"
             ]
           },
           {
@@ -147,7 +163,9 @@
               "GET /migrations/{migration_id}/files",
               "POST /migrations/{migration_id}/source-connection",
               "GET /migrations/{migration_id}/source-connection",
-              "DELETE /migrations/{migration_id}/source-connection"
+              "DELETE /migrations/{migration_id}/source-connection",
+              "GET /migrations/{migration_id}/knowledge",
+              "PATCH /migrations/{migration_id}/knowledge"
             ]
           },
           {
@@ -161,14 +179,25 @@
               "POST /migrations/{migration_id}/runs/{run_id}/credentials",
               "GET /migrations/{migration_id}/preview",
               "GET /migrations/{migration_id}/thread",
-              "GET /migrations/{migration_id}/thread/stream"
+              "GET /migrations/{migration_id}/thread/stream",
+              "GET /migrations/{migration_id}/log"
             ]
           },
           {
             "group": "Export",
             "openapi": "api-reference/openapi.json",
             "pages": [
-              "GET /migrations/{migration_id}/exports/{file}"
+              "GET /migrations/{migration_id}/exports/{file}",
+              "POST /migrations/{migration_id}/exports",
+              "GET /migrations/{migration_id}/exports/jobs/{job_id}"
+            ]
+          },
+          {
+            "group": "Documents",
+            "openapi": "api-reference/openapi.json",
+            "pages": [
+              "POST /extractions",
+              "GET /extractions/{extraction_id}"
             ]
           }
         ]
@@ -183,7 +212,7 @@
     "links": [
       {
         "label": "Support",
-        "href": "mailto:vish@vern.so"
+        "href": "mailto:roupen@vern.so"
       }
     ],
     "primary": {

@@ -1,0 +1,208 @@
+---
+title: Extract a document
+description: Turn an unstructured file — a PDF, a scan, a Word document — into template-shaped rows, without creating a migration.
+---
+
+```http
+POST https://app.vern.so/api/v1/extractions
+GET  https://app.vern.so/api/v1/extractions/{extraction_id}
+```
+
+Upload a document, name the templates to extract it against, and get back rows
+shaped like those templates. Vern parses the file, designs an extraction schema
+from the templates you chose, and pulls the data out.
+
+This is **standalone**: it doesn't create a migration, doesn't touch your
+workbooks, and writes nothing into Vern. It's the right call for "read this
+invoice against my Invoice template" — where the full
+[migration flow](/migration-api/create-a-migration) would be far more machinery
+than the job needs.
+
+<Note>
+  Results are **not stored in Vern**. They're retained for 24 hours so you can
+  fetch them, then deleted along with the uploaded file. Capture what you need.
+</Note>
+
+## Authentication
+
+Requires an `x-api-key` header. See [Authentication](/migration-api/authentication).
+
+## Submit a file
+
+```http
+POST https://app.vern.so/api/v1/extractions
+```
+
+`multipart/form-data`:
+
+<ParamField body="file" type="file" required>
+  The document. Max **100 MB**. Supported: `pdf`, `docx`, `xlsx`, `xlsm`, `xls`,
+  `xltx`, `xltm`, `csv`.
+</ParamField>
+
+<ParamField body="templates" type="string[]">
+  Template slugs to extract against — repeat the field, or pass one
+  comma-separated value. Omit to use **every active template** in your account.
+  [List your templates](/migration-api/list-templates) for slugs.
+</ParamField>
+
+<ParamField body="instruction" type="string">
+  Optional free-text guidance, e.g. `"only the first schedule"`.
+</ParamField>
+
+Extraction takes anywhere from seconds to several minutes, so this returns
+immediately with an id to poll:
+
+`202 Accepted`
+
+```json
+{
+  "extraction_id": "3f2a9c14-...",
+  "status": "processing",
+  "file_name": "strata-roll.pdf",
+  "templates": ["lots", "owners"],
+  "created_at": "2026-08-21T10:02:11.000Z",
+  "expires_at": "2026-08-22T10:02:11.000Z"
+}
+```
+
+## Poll for the result
+
+```http
+GET https://app.vern.so/api/v1/extractions/{extraction_id}
+```
+
+`200 OK` while it runs:
+
+```json
+{ "extraction_id": "3f2a9c14-...", "status": "processing" }
+```
+
+`200 OK` once it's done:
+
+```json
+{
+  "extraction_id": "3f2a9c14-...",
+  "status": "completed",
+  "file_name": "strata-roll.pdf",
+  "templates": ["lots", "owners"],
+  "created_at": "2026-08-21T10:02:11.000Z",
+  "completed_at": "2026-08-21T10:04:38.000Z",
+  "expires_at": "2026-08-22T10:02:11.000Z",
+  "table_count": 2,
+  "row_count": 148,
+  "tables": [
+    {
+      "name": "Lots",
+      "headers": ["lot_number", "unit_entitlement"],
+      "rows": [
+        { "lot_number": "12", "unit_entitlement": "45" },
+        { "lot_number": "13", "unit_entitlement": "45" }
+      ],
+      "row_count": 2,
+      "ordinal": 1,
+      "pages": [1]
+    }
+  ]
+}
+```
+
+## Fields
+
+<ResponseField name="status" type="string">
+  `processing`, `completed`, `failed`, or `expired`.
+</ResponseField>
+
+<ResponseField name="table_count" type="integer">
+  How many tables were extracted. Present when `completed`.
+</ResponseField>
+
+<ResponseField name="row_count" type="integer">
+  Total rows across all tables.
+</ResponseField>
+
+<ResponseField name="tables" type="object[]">
+  The extracted data. Present when `completed`.
+
+  <Expandable title="table">
+    <ResponseField name="name" type="string | null">
+      The section this table came from, when one was identified.
+    </ResponseField>
+    <ResponseField name="headers" type="string[]">
+      Column names, in extraction order.
+    </ResponseField>
+    <ResponseField name="rows" type="object[]">
+      One object per row, **keyed by header** — not positional arrays.
+    </ResponseField>
+    <ResponseField name="row_count" type="integer">
+      Rows in this table.
+    </ResponseField>
+    <ResponseField name="ordinal" type="integer">
+      1-based position of this table within the document.
+    </ResponseField>
+    <ResponseField name="pages" type="integer[]">
+      Source pages this table came from, when known.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="error" type="string">
+  Why it failed. Present when `status` is `failed` or `expired`.
+</ResponseField>
+
+## Choosing templates
+
+The templates you name shape the extraction. Vern uses their columns — including
+descriptions and cross-template link rules — to work out what sections a document
+has and which fields to pull from each.
+
+That means **naming the right templates matters more than the file format**.
+Passing two related templates (say `lots` and `owners`) lets the extraction
+carry a joining column across both, so the rows come back linkable. Omitting
+`templates` uses everything active in your account, which is fine for a first
+try but noisier than choosing.
+
+## Errors
+
+| Status | Meaning |
+|---|---|
+| `400` | No file, unsupported file type, unknown template slug, or no active templates. |
+| `401` | API key missing or invalid. |
+| `404` | No extraction with that id in your account. |
+| `410` | The extraction expired — results are kept 24 hours. |
+| `413` | The file exceeds 100 MB. |
+| `429` | Rate limit hit — back off and retry. |
+| `500` | Server error. |
+| `502` | The document couldn't be submitted for parsing. |
+| `503` | Extraction isn't available for your data region. |
+
+## Example
+
+```bash
+# submit
+EXTRACTION=$(curl -s -X POST "https://app.vern.so/api/v1/extractions" \
+  -H "x-api-key: $VERN_API_KEY" \
+  -F "file=@strata-roll.pdf" \
+  -F "templates=lots" \
+  -F "templates=owners" | jq -r .extraction_id)
+
+# poll until status is no longer "processing"
+curl -s "https://app.vern.so/api/v1/extractions/$EXTRACTION" \
+  -H "x-api-key: $VERN_API_KEY"
+```
+
+## Extraction vs a migration
+
+<Note>
+  Reach for a **migration** when you're moving a customer's dataset into your app
+  — you want validation, review, correction and a durable record. Reach for
+  **extraction** when you just need the numbers out of a document. Extraction
+  returns rows; it doesn't validate them against the template's rules, and it
+  doesn't keep them.
+</Note>
+
+## Next
+
+- [List templates](/migration-api/list-templates) — the slugs to extract against.
+- [Create a migration](/migration-api/create-a-migration) — the full import flow.
+- [Errors & limits](/migration-api/errors) — shared conventions.

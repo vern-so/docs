@@ -1,0 +1,225 @@
+---
+title: Session log
+description: The settled record of a migration — what was planned, which files went in, who approved what, and how many rows landed. Fetch it once when the migration finishes and store it.
+---
+
+```http
+GET https://app.vern.so/api/v1/migrations/{migration_id}/log
+```
+
+Returns the **settled record** of a migration: the plan, the files that went in,
+who approved what and when, how many rows were written per sheet, and whether
+existing rows were replaced. It's designed to be fetched **once, after the
+migration finishes, and stored on your side** — so months later you can answer
+your own customer's "what did you do to my data?".
+
+This is not the live feed. For a run in progress use
+[Stream the thread](/migration-api/stream-the-thread); the log deliberately
+excludes the conversation and returns the outcome instead.
+
+<Note>
+  Available only once the migration has **settled**. While anything is still in
+  flight the endpoint returns `409` rather than a partial log — see
+  [Availability](#availability).
+</Note>
+
+## Authentication
+
+Requires an `x-api-key` header. See [Authentication](/migration-api/authentication).
+
+## Query
+
+<ParamField query="format" type="string" default="json">
+  `json` (default) for the structured log, or `md` / `markdown` for a
+  human-readable transcript you can paste into a ticket or hand to a customer.
+</ParamField>
+
+## Availability
+
+The log covers **every run to date**, so it's a superset of anything you fetched
+earlier — a migration re-imported later returns a longer log.
+
+It's gated on the migration being settled, which deliberately includes failures:
+a run can write rows and *then* fail validation, and that's exactly when someone
+asks what happened. `completed`, `failed` and `canceled` all return a log.
+
+While a run is still going you get `409` with the current status, so a poller can
+tell "not yet" from "broken":
+
+```json
+{
+  "error": "Migration is still in progress. The final log is available once it completes.",
+  "status": "awaiting_approval",
+  "retry_after_seconds": 30
+}
+```
+
+## Response
+
+`200 OK`.
+
+```json
+{
+  "migration_id": "c0a8012e-...",
+  "generated_at": "2026-08-21T10:02:11.000Z",
+  "status": "completed",
+  "covers": {
+    "runs": 4,
+    "from": "2026-08-21T09:02:00.000Z",
+    "to": "2026-08-21T09:18:44.000Z"
+  },
+  "runs": [
+    {
+      "run_id": "e5d4c3b2-...",
+      "kind": "execute",
+      "status": "completed",
+      "started_at": "2026-08-21T09:14:02.000Z",
+      "completed_at": "2026-08-21T09:18:44.000Z",
+      "started_by": null,
+      "files": ["contacts.csv", "deals.xlsx"],
+      "plan": "Map contacts.csv → Contacts…",
+      "questions": [],
+      "answers": {},
+      "outcome": {
+        "ok": true,
+        "rows_written": 48213,
+        "per_sheet": [{ "sheet": "Contacts", "rows": 48213 }],
+        "invalid_rows": 27,
+        "error": null,
+        "replaced_existing_data": true
+      },
+      "audit": [
+        { "at": "2026-08-21T09:14:02.000Z", "event": "started" },
+        { "at": "2026-08-21T09:17:55.000Z", "event": "plan_approved" }
+      ]
+    }
+  ]
+}
+```
+
+## Fields
+
+<ResponseField name="generated_at" type="string">
+  When this log was produced. The log always covers everything up to this moment.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  The migration's settled state — `completed`, `failed` or `canceled`.
+</ResponseField>
+
+<ResponseField name="covers" type="object">
+  How much this log spans — `{ runs, from, to }`, the number of runs and the
+  timestamp range they fall in.
+</ResponseField>
+
+<ResponseField name="runs" type="object[]">
+  Every run, oldest first.
+
+  <Expandable title="run">
+    <ResponseField name="run_id" type="string">
+      The run's id — the same one [Poll a run](/migration-api/poll-a-run) uses.
+    </ResponseField>
+    <ResponseField name="kind" type="string">
+      Which leg this run was: `generate`, `update`, `reuse`, `clarify` or
+      `execute`. Only an `execute` writes rows.
+    </ResponseField>
+    <ResponseField name="status" type="string">
+      How the run ended.
+    </ResponseField>
+    <ResponseField name="started_by" type="string | null">
+      The dashboard user who started it, or `null` when it was started through
+      this API.
+    </ResponseField>
+    <ResponseField name="files" type="string[]">
+      The source files this run read.
+    </ResponseField>
+    <ResponseField name="plan" type="string | null">
+      The mapping plan as presented for approval.
+    </ResponseField>
+    <ResponseField name="questions" type="object[]">
+      Any questions the run asked, and `answers` the replies it received.
+    </ResponseField>
+    <ResponseField name="outcome" type="object | null">
+      What the run did. `null` for runs that never reached an outcome.
+
+      <Expandable title="outcome">
+        <ResponseField name="ok" type="boolean | null">
+          Whether the run succeeded.
+        </ResponseField>
+        <ResponseField name="rows_written" type="integer | null">
+          Total rows written across all sheets.
+        </ResponseField>
+        <ResponseField name="per_sheet" type="object[]">
+          Per-sheet counts — `{ sheet, rows }`.
+        </ResponseField>
+        <ResponseField name="invalid_rows" type="integer | null">
+          Rows written with at least one cell that failed validation.
+        </ResponseField>
+        <ResponseField name="error" type="string | null">
+          Why it failed, when it did.
+        </ResponseField>
+        <ResponseField name="replaced_existing_data" type="boolean">
+          **`true` means this run emptied its destination sheets before writing** —
+          it replaced the previous import rather than adding to it. Worth
+          surfacing to your customer; it's the difference between "we added 48k
+          rows" and "we swapped out everything that was there".
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="audit" type="object[]">
+      Who did what, in order — `{ at, event, ... }`. Covers the moments that
+      matter for accountability: started, plan approved, templates adjusted.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Markdown
+
+`?format=md` renders the same data as a readable transcript — run headings, the
+plan, an audit table, and the result. Labels mirror the History tab in the Vern
+dashboard, so an export you hand a customer and what your team sees in-app tell
+the same story.
+
+```bash
+curl "https://app.vern.so/api/v1/migrations/c0a8012e-.../log?format=md" \
+  -H "x-api-key: $VERN_API_KEY" \
+  -o migration-log.md
+```
+
+## Errors
+
+| Status | Meaning |
+|---|---|
+| `401` | API key missing or invalid. |
+| `404` | No migration with that id in your account. |
+| `409` | Still in progress. Body carries `status` and `retry_after_seconds`. |
+| `429` | Rate limit hit — back off and retry. |
+| `500` | Server error. |
+| `503` | The migration's data region is unavailable. |
+
+## What the log cannot tell you
+
+Worth knowing before you build a compliance story on it:
+
+- **No per-row lineage.** The log says a run wrote 48,213 rows to Contacts. It
+  cannot say output row 4,312 came from line 4,180 of `contacts.csv`.
+- **"Failed" doesn't mean "untouched".** A run can insert rows and then fail
+  validation. Read `outcome.rows_written`, not just `status`.
+- **It isn't tamper-evident.** The underlying run records are mutable by users in
+  your account. Treat the log as a faithful report, not as an audit seal.
+- **Retention is keyed to the workbook.** Logs are swept with the migration's
+  data under your [retention policy](/help-center/settings/data-retention). This
+  is the argument for fetching and storing the log yourself.
+
+## Example
+
+```bash
+curl "https://app.vern.so/api/v1/migrations/c0a8012e-.../log" \
+  -H "x-api-key: $VERN_API_KEY"
+```
+
+## Next
+
+- [Poll a run](/migration-api/poll-a-run) — confirm the migration settled before fetching.
+- [Export CSV](/migration-api/export-csv) — get the data itself out.
+- [Errors & limits](/migration-api/errors) — shared conventions.

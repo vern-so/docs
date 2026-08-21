@@ -77,6 +77,10 @@ A **completed `execute`** carries a report:
   source inputs and the imported outputs — so a hollow import (right row count,
   dropped fields) is detectable programmatically. `null` when profiling wasn't
   available for the run.
+
+  Coverage reports **statistics only** — fill rates and distinct counts, never
+  sample cell values. It tells you *how much* landed in a column, not *what* is
+  in it. To see actual values, [export the sheet](/migration-api/export-csv).
 </ResponseField>
 
 ## A blocked run

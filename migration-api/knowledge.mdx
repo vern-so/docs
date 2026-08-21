@@ -1,0 +1,136 @@
+---
+title: Knowledge
+description: Durable context the agent reads before every run — what a source system's quirks are, and what's true about a particular customer. Seed it once instead of re-explaining each time.
+---
+
+```http
+GET   https://app.vern.so/api/v1/sources/{source}/knowledge
+PATCH https://app.vern.so/api/v1/sources/{source}/knowledge
+
+GET   https://app.vern.so/api/v1/migrations/{migration_id}/knowledge
+PATCH https://app.vern.so/api/v1/migrations/{migration_id}/knowledge
+```
+
+**Knowledge** is free-text context the agent reads before every run. Writing it
+down once means a run doesn't have to rediscover — or ask your customer about —
+something you already know.
+
+There are two scopes, and the distinction matters:
+
+| Scope | Answers | Example |
+|---|---|---|
+| **Source** — `/sources/{source}/knowledge` | What's true about the *software* you're migrating from | "`status=3` means churned", "the CSV export writes dates as DD/MM/YYYY" |
+| **Customer** — `/migrations/{migration_id}/knowledge` | What's true about *this customer's* data | "amounts are always USD", "skip records prefixed `TEST-`" |
+
+Source knowledge is shared by every migration from that source, so a quirk you
+document once pays off on every customer after it. Customer knowledge applies
+only to that migration.
+
+## Authentication
+
+Requires an `x-api-key` header. See [Authentication](/migration-api/authentication).
+
+## Read
+
+```http
+GET https://app.vern.so/api/v1/sources/{source}/knowledge
+```
+
+`200 OK`. `knowledge` is `null` when nothing has been written yet.
+
+```json
+{
+  "source": "HubSpot",
+  "knowledge": "Deal stage IDs are numeric; 3 = closed-lost.\nDates export as DD/MM/YYYY.",
+  "updated_at": "2026-08-19T11:20:00.000Z"
+}
+```
+
+The customer-scoped read is the same shape with `migration_id` in place of
+`source`:
+
+```json
+{
+  "migration_id": "c0a8012e-...",
+  "knowledge": "Amounts are always USD. Skip records prefixed TEST-.",
+  "updated_at": "2026-08-20T09:02:11.000Z"
+}
+```
+
+## Write
+
+```http
+PATCH https://app.vern.so/api/v1/sources/{source}/knowledge
+```
+
+<ParamField body="knowledge" type="string" required>
+  **Replaces the whole document.** Send an empty string to clear it.
+</ParamField>
+
+<ParamField body="if_unmodified_since" type="string">
+  The `updated_at` you last read. Supply it and a concurrent change is refused
+  with `412` instead of being silently overwritten.
+</ParamField>
+
+```json
+{
+  "knowledge": "Deal stage IDs are numeric; 3 = closed-lost.",
+  "if_unmodified_since": "2026-08-19T11:20:00.000Z"
+}
+```
+
+<Warning>
+  `knowledge` is a **whole-document replace**, not an append. To add a line, read
+  the current value, append to it, and write the result back. Sending just your
+  new line discards everything already there.
+</Warning>
+
+### Writing safely
+
+The agent rewrites this same field as it learns during a run, so a naive
+read-modify-write can clobber what it just recorded. Pass `if_unmodified_since`
+with the `updated_at` you read; if it moved underneath you the write is refused
+with `412` and you can re-read and merge:
+
+```bash
+# 1. read
+curl -s "https://app.vern.so/api/v1/sources/HubSpot/knowledge" \
+  -H "x-api-key: $VERN_API_KEY"
+# -> { "knowledge": "…", "updated_at": "2026-08-19T11:20:00.000Z" }
+
+# 2. write, guarded
+curl -X PATCH "https://app.vern.so/api/v1/sources/HubSpot/knowledge" \
+  -H "x-api-key: $VERN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "knowledge": "…existing text…\nNew: amounts exclude tax.",
+        "if_unmodified_since": "2026-08-19T11:20:00.000Z"
+      }'
+```
+
+A `409` means a run is holding the document while it writes — retry shortly.
+
+## Errors
+
+| Status | Meaning |
+|---|---|
+| `400` | Malformed body, or `knowledge` missing. |
+| `401` | API key missing or invalid. |
+| `404` | No such source, or no migration with that id in your account. |
+| `409` | (source) The name matches more than one source, or a run currently holds the document. |
+| `412` | `if_unmodified_since` didn't match — someone else wrote first. Re-read and merge. |
+| `429` | Rate limit hit — back off and retry. |
+| `500` | Server error. |
+
+## Naming a source
+
+`{source}` is the source's **name** as returned by
+[List sources](/migration-api/list-sources) — URL-encode names with spaces. If the
+name is ambiguous across your integrations you'll get `409`; use the exact name
+from the list.
+
+## Next
+
+- [List sources](/migration-api/list-sources) — the names to address here.
+- [Start a run](/migration-api/start-a-run) — knowledge is read before every run.
+- [Errors & limits](/migration-api/errors) — shared conventions.
