@@ -80,6 +80,8 @@
                 "pages": [
                   "migration-api/list-sources",
                   "migration-api/list-templates",
+                  "migration-api/update-a-source",
+                  "migration-api/update-a-template",
                   "migration-api/pin-a-source",
                   "migration-api/knowledge"
                 ]
@@ -147,9 +149,11 @@
             "openapi": "api-reference/openapi.json",
             "pages": [
               "GET /sources",
+              "PATCH /sources/{source}",
               "POST /sources/{source}/pin",
               "GET /templates",
               "GET /templates/{template_slug}",
+              "PATCH /templates/{template_slug}",
               "GET /sources/{source}/knowledge",
               "PATCH /sources/{source}/knowledge"
             ]
