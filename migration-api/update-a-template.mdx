@@ -1,0 +1,100 @@
+---
+title: Update a template
+description: Rename a template, edit its description or grouping, or replace its columns. The slug never changes, and edits are refused while a migration using the template is running.
+---
+
+```http
+PATCH https://app.vern.so/api/v1/templates/{template_slug}
+```
+
+Partial update of an active template: send any of `name`, `description`,
+`grouping`, or `columns` — omitted fields keep their stored value.
+
+<Info>
+  The **slug is frozen**: renaming a template changes only its display name,
+  never its address. Template references in your integration stay stable across
+  renames — the opposite of [sources](/migration-api/update-a-source), which
+  are addressed by name.
+</Info>
+
+## Authentication
+
+Requires an `x-api-key` header. See [Authentication](/migration-api/authentication).
+
+## Request body
+
+At least one field is required.
+
+<ParamField body="name" type="string">
+  New display name. Does not change the slug.
+</ParamField>
+
+<ParamField body="description" type="string | null">
+  The template's description / knowledge shown to the agent and your team.
+  Pass `null` to clear it.
+</ParamField>
+
+<ParamField body="grouping" type="string | null">
+  Free-text group label used to organise the template list in the Vern
+  dashboard. Pass `null` to clear it. Not returned by template reads.
+</ParamField>
+
+<ParamField body="columns" type="object[]">
+  A **full replacement** of the column set — send every column you want the
+  template to have, in order. Each column takes the same shape
+  [template reads return](/migration-api/list-templates#fields): `name`
+  (required), `description`, `required`, `unique`, `desiredRule`, `strictRule`.
+  Cross-cell rules stored on the template are always preserved. Validation-rule
+  changes automatically revalidate the sheets already using this template.
+</ParamField>
+
+## Response
+
+`200 OK` — the updated template, in the same shape as
+[Fetch one template](/migration-api/list-templates#fetch-one-template).
+
+```json
+{
+  "slug": "suppliers",
+  "name": "Suppliers",
+  "description": "Suppliers master list. One row per active supplier.",
+  "columns": [ /* … */ ]
+}
+```
+
+## Errors
+
+| Status | Meaning |
+|---|---|
+| `400` | Malformed body, empty body, empty `columns`, or a column without a name. |
+| `401` | API key missing or invalid. |
+| `404` | No active template with that slug (archived templates can't be edited through the API). |
+| `409` | A migration that uses this template is currently running — retry after it settles. |
+| `429` | Rate limit hit — back off and retry. |
+| `500` | Server error. |
+
+## Example
+
+```bash
+# Update the description
+curl -X PATCH https://app.vern.so/api/v1/templates/suppliers \
+  -H "x-api-key: $VERN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "description": "Suppliers master list. One row per active supplier." }'
+
+# Replace the column set
+curl -X PATCH https://app.vern.so/api/v1/templates/suppliers \
+  -H "x-api-key: $VERN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "columns": [
+      { "name": "Supplier Name", "description": "Legal entity name", "required": true },
+      { "name": "ABN", "required": false, "desiredRule": "strict", "strictRule": "^\\d{11}$" }
+    ]
+  }'
+```
+
+## Next
+
+- [List templates](/migration-api/list-templates) — the current template set and column shapes.
+- [Create a migration](/migration-api/create-a-migration) — templates become the migration's sheets.

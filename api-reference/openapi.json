@@ -142,6 +142,66 @@
           "404": { "$ref": "#/components/responses/NotFound" },
           "429": { "$ref": "#/components/responses/RateLimited" }
         }
+      },
+      "patch": {
+        "operationId": "updateTemplate",
+        "summary": "Update a template",
+        "description": "Partial update of an active template. The `slug` is frozen — renaming changes only the display name, never the address. `columns` is a full replacement of the column set when present; cross-cell rules stored on the template are always preserved. Edits are refused with `409` while a migration that uses the template is running. `grouping` organises the template list in the dashboard and is not returned by template reads.",
+        "tags": ["Catalog"],
+        "parameters": [
+          { "name": "template_slug", "in": "path", "required": true, "schema": { "type": "string" }, "example": "contacts" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "minProperties": 1,
+                "properties": {
+                  "name": { "type": "string", "description": "New display name. Does not change the slug." },
+                  "description": { "type": ["string", "null"], "description": "The template's knowledge / description. `null` clears it." },
+                  "grouping": { "type": ["string", "null"], "description": "Free-text group label for the dashboard. `null` clears it." },
+                  "columns": {
+                    "type": "array",
+                    "minItems": 1,
+                    "description": "Full replacement of the column set.",
+                    "items": {
+                      "type": "object",
+                      "required": ["name"],
+                      "properties": {
+                        "name": { "type": "string" },
+                        "description": { "type": "string" },
+                        "required": { "type": "boolean" },
+                        "unique": { "type": "boolean" },
+                        "desiredRule": { "type": "string" },
+                        "strictRule": { "type": "string", "description": "Regex pattern for strict validation." }
+                      }
+                    }
+                  }
+                }
+              },
+              "example": {
+                "description": "Suppliers master list. One row per active supplier.",
+                "columns": [
+                  { "name": "Supplier Name", "description": "Legal entity name", "required": true },
+                  { "name": "ABN", "description": "Australian Business Number", "required": false, "desiredRule": "strict", "strictRule": "^\\d{11}$" }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated template.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Template" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/TemplateNotFound" },
+          "409": { "$ref": "#/components/responses/TemplateLocked" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
       }
     },
     "/migrations": {
@@ -845,6 +905,64 @@
         "responses": {"204":{"description":"No content."}}
       }
     },
+    "/sources/{source}": {
+      "patch": {
+        "operationId": "updateSource",
+        "summary": "Update a source",
+        "description": "Partial update of a source's `name` and/or `auth_url`. Renaming changes the name you address this source by on every subsequent call; in-flight migrations are unaffected. A rename that matches another source's exact name is refused — it would make both unaddressable. Source knowledge is managed separately at `/sources/{source}/knowledge`.",
+        "tags": ["Catalog"],
+        "parameters": [
+          { "name": "source", "in": "path", "required": true, "description": "The source name (URL-encode spaces).", "schema": { "type": "string" }, "example": "Salesforce" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "minProperties": 1,
+                "properties": {
+                  "name": { "type": "string", "description": "New display name. Becomes the name you address this source by." },
+                  "auth_url": { "type": "string", "description": "The source system's sign-in / portal URL." }
+                }
+              },
+              "example": { "name": "Salesforce (AU)", "auth_url": "https://login.salesforce.com" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated source.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "source": {
+                      "type": "object",
+                      "properties": {
+                        "name": { "type": "string" },
+                        "logo_url": { "type": ["string", "null"] },
+                        "auth_url": { "type": "string" }
+                      }
+                    }
+                  }
+                },
+                "example": { "source": { "name": "Salesforce (AU)", "logo_url": null, "auth_url": "https://login.salesforce.com" } }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/SourceNotFound" },
+          "409": {
+            "description": "The source name is ambiguous, or the new name is already used by another source in your organisation.",
+            "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}
+          },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
     "/sources/{source}/knowledge": {
       "parameters": [{"$ref":"#/components/parameters/SourceName"}],
       "get": {
@@ -1077,6 +1195,14 @@
       },
       "AmbiguousSource": {
         "description": "More than one source shares this name. Rename one so the reference is unambiguous.",
+        "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}
+      },
+      "TemplateNotFound": {
+        "description": "No active template with this slug in your organisation.",
+        "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}
+      },
+      "TemplateLocked": {
+        "description": "A migration that uses this template is currently running; edits are refused until it settles.",
         "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}
       }
     },

@@ -1,0 +1,85 @@
+---
+title: Update a source
+description: Rename a source or change its sign-in URL. Renaming changes the name you address the source by — in-flight migrations are unaffected.
+---
+
+```http
+PATCH https://app.vern.so/api/v1/sources/{source}
+```
+
+Partial update of a source: send `name` and/or `auth_url` — omitted fields keep
+their stored value. Source **knowledge** is managed separately at
+[`/sources/{source}/knowledge`](/migration-api/knowledge).
+
+`{source}` is the source **name** (URL-encode it if it contains spaces).
+
+<Warning>
+  Sources are addressed by name everywhere in this API, so **renaming a source
+  changes its address**: every subsequent call must use the new name. In-flight
+  migrations are unaffected — runs bind to the source itself at creation, not
+  its name.
+</Warning>
+
+## Authentication
+
+Requires an `x-api-key` header. See [Authentication](/migration-api/authentication).
+
+## Request body
+
+At least one field is required.
+
+<ParamField body="name" type="string">
+  New display name. Becomes the name you address this source by. A rename that
+  exactly matches another source's name is refused with `409` — two sources
+  sharing a name would make both unaddressable.
+</ParamField>
+
+<ParamField body="auth_url" type="string">
+  The source system's sign-in / portal URL.
+</ParamField>
+
+## Response
+
+`200 OK`
+
+```json
+{
+  "source": {
+    "name": "Salesforce (AU)",
+    "logo_url": null,
+    "auth_url": "https://login.salesforce.com"
+  }
+}
+```
+
+## Errors
+
+| Status | Meaning |
+|---|---|
+| `400` | Malformed body, empty body, or a blank `name`/`auth_url`. |
+| `401` | API key missing or invalid. |
+| `404` | The source name isn't in your account. |
+| `409` | The source name is ambiguous (two sources share it — rename one), or the new name is already used by another source. |
+| `429` | Rate limit hit — back off and retry. |
+| `500` | Server error. |
+
+## Example
+
+```bash
+# Rename a source — address it by the NEW name from here on
+curl -X PATCH https://app.vern.so/api/v1/sources/Salesforce \
+  -H "x-api-key: $VERN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "name": "Salesforce (AU)" }'
+
+# Update only the sign-in URL
+curl -X PATCH "https://app.vern.so/api/v1/sources/Salesforce%20(AU)" \
+  -H "x-api-key: $VERN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "auth_url": "https://login.salesforce.com" }'
+```
+
+## Next
+
+- [List sources](/migration-api/list-sources) — see your sources and their names.
+- [Knowledge](/migration-api/knowledge) — read and write a source's knowledge document.
