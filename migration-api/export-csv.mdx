@@ -1,13 +1,13 @@
 ---
 title: Export CSV
-description: Get a migration's validated data out as a clean CSV — addressed by template slug, downloaded or streamed straight into your own storage bucket.
+description: Get a migration's data out as a clean CSV — addressed by template slug, downloaded or streamed straight into your own storage bucket, with optional column selection.
 ---
 
 ```http
 GET https://app.vern.so/api/v1/migrations/{migration_id}/exports/{template_slug}.csv
 ```
 
-Streams one sheet's **validated data** as a CSV, addressed by **template slug**.
+Streams one sheet's data as a CSV, addressed by **template slug**.
 This is synchronous — there's no run to poll. Columns come out in template order,
 RFC 4180-escaped, and the body is streamed (gzip-compressed when your client
 sends `Accept-Encoding: gzip`).
@@ -26,51 +26,70 @@ Requires an `x-api-key` header. See [Authentication](/migration-api/authenticati
   `contacts.csv`. [List your templates](/migration-api/list-templates) for slugs.
 </ParamField>
 
-<ParamField query="filter" type="string" default="valid">
-  Which rows to include:
+<ParamField query="fields" type="string">
+  Comma-separated column names to return, in the order you give them. Omit to
+  return every column.
 
-  - **`valid`** (default) — only fully clean rows. Any row with even one cell that
-    failed validation is **excluded entirely**, so the count can be lower than the
-    sheet's total.
-  - **`all`** — every row, including those with invalid cells.
-  - **`invalid`** — only the flagged rows (those with at least one invalid cell) —
-    useful for surfacing what needs fixing.
+  Names are matched **exactly** and are case-sensitive — they're the same names
+  that appear as CSV headers. An unrecognised name returns `400`
+  (`unknown_field`) listing the valid ones, rather than being ignored: a typo
+  should not quietly leave data out of your export.
+
+  ```
+  ?fields=Email,Company%20Name
+  ```
+</ParamField>
+
+<ParamField query="omit_empty" type="boolean" default="false">
+  Drop columns that hold no data.
+
+  A column is dropped only when it's empty in **every** row, so the rows you get
+  back all keep the same shape and the header still describes every one of them.
+  Empty means an empty string, `null`, or an absent value — whitespace counts as
+  data. Combine with `fields` and the pruning applies within your selection.
+
+  This is answered from the completed import's stored per-column coverage, so it
+  reflects the **whole sheet**, not just some sample. If that coverage isn't
+  available — an older import, or one where profiling didn't run — the request
+  returns `409` (`coverage_unavailable`) rather than quietly handing you every
+  column and letting you believe it was pruned.
 </ParamField>
 
 ## Response
 
 `200 OK` with `Content-Type: text/csv; charset=utf-8` and a `Content-Disposition`
-attachment header. The body is streamed. An `X-Total-Records` header reports how
-many records match the filter. When the request advertises gzip, the response is
+attachment header. The body is streamed. An `X-Total-Records` header reports the
+sheet's total row count. When the request advertises gzip, the response is
 gzip-encoded (`Content-Encoding: gzip`).
 
 ## Errors
 
 | Status | Meaning |
 |---|---|
-| `400` | The path doesn't end in `.csv`, or `filter` isn't one of `valid` / `all` / `invalid`. |
+| `400` | The path doesn't end in `.csv`, or `fields` names a column this template doesn't have. |
 | `401` | API key missing or invalid. |
 | `404` | No template with that slug, no sheet for it in this migration, or the migration isn't in your account. |
+| `409` | The sheet uses compressed storage (use the [async export](/migration-api/export-jobs)); or `omit_empty` was asked for and this import has no per-column coverage; or every selected column turned out to be empty. |
 | `429` | Rate limit hit — back off and retry. |
 | `500` | Server error. |
 
 ## Example
 
 ```bash
-# valid rows only (default)
+# every column (default)
 curl "https://app.vern.so/api/v1/migrations/c0a8012e-.../exports/contacts.csv" \
   -H "x-api-key: $VERN_API_KEY" \
-  -o contacts-clean.csv
+  -o contacts.csv
 
-# include rows with invalid cells
-curl "https://app.vern.so/api/v1/migrations/c0a8012e-.../exports/contacts.csv?filter=all" \
+# just the columns you need, in your order
+curl "https://app.vern.so/api/v1/migrations/c0a8012e-.../exports/contacts.csv?fields=Email,First%20Name" \
   -H "x-api-key: $VERN_API_KEY" \
-  -o contacts-all.csv
+  -o contacts-slim.csv
 
-# only the flagged rows
-curl "https://app.vern.so/api/v1/migrations/c0a8012e-.../exports/contacts.csv?filter=invalid" \
+# skip the columns this import never populated
+curl "https://app.vern.so/api/v1/migrations/c0a8012e-.../exports/contacts.csv?omit_empty=true" \
   -H "x-api-key: $VERN_API_KEY" \
-  -o contacts-flagged.csv
+  -o contacts-populated.csv
 ```
 
 ## Into your own storage
