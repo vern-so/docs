@@ -36,6 +36,26 @@ POST https://app.vern.so/api/v1/migrations/{migration_id}/exports
   fields are sent.
 </ParamField>
 
+<ParamField body="fields" type="string[]">
+  Column names to export, in the order you give them. Omit to export every
+  column. Matched exactly and case-sensitive; an unrecognised name returns
+  `400` rather than being ignored, so a typo can't quietly leave data out.
+
+  Applied to each sheet in the job, so a name must exist on every template you
+  asked for.
+</ParamField>
+
+<ParamField body="omit_empty" type="boolean" default="false">
+  Drop columns that hold no data. A column is dropped only when it's empty in
+  **every** row, so each CSV keeps a consistent shape. Empty means an empty
+  string, `null`, or an absent value; whitespace counts as data.
+
+  Answered from the completed import's stored per-column coverage, so it
+  reflects the whole sheet. If that coverage isn't available — an older import,
+  or one where profiling didn't run — the request returns `409`
+  (`coverage_unavailable`) rather than quietly exporting every column.
+</ParamField>
+
 `202 Accepted`:
 
 ```json

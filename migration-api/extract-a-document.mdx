@@ -150,6 +150,29 @@ GET https://app.vern.so/api/v1/extractions/{extraction_id}
   Why it failed. Present when `status` is `failed` or `expired`.
 </ResponseField>
 
+## Choosing columns
+
+Two optional parameters shape which columns come back. Both default off, so
+leaving them out returns exactly what it always has.
+
+<ParamField query="fields" type="string">
+  Comma-separated column names to return, in the order you give them. Matched
+  exactly and case-sensitive. An unrecognised name returns `400`
+  (`unknown_field`) listing the valid ones rather than being ignored — a typo
+  should not quietly leave data out.
+</ParamField>
+
+<ParamField query="omit_empty" type="boolean" default="false">
+  Drop columns that hold no data. A column is dropped only when it's empty in
+  **every** row, so the rows you get back all keep the same shape. Empty means
+  an empty string, `null`, or an absent value; whitespace counts as data.
+  Combine with `fields` and the pruning applies within your selection.
+</ParamField>
+
+Applied per table: an extraction can return several tables with different
+headers, so a field simply doesn't appear in a table that never had it. "Empty"
+is judged from the returned rows, which are the whole payload.
+
 ## Choosing templates
 
 The templates you name shape the extraction. Vern uses their columns — including

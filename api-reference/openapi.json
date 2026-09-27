@@ -606,6 +606,10 @@
     "/migrations/{migration_id}/preview": {
       "parameters": [ { "$ref": "#/components/parameters/MigrationId" } ],
       "get": {
+        "parameters": [
+          { "$ref": "#/components/parameters/Fields" },
+          { "$ref": "#/components/parameters/OmitEmpty" }
+        ],
         "operationId": "getPreview",
         "summary": "Get the preview",
         "description": "The latest generated preview — the proposed output, sheet-per-template. 404 until a generate/update run has produced one.",
@@ -689,11 +693,12 @@
       "get": {
         "operationId": "exportCsv",
         "summary": "Export a sheet as CSV",
-        "description": "Stream one sheet's validated data as a CSV, addressed by `{template_slug}.csv`. The body is streamed (gzip-compressed when the request advertises it) and an `X-Total-Records` header reports the matching count.",
+        "description": "Stream one sheet's data as a CSV, addressed by `{template_slug}.csv`. Every row is included. The body is streamed (gzip-compressed when the request advertises it) and an `X-Total-Records` header reports the total count.",
         "tags": ["Export"],
         "parameters": [
           { "name": "file", "in": "path", "required": true, "description": "The template slug with a .csv suffix, e.g. contacts.csv.", "schema": { "type": "string" }, "example": "contacts.csv" },
-          { "name": "filter", "in": "query", "required": false, "description": "Which rows to include.", "schema": { "type": "string", "enum": ["valid", "all", "invalid"], "default": "valid" } }
+          { "$ref": "#/components/parameters/Fields" },
+          { "$ref": "#/components/parameters/OmitEmpty" }
         ],
         "responses": {
           "200": {
@@ -826,7 +831,12 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "properties": {"slug":{"type":"string"},"slugs":{"type":"array","items":{"type":"string"}}},
+                "properties": {
+                  "slug":{"type":"string"},
+                  "slugs":{"type":"array","items":{"type":"string"}},
+                  "fields":{"type":"array","items":{"type":"string"},"description":"Column names to export, in the order given. Omit to export every column. Matched exactly and case-sensitively; an unrecognised name returns `400` rather than being ignored.","example":["Email","Company Name"]},
+                  "omit_empty":{"type":"boolean","default":false,"description":"Drop columns with no data in any row, using the completed import's stored per-column coverage. Returns `409` (`coverage_unavailable`) when that coverage does not exist, rather than quietly exporting every column."}
+                },
                 "description": "Provide `slug` or `slugs`; `slugs` wins if both are sent."
               }
             }
@@ -1082,6 +1092,10 @@
     "/extractions/{extraction_id}": {
       "parameters": [{"$ref":"#/components/parameters/ExtractionId"}],
       "get": {
+        "parameters": [
+          { "$ref": "#/components/parameters/Fields" },
+          { "$ref": "#/components/parameters/OmitEmpty" }
+        ],
         "tags": ["Extractions"],
         "summary": "Poll an extraction and read its rows",
         "operationId": "getExtraction",
@@ -1156,6 +1170,21 @@
         "required": true,
         "schema": {"type":"string","format":"uuid"},
         "description": "The id returned by `POST /extractions`."
+      },
+      "Fields": {
+        "name": "fields",
+        "in": "query",
+        "required": false,
+        "schema": {"type":"string"},
+        "description": "Comma-separated column names to return, in the order given. Omit to return every column. Names are matched exactly and are case-sensitive \u2014 they are the same names used as CSV headers. An unrecognised name returns `400` (`unknown_field`) rather than being ignored, so a typo cannot silently leave data out of the response.",
+        "example": "Email,Company Name"
+      },
+      "OmitEmpty": {
+        "name": "omit_empty",
+        "in": "query",
+        "required": false,
+        "schema": {"type":"boolean","default":false},
+        "description": "Drop columns that hold no data. A column is dropped only when it is empty in **every** row, so the rows you get back all keep the same shape. Empty means an empty string, `null`, or an absent value; whitespace counts as data. Combine with `fields` and the pruning applies within your selection.\n\nHow \"empty\" is decided depends on the endpoint. For exports it is read from the completed import's stored per-column coverage, so it reflects the **whole sheet** and stays stable across downloads; if that coverage is unavailable the request returns `409` (`coverage_unavailable`) rather than quietly returning every column. For the preview and extraction endpoints the returned rows are the entire payload, so emptiness is decided from them directly."
       }
     },
     "responses": {
