@@ -111,7 +111,7 @@ generate ──▶ awaiting_approval ──▶ execute ──▶ completed
 | `401` | API key missing or invalid. |
 | `404` | No migration with that `{migration_id}` in your account. |
 | `409` | A run is already in progress (the body includes the active `run_id`); the migration has no target templates; `update`/`clarify`/`execute` with no current preview to act on; the approved preview is no longer resumable (generate a fresh one). |
-| `429` | Rate limit hit — back off and retry. |
+| `429` | **`kind: "generate"` is limited to 1 per hour** per account, and an account may have at most **3 runs in progress**. The concurrency refusal carries `code: "run_concurrency_limit"` and the blocking runs. See [Errors & limits](/migration-api/errors#concurrent-runs). |
 | `500` | Server error. |
 
 A `409` from an in-flight run is how you **recover a run** you lost track of — the

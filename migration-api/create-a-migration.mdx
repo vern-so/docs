@@ -96,7 +96,7 @@ and can address every migration in it. See [Authentication](/migration-api/authe
 | `401` | API key missing or invalid, or the request used a session token instead of an API key. |
 | `404` | The named `source` isn't a source in your account. |
 | `409` | `external_id` already used by another migration, the source name is ambiguous (two sources share it), or your account's region isn't live yet. |
-| `429` | Rate limit hit — back off and retry. |
+| `429` | **Limited to 1 migration per hour** per account. Check `Retry-After`. See [Rate limits](/migration-api/errors#rate-limits). |
 | `500` | Server error. |
 
 See [Errors & limits](/migration-api/errors) for the shared error model.

@@ -380,7 +380,7 @@
             "description": "A run is already in progress (the body carries the active run_id), there is no preview to act on / execute, or the approved preview is no longer resumable (generate a fresh one).",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" }, "example": { "error": "A run is already in progress for this migration.", "run_id": "d4c3b2a1-9f8e-47d6-b5a4-c3d2e1f0a9b8" } } }
           },
-          "429": { "$ref": "#/components/responses/RateLimited" }
+          "429": { "$ref": "#/components/responses/RunStartLimited" }
         }
       }
     },
@@ -1192,7 +1192,9 @@
       "Unauthorized": { "description": "API key missing, malformed, or revoked.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
       "NotFound": { "description": "The referenced resource isn't in your account.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
       "Conflict": { "description": "A uniqueness or state conflict.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-      "RateLimited": { "description": "Rate limit hit — back off and retry.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" }, "example": { "error": "Too many requests" } } } },
+      "RateLimited": { "description": "Rate limit hit. Counted per account, not per API key. Creating a migration and starting a `generate` run are limited to 1/hour each; answering a run is limited to 5/hour; other endpoints allow 60/minute. `Retry-After` gives the seconds until the window resets, alongside `X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-Reset`.", "headers": { "Retry-After": { "description": "Seconds until the rate-limit window resets.", "schema": { "type": "integer" } }, "X-RateLimit-Limit": { "description": "Requests allowed in the current window.", "schema": { "type": "integer" } }, "X-RateLimit-Remaining": { "description": "Requests remaining in the current window.", "schema": { "type": "integer" } }, "X-RateLimit-Reset": { "description": "Unix time (seconds) when the window resets.", "schema": { "type": "integer" } } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" }, "example": { "error": "Too many requests" } } } },
+      "RunStartLimited": { "description": "Either the hourly rate limit on `kind: \"generate\"` (1/hour per account) or the concurrent-run limit (3 in progress). The concurrency refusal is identifiable by `code: \"run_concurrency_limit\"` and lists the blocking runs; a plain rate limit carries only `error` plus `Retry-After`.", "content": { "application/json": { "schema": { "oneOf": [ { "$ref": "#/components/schemas/Error" }, { "$ref": "#/components/schemas/RunConcurrencyError" } ] } } } },
+      "RunConcurrencyLimited": { "description": "The account already has the maximum number of runs in progress (3), counting runs that are `queued`, `running` or `blocked`. Runs in `awaiting_approval` wait on you and do not count. Wait for one to finish or cancel one, then retry.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RunConcurrencyError" }, "example": { "error": "You already have 3 imports running, which is the limit. Wait for one to finish, or stop one to start another.", "code": "run_concurrency_limit", "limit": 3, "runs": [ { "id": "run_01JD...", "status": "running", "updatedAt": "2026-10-01T09:14:22.000Z", "runKind": "generate" } ] } } } },
       "MigrationNotFound": {
         "description": "No migration with this id in your organisation. Returned rather than `403` so the existence of another organisation's migration is not disclosed.",
         "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}
@@ -1240,6 +1242,30 @@
         "type": "object",
         "properties": { "error": { "type": "string", "description": "A human-readable error message." } },
         "required": ["error"]
+      },
+      "RunConcurrencyError": {
+        "type": "object",
+        "description": "A `429` from the concurrent-run limit. Distinguished from a plain rate limit by the `code` field.",
+        "properties": {
+          "error": { "type": "string", "description": "A human-readable error message." },
+          "code": { "type": "string", "enum": ["run_concurrency_limit"], "description": "Machine-readable discriminator." },
+          "limit": { "type": "integer", "description": "The maximum number of runs allowed in progress at once." },
+          "runs": {
+            "type": "array",
+            "description": "The runs currently holding capacity. Cancel or wait for one of these.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string" },
+                "status": { "type": "string", "description": "One of `queued`, `running`, `blocked`." },
+                "updatedAt": { "type": ["string","null"], "format": "date-time" },
+                "runKind": { "type": ["string","null"] }
+              },
+              "required": ["id","status"]
+            }
+          }
+        },
+        "required": ["error","code","runs"]
       },
       "Source": {
         "type": "object",

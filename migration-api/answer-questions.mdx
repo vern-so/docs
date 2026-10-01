@@ -134,7 +134,7 @@ status.
 | `401` | API key missing or invalid. |
 | `404` | No such run, or the migration isn't in your account. |
 | `409` | The run isn't `blocked` (already resumed, or never paused), the run is blocked for **credentials** (use [Submit credentials](/migration-api/submit-credentials)), or the agent has no active question to answer yet — retry shortly. |
-| `429` | Rate limit hit — back off and retry. |
+| `429` | **Limited to 5 messages per hour** per account — each one is a full agent turn. Check `Retry-After`. See [Rate limits](/migration-api/errors#rate-limits). |
 | `500` | Server error. |
 
 ## Example
