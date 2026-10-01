@@ -123,8 +123,9 @@ The base URL is `https://app.vern.so/api/v1`.
   </Step>
 
   <Step title="Poll until the run is awaiting approval">
-    Poll the run every couple of seconds until `status` is terminal for this
-    phase — for a `generate` run that's `awaiting_approval`.
+    Poll the run every ~10 seconds until `status` is terminal for this
+    phase — for a `generate` run that's `awaiting_approval`. For live progress
+    use the [thread stream](/migration-api/stream-the-thread) instead.
 
     ```bash
     curl $POLL_URL -H "x-api-key: $VERN_API_KEY"

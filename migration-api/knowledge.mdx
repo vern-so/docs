@@ -119,7 +119,7 @@ A `409` means a run is holding the document while it writes — retry shortly.
 | `404` | No such source, or no migration with that id in your account. |
 | `409` | (source) The name matches more than one source, or a run currently holds the document. |
 | `412` | `if_unmodified_since` didn't match — someone else wrote first. Re-read and merge. |
-| `429` | Rate limit hit — back off and retry. |
+| `429` | **10 requests per minute** per account (the Writes class). Check `Retry-After`. See [Rate limits](/migration-api/errors#rate-limits). |
 | `500` | Server error. |
 
 ## Naming a source

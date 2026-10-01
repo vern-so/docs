@@ -8,9 +8,15 @@ GET   https://app.vern.so/api/v1/migrations/{migration_id}/runs/{run_id}
 PATCH https://app.vern.so/api/v1/migrations/{migration_id}/runs/{run_id}
 ```
 
-Reads the state of a [run](/migration-api/concepts#runs). Poll it on an interval
-(≈2s, backing off) until `status` is terminal for its phase. For live progress,
-prefer the [thread stream](/migration-api/stream-the-thread).
+Reads the state of a [run](/migration-api/concepts#runs).
+
+For live progress, use the [thread stream](/migration-api/stream-the-thread) —
+it pushes events as they happen and doesn't consume your read budget per update.
+Polling is for checking whether a run has settled: poll on an interval of **≈10
+seconds**, backing off, until `status` is terminal for its phase.
+
+Polling faster than that will exhaust your [read limit](/migration-api/errors#rate-limits)
+without telling you anything sooner — runs take minutes, not seconds.
 
 ## Authentication
 
@@ -196,7 +202,7 @@ curl -X PATCH https://app.vern.so/api/v1/migrations/c0a8012e-.../runs/d4c3b2a1-.
 | `400` | (PATCH) body isn't `{ "status": "cancel_requested" }`. |
 | `401` | API key missing or invalid. |
 | `404` | No such run, or the migration isn't in your account. |
-| `429` | Rate limit hit — back off and retry. |
+| `429` | **30 requests per minute** per account (the Reads class). Check `Retry-After`. See [Rate limits](/migration-api/errors#rate-limits). |
 | `500` | Server error. |
 
 ## Example

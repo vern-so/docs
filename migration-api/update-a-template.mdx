@@ -70,7 +70,7 @@ At least one field is required.
 | `401` | API key missing or invalid. |
 | `404` | No active template with that slug (archived templates can't be edited through the API). |
 | `409` | A migration that uses this template is currently running — retry after it settles. |
-| `429` | Rate limit hit — back off and retry. |
+| `429` | **10 requests per minute** per account (the Writes class). Check `Retry-After`. See [Rate limits](/migration-api/errors#rate-limits). |
 | `500` | Server error. |
 
 ## Example

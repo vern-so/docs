@@ -122,7 +122,7 @@ GET https://app.vern.so/api/v1/migrations/{migration_id}/exports/jobs/{job_id}
 | `401` | API key missing or invalid. |
 | `404` | No migration with that id in your account, or no such job. |
 | `409` | An export for this migration is already running. |
-| `429` | Rate limit hit — back off and retry. |
+| `429` | **5 requests per hour** per account (the Jobs class). Check `Retry-After`. See [Rate limits](/migration-api/errors#rate-limits). |
 | `500` | Server error. |
 | `502` | The export worker could not be reached. |
 

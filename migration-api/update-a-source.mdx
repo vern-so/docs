@@ -60,7 +60,7 @@ At least one field is required.
 | `401` | API key missing or invalid. |
 | `404` | The source name isn't in your account. |
 | `409` | The source name is ambiguous (two sources share it — rename one), or the new name is already used by another source. |
-| `429` | Rate limit hit — back off and retry. |
+| `429` | **10 requests per minute** per account (the Writes class). Check `Retry-After`. See [Rate limits](/migration-api/errors#rate-limits). |
 | `500` | Server error. |
 
 ## Example

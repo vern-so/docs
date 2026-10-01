@@ -62,7 +62,7 @@ Requires an `x-api-key` header. See [Authentication](/migration-api/authenticati
 | Status | Meaning |
 |---|---|
 | `401` | API key missing or invalid. |
-| `429` | Rate limit hit — back off and retry. |
+| `429` | **30 requests per minute** per account (the Reads class). Check `Retry-After`. See [Rate limits](/migration-api/errors#rate-limits). |
 | `500` | Server error. |
 
 ## Example

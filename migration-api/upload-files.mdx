@@ -29,9 +29,13 @@ POST https://app.vern.so/api/v1/migrations/{migration_id}/files
 Request one entry per file, declaring its name (and, ideally, content type):
 
 <ParamField body="files" type="object[]" required>
-  A non-empty array of files to upload. Each entry is
+  A non-empty array of files to upload, **at most 25 per request**. Each entry is
   `{ "name": "contacts.csv", "content_type": "text/csv" }`. `name` is required;
   `content_type` is optional but recommended.
+
+  For more than 25, call this repeatedly — a migration may hold up to 400 files,
+  of which at most 5 may be PDF or Word documents. See
+  [File limits](/migration-api/errors#file-limits).
 </ParamField>
 
 ```bash
@@ -116,10 +120,10 @@ landed before generating.
 
 | Status | Meaning |
 |---|---|
-| `400` | `files` missing or empty, or an entry is missing `name`. |
+| `400` | `files` missing or empty, an entry is missing `name`, an unsupported file type, more than 25 entries, or the migration would exceed 400 files / 5 documents. See [File limits](/migration-api/errors#file-limits). |
 | `401` | API key missing or invalid. |
 | `404` | No migration with that `{migration_id}` in your account. |
-| `429` | Rate limit hit — back off and retry. |
+| `429` | **Limited to 10 requests per minute** per account (the Writes class). Check `Retry-After`. See [Rate limits](/migration-api/errors#rate-limits). |
 | `500` | Server error (including a failure to mint the signed URL). |
 
 ## Next

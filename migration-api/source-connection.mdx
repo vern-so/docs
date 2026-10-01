@@ -168,7 +168,7 @@ Deletes the connection (and its stored secrets). Accepts the same optional
 | `400` | (POST) `source_key` missing, unknown, or not enabled for your account; malformed JSON. |
 | `401` | API key missing or invalid. |
 | `404` | (GET) no connection configured for the migration; the migration isn't in your account. |
-| `429` | Rate limit hit — back off and retry. |
+| `429` | **10 requests per minute** per account (the Writes class). Check `Retry-After`. See [Rate limits](/migration-api/errors#rate-limits). |
 | `500` | Server error. |
 
 ## Example

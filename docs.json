@@ -117,12 +117,6 @@
                 "pages": [
                   "migration-api/session-log"
                 ]
-              },
-              {
-                "group": "Documents",
-                "pages": [
-                  "migration-api/extract-a-document"
-                ]
               }
             ]
           },
@@ -194,14 +188,6 @@
               "GET /migrations/{migration_id}/exports/{file}",
               "POST /migrations/{migration_id}/exports",
               "GET /migrations/{migration_id}/exports/jobs/{job_id}"
-            ]
-          },
-          {
-            "group": "Documents",
-            "openapi": "api-reference/openapi.json",
-            "pages": [
-              "POST /extractions",
-              "GET /extractions/{extraction_id}"
             ]
           }
         ]

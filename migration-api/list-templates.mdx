@@ -136,7 +136,7 @@ that slug.
 |---|---|
 | `401` | API key missing or invalid. |
 | `404` | (single fetch) No active template with that slug. |
-| `429` | Rate limit hit — back off and retry. |
+| `429` | **30 requests per minute** per account (the Reads class). Check `Retry-After`. See [Rate limits](/migration-api/errors#rate-limits). |
 | `500` | Server error. |
 
 ## Example

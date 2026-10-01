@@ -70,7 +70,7 @@ gzip-encoded (`Content-Encoding: gzip`).
 | `401` | API key missing or invalid. |
 | `404` | No template with that slug, no sheet for it in this migration, or the migration isn't in your account. |
 | `409` | The sheet uses compressed storage (use the [async export](/migration-api/export-jobs)); or `omit_empty` was asked for and this import has no per-column coverage; or every selected column turned out to be empty. |
-| `429` | Rate limit hit — back off and retry. |
+| `429` | **30 requests per minute** per account (the Reads class). Check `Retry-After`. See [Rate limits](/migration-api/errors#rate-limits). |
 | `500` | Server error. |
 
 ## Example

@@ -193,7 +193,7 @@ curl "https://app.vern.so/api/v1/migrations/c0a8012e-.../log?format=md" \
 | `401` | API key missing or invalid. |
 | `404` | No migration with that id in your account. |
 | `409` | Still in progress. Body carries `status` and `retry_after_seconds`. |
-| `429` | Rate limit hit — back off and retry. |
+| `429` | **30 requests per minute** per account (the Reads class). Check `Retry-After`. See [Rate limits](/migration-api/errors#rate-limits). |
 | `500` | Server error. |
 | `503` | The migration's data region is unavailable. |
 

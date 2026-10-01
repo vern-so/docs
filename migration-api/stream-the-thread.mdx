@@ -125,7 +125,7 @@ curl -N "https://app.vern.so/api/v1/migrations/c0a8012e-.../thread/stream?includ
 |---|---|
 | `401` | API key missing or invalid. |
 | `404` | The migration isn't in your account. |
-| `429` | Rate limit hit — back off and retry. |
+| `429` | **30 requests per minute** per account (the Reads class). Check `Retry-After`. See [Rate limits](/migration-api/errors#rate-limits). |
 | `500` | Server error. |
 
 ## Next

@@ -12,11 +12,11 @@ one rate limit.
 |---|---|
 | `400` | Malformed request — a required field is missing or a value is invalid (e.g. an unknown template slug, a bad `external_id`, an invalid run `kind`). |
 | `401` | API key missing, malformed, or revoked. |
+| `403` | The account has no active plan. Only on endpoints that create work — see [Plans](#plans). |
 | `404` | The referenced migration, run, source, or template isn't in your account. |
 | `409` | A conflict — a reused `external_id`, an ambiguous source name, a run already in progress, or a state precondition (e.g. asking for the [session log](/migration-api/session-log) before the migration settles). |
-| `410` | The resource expired and its data was deleted — an [extraction](/migration-api/extract-a-document) or [export job](/migration-api/export-jobs) past its retention window. Start a new one. |
+| `410` | The resource expired and its data was deleted — an [export job](/migration-api/export-jobs) past its retention window. Start a new one. |
 | `412` | A guarded write lost a race. Only from [knowledge](/migration-api/knowledge) writes sent with `if_unmodified_since` — re-read, merge, and write again. |
-| `413` | The uploaded file is too large. [Extraction](/migration-api/extract-a-document) caps a single document at 100 MB. |
 | `429` | A [rate limit](#rate-limits) or the [concurrent-run limit](#concurrent-runs). Check `Retry-After`. |
 | `500` | Server error — safe to retry idempotent requests. |
 | `502` | An upstream worker couldn't be reached — document parsing or the export executor. Retry. |
@@ -47,21 +47,40 @@ Limits are counted **per account**, not per API key or per IP — keys belonging
 the same account share one budget, and using a key from several machines doesn't
 multiply it.
 
-Three actions are capped per hour, because each one commits real work:
+Each endpoint belongs to one of four classes, sized to what it costs us to
+serve:
+
+| Class | Limit | Endpoints |
+|---|---|---|
+| **Reads** | 30 / minute | Polling a run, the preview, the session log, the thread, listing files, export job status and downloads, listing and reading sources and templates |
+| **Writes** | 10 / minute | Knowledge, pinning a source, source connections, editing a template or source, [requesting upload URLs](/migration-api/upload-files) |
+| **Jobs** | 5 / hour | [Starting an export](/migration-api/export-jobs) |
+| **Agent** | 5 / hour | [Starting a run](/migration-api/start-a-run), [answering questions](/migration-api/answer-questions), [submitting credentials](/migration-api/submit-credentials) |
+
+Two actions are capped more tightly still, because each one provisions something
+new:
 
 | Action | Limit |
 |---|---|
 | [`POST /migrations`](/migration-api/create-a-migration) | **1 per hour** |
 | [`POST /migrations/{id}/runs`](/migration-api/start-a-run) with `kind: "generate"` | **1 per hour** |
-| [`POST /migrations/{id}/runs/{run_id}/messages`](/migration-api/answer-questions) | **5 per hour** |
 
-Starting a run with `kind` of `update`, `clarify` or `execute` is **not** capped
-per hour — those continue a run you've already started rather than beginning new
-work.
+Starting a run with `kind` of `update`, `clarify` or `execute` is not capped at
+one per hour — those continue a run you've already started rather than beginning
+new work — but they do count against the **Agent** class above.
 
-Everything else — polling, reads, listing sources and templates — allows **60
-requests per minute** per account, with an additional per-IP ceiling to absorb
-bursts before authentication.
+<Note>
+The read budget assumes the documented polling cadence of
+[~10 seconds](/migration-api/poll-a-run) across up to
+[3 concurrent runs](#concurrent-runs), which is 18 requests per minute, leaving
+room for previews and logs. If you poll faster you will hit the limit without
+learning anything sooner — use the
+[thread stream](/migration-api/stream-the-thread) for live progress instead.
+</Note>
+
+There is an additional per-IP ceiling that absorbs bursts before authentication.
+It is deliberately not published: it sits well above these per-account limits and
+you will not meet it through normal use.
 
 Over any limit you get a `429`:
 
@@ -79,7 +98,9 @@ Over any limit you get a `429`:
 | `X-RateLimit-Reset` | Unix timestamp (seconds) when the window resets. |
 
 Space your run polling out so a fleet of concurrent migrations doesn't burn the
-read budget on status checks.
+read budget on status checks — or switch to the
+[thread stream](/migration-api/stream-the-thread), which doesn't spend a read per
+update.
 
 ## Concurrent runs
 
@@ -105,6 +126,43 @@ Exceeding it returns `429` with a machine-readable code and the runs responsible
 ```
 
 Wait for one to finish, or cancel one, then retry.
+
+## File limits
+
+A migration run is bounded by how many files it consumes, not by how many you
+upload over its lifetime:
+
+| Limit | Value |
+|---|---|
+| PDF and Word files per run | **5** |
+| Files of any kind per run | **400** |
+| Files per upload request | **25** |
+
+Only **PDF and Word** documents count toward the first limit — they go through
+document parsing, which is the expensive path. Spreadsheets and CSVs
+(`.xlsx`, `.xls`, `.csv`) do not count toward it, only toward the 400.
+
+The per-request limit applies to a single
+[`POST /migrations/{id}/files`](/migration-api/upload-files) call. It is not a
+ceiling on the migration — request URLs in batches of 25 and upload as many
+times as you need, up to the 400 total.
+
+Over any of these you get a `400` naming which limit was hit and what the run
+would have totalled.
+
+## Plans
+
+The endpoints that create work — [`POST /migrations`](/migration-api/create-a-migration),
+[starting a run](/migration-api/start-a-run) and
+[starting an export](/migration-api/export-jobs) — require an active
+subscription, and return `403` without one:
+
+```json
+{ "error": "Your plan does not include data imports. Upgrade your plan to import data." }
+```
+
+Reads are unaffected, so an account between plans can still retrieve what it
+already has.
 
 ## Idempotency
 
