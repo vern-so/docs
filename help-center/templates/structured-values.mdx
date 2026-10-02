@@ -1,0 +1,109 @@
+---
+title: Structured values
+description: Hold a list, a record, or a list of records in one column — and have it validated.
+---
+
+Most columns hold one value. Some don't: an address is a set of named fields, a
+contact has several phone numbers each with a type, an invoice has line items.
+Declaring that shape on the column means Vern validates it, instead of treating
+the cell as an opaque blob of text.
+
+## Declare the shape
+
+Open the column in [Templates](https://app.vern.so/templates) and look for **Each
+cell holds**. Four choices:
+
+| Choice | The cell contains |
+|---|---|
+| **A single value** | text, a number, a date — the default |
+| **A list of values** | several tags, several codes |
+| **A record** | named fields, one set |
+| **A list of records** | named fields, repeated |
+
+For a record or a list of records, add the **Fields** underneath. Each field has:
+
+- a **name**,
+- a **type** — Text, Number, Whole number, or Yes / no,
+- a **Required** toggle,
+- optional **allowed values**, entered comma-separated. Supplying them means the
+  field accepts nothing else, which is how you pin an enum like
+  `mobile, home, work`.
+
+**Clear the shape** removes the declaration and the column goes back to holding
+one plain value.
+
+<Note>
+  Field-level **Required** is not the same as the column's Required checkbox. The
+  column checkbox asks whether the *cell* has a value at all; a field's toggle
+  asks whether a record that is present must carry that field.
+</Note>
+
+A record with **no** fields declared accepts anything. That's a useful escape
+hatch for "this holds an object and I don't want to pin it down yet", but it
+validates nothing.
+
+## How a structured cell is stored
+
+The cell holds JSON. A list of records looks like this:
+
+```json
+[
+  { "type": "mobile", "number": "0412 345 678" },
+  { "type": "work", "number": "03 9000 1000" }
+]
+```
+
+The import agent writes this shape, and the grid reads it. Validation checks the
+JSON against the declared shape: a cell whose contents can't be parsed, or whose
+fields don't match, is flagged like any other invalid cell.
+
+## The raw JSON Schema editor
+
+**Schema Structure** appears underneath once a column already has a shape. It is
+the full JSON Schema behind what the visual editor shows, and it is the escape
+hatch for anything the four choices above can't express:
+
+- nesting deeper than a record inside a list,
+- a non-text value at the top level — the visual editor's **A single value** and
+  **A list of values** both mean text, so a bare list of numbers is authored here,
+- length bounds (`minLength`, `maxLength`), numeric ranges, `format`,
+- `minItems` / `maxItems` on a list,
+- `additionalProperties: false` to close a record to exactly its declared fields,
+- unions and conditionals.
+
+Two guarantees worth relying on:
+
+- **The visual editor never rewrites your JSON.** Opening a column and saving
+  with no changes writes back byte-identical schema. Anything the editor doesn't
+  model it leaves alone — you'll see *"This column uses a custom shape. Edit it
+  as JSON below"* rather than a simplified version of what you wrote.
+- **A broken schema is refused at save time**, with the path to the problem —
+  `Column "Phones": contacts.number: "text" is not a JSON type`. It is never
+  stored in a state where it silently validates nothing.
+
+## Shape and pattern together
+
+A column can carry both a **Strict** pattern and a schema. When it does, **the
+schema wins** — it is what gets checked, and the pattern is ignored unless the
+schema itself contains one. Put the pattern inside the schema — a
+`"pattern"` keyword on the relevant field — rather than relying on both.
+
+Shape checking also runs regardless of what the **Validation Rule** dropdown
+says. A column whose rule is **None** but which carries a schema is still
+validated against it.
+
+## Referencing other templates from inside a structured value
+
+When the thing that has to exist in another template is a *field* of a record
+rather than the whole cell, say so with a reference path — one link rule covers
+both cases:
+
+<Card title="Link columns" icon="link" href="/help-center/templates/link-columns#references-inside-a-structured-value">
+  Pointing a link rule at a field inside the cell.
+</Card>
+
+## Next
+
+- [Column options](/help-center/templates/columns) — the rest of the per-column settings.
+- [Link columns](/help-center/templates/link-columns) — references between templates.
+- [Generate templates](/help-center/get-started/generate-templates) — have an AI draft shapes from your existing schema.

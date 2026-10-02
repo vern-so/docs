@@ -1,0 +1,169 @@
+---
+title: Column options
+description: Every setting on a template column, what it enforces, and the error it produces.
+---
+
+A template is a named set of columns, and a column is the unit of validation: it
+carries the name the agent matches your source data against, the description it
+reasons from, and the rules every cell has to pass.
+
+## Where to configure them
+
+Go to [Templates](https://app.vern.so/templates), open a template, then click a
+column to edit it or **Add Column** to create one. Changes save to the template
+and apply to every workbook built from it.
+
+<Note>
+  A template can't be saved while a migration that uses it is running. Wait for
+  the run to finish, or stop it first. The same lock applies to
+  [`PATCH /templates/{slug}`](/migration-api/update-a-template), which returns
+  `409`.
+</Note>
+
+## Name
+
+The column header in every sheet built from this template, and the handle
+everything else uses: the import agent matches source columns against it, chat
+resolves `@Column Name` to it, and exports use it as the field name.
+
+**Columns are matched by name, not by an internal id.** Renaming a column on a
+template that already has workbooks is therefore treated as deleting one column
+and adding another — the renamed column starts empty on sheets that already
+exist, and any validation errors recorded against the old name are cleared.
+Settle names before you onboard customers; afterwards, use chat to move the
+values across.
+
+## Description
+
+Plain English describing what belongs in the column. This is not decoration — it
+is the main thing the import agent reads when it decides which source field maps
+here and how to transform it. It is also what the AI uses to draft a validation
+pattern, and what chat consults when you ask it to fix a column.
+
+Write what a *good* value looks like, including the cases that trip people up:
+
+> Australian Business Number. 11 digits, no spaces or hyphens. Source system
+> stores it with spaces — strip them. Blank for sole traders without one.
+
+If the agent keeps misreading a column, the description is almost always the fix.
+
+## Required
+
+Flags a cell as invalid when it has no value.
+
+- A cell counts as empty when it is missing, `null`, an empty string, or
+  whitespace only.
+- The error recorded on the cell is `Required field is empty`.
+- It does **not** block an import or an export. Required marks the cell so it
+  shows up in the sheet's invalid filter and in the import agent's review — it is
+  a flag to resolve, not a hard stop.
+
+## Unique
+
+Flags every cell in a repeated group as invalid.
+
+- Uniqueness is scoped to **one sheet** — the rows of this template inside one
+  customer's workbook. Two different customers may hold the same value.
+- Comparison is **case-insensitive and trimmed**: `ACME `, `acme` and `Acme`
+  are the same value.
+- **Blank cells are skipped.** Empty is never a duplicate, however many rows are
+  empty. Combine with **Required** if a value must be both present and distinct.
+- The error names the count, so you can see the size of the collision:
+  `Duplicate value: "acme" appears 3 times`.
+
+## Validation Rule
+
+The dropdown picks how a cell's *content* is checked. Three options:
+
+| Rule | What it does |
+|---|---|
+| **None** | No content check. The column still honours Required, Unique and any link rule. |
+| **Strict** | The value must match a pattern. |
+| **Link** | The value must exist in a column on another template. |
+
+### Strict
+
+Strict holds a regular expression that every non-blank cell must match. You
+author it three ways, all of which produce the same stored pattern:
+
+- **Visual blocks** — the default. Build the pattern from labelled pieces
+  (`Digits (11)`, `Letters (1+)`, `@`, `Choice Options`, …) rather than writing
+  regex. Each block takes parameters such as an exact length or a min/max range.
+- **Presets** — start from a ready-made pattern for a category (Email, Phone,
+  Text, Number, Date, ID / Code) and adjust its parameters.
+- **AI** — switching a column to Strict while it has a name and a description
+  generates a pattern from them. Review it; it is a starting point, not an
+  answer.
+
+Two things to know about how it is applied:
+
+- **Blank cells are skipped.** A pattern never makes a column mandatory — that
+  is what Required is for.
+- **The pattern is not anchored for you.** `\d{11}` matches an eleven-digit run
+  *anywhere* in the value, so `abc12345678901x` passes. Anchor it — `^\d{11}$` —
+  when you mean the whole value.
+
+A failing cell records `Value does not match required pattern`.
+
+### Link
+
+Link means the value has to exist somewhere else — a supplier code that must
+name a real supplier, a parent id that must resolve. Reference checking is the
+one rule complex enough to need its own page:
+
+<Card title="Link columns" icon="link" href="/help-center/templates/link-columns">
+  Single targets, polymorphic targets chosen per row, and references that live
+  inside a structured value.
+</Card>
+
+## Structured values
+
+Everything above treats a cell as one value. A column can instead hold a list, a
+record, or a list of records — addresses, phone numbers with types, line items.
+That shape is declared separately from the Validation Rule and is checked
+alongside it:
+
+<Card title="Structured values" icon="code" href="/help-center/templates/structured-values">
+  Declaring a list, a record, or a list of records, and the raw JSON Schema
+  escape hatch.
+</Card>
+
+## What actually gets enforced
+
+The Validation Rule dropdown names **one** check, but a column can carry several
+at once, and each is enforced on its own:
+
+- Required, Unique, the pattern, the value's shape and every link rule are
+  enforced **whenever they are present** — not only when the dropdown happens to
+  name them. A column set to **Strict** that also has a link rule gets both
+  checks.
+- Setting the dropdown to **Link** additionally turns on the grid's link
+  behaviour: link errors are styled in the sheet and re-checked live as you edit
+  a cell, and the [nested webhook export](/help-center/send/webhooks) sends the
+  referenced record instead of the raw value. Those two surfaces are the only
+  things that read the dropdown rather than the rule itself.
+
+Practical upshot: pick the dropdown value that matches what the column is *for*,
+and don't worry that adding a second rule will switch the first one off.
+
+## When changes take effect
+
+Saving a template re-runs validation across every sheet already using it, but
+only for what changed:
+
+- Toggling **Required** re-checks that column for empties, and clears the old
+  `Required field is empty` errors when you turn it off.
+- Changing the **pattern or the shape** re-checks that column's content.
+- Toggling **Unique** re-runs duplicate detection, and clears duplicate errors
+  when you turn it off.
+- **Removing** a column clears every error recorded against it.
+
+Each sheet's invalid count is recalculated and its cache cleared afterwards, so
+the workbook reflects the new rules without anyone reopening it.
+
+## Next
+
+- [Link columns](/help-center/templates/link-columns) — references between templates.
+- [Structured values](/help-center/templates/structured-values) — lists and records in one column.
+- [Spot-check and fix](/help-center/import/spot-check-and-fix) — working through what validation flags.
+- [Update a template](/migration-api/update-a-template) — the same settings over the API.

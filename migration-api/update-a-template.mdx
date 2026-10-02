@@ -43,9 +43,20 @@ At least one field is required.
   A **full replacement** of the column set — send every column you want the
   template to have, in order. Each column takes the same shape
   [template reads return](/migration-api/list-templates#fields): `name`
-  (required), `description`, `required`, `unique`, `desiredRule`, `strictRule`.
+  (required), `description`, `required`, `unique`, `desiredRule`, `strictRule`,
+  plus `schema` (a per-column JSON Schema; pass `null` to remove one) and
+  `linkRule` (reference targets). What each setting enforces is documented in
+  [Column options](/help-center/templates/columns).
   Cross-cell rules stored on the template are always preserved. Validation-rule
   changes automatically revalidate the sheets already using this template.
+
+  Two things a replacement does **not** carry over for you:
+
+  - A column's `schema` is re-attached when you omit it, but `linkRule` is
+    **not** — omit it and the column's links are removed. Echo it back with the
+    column to keep it.
+  - `linkRule` names its target template by internal id, which this API does not
+    expose. Author links in the dashboard and round-trip them here.
 </ParamField>
 
 ## Response
@@ -97,4 +108,5 @@ curl -X PATCH https://app.vern.so/api/v1/templates/suppliers \
 ## Next
 
 - [List templates](/migration-api/list-templates) — the current template set and column shapes.
+- [Column options](/help-center/templates/columns) — what every column setting enforces.
 - [Create a migration](/migration-api/create-a-migration) — templates become the migration's sheets.

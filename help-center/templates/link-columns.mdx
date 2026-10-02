@@ -1,0 +1,166 @@
+---
+title: Link columns
+description: Make a column's value prove it exists in another template — including one chosen per row.
+---
+
+A link rule says the value in this column has to exist in a column on another
+template. It is how a supplier code in **Invoices** gets checked against the
+**Suppliers** list, or a parent id against the records it claims to belong to.
+
+Set the column's **Validation Rule** to **Link** in
+[Templates](https://app.vern.so/templates), then choose one of the two tabs.
+
+## Single
+
+The straightforward case. Pick the template and the column on it the value has to
+match — usually that template's id or code column.
+
+A reference is matched **case-insensitively and trimmed**, so ` ACME` matches
+`acme`. **Blank cells are skipped**: an absent reference is absent, not broken. A
+cell that doesn't match records:
+
+```
+Value "ACME-9" not found in Supplier Code column from Suppliers
+```
+
+<Warning>
+  Point a link rule at a *different* template. A link never resolves against the
+  sheet it sits on, so a self-reference — a parent id checked against the same
+  template's id column — can't see the rows it is meant to match, and flags rows
+  that are perfectly valid. Model those with a second template, or leave the
+  column unlinked.
+</Warning>
+
+## Polymorphic
+
+When a column references different things on different rows — a `Related To` id
+that points at a customer on some rows and a supplier on others — use the
+**Polymorphic** tab.
+
+Three settings:
+
+- **Discriminator** — the column on *this* template whose value says what kind of
+  thing the row points at. Typically a `Type` or `Entity` column holding
+  `customer` / `supplier`.
+- **Branches** — one row per discriminator value, mapping each to the template
+  Vern should check. **Add Branch** for each.
+- **Target** — the column to search in those templates. Every branch uses the
+  same column name, so name the id column consistently across them.
+
+How it resolves, row by row:
+
+- The discriminator's value **is** in the branch list → the reference is checked
+  against that one template only.
+- The discriminator is empty, or holds a value you haven't mapped → it falls back
+  to **OR semantics**: the reference passes if it exists in *any* listed template.
+  This is looser, not stricter. Add a branch for every value your data actually
+  contains, or the unmapped ones are checked more weakly than the rest.
+
+An unresolved polymorphic reference records:
+
+```
+Value "ACME-9" not found in Supplier Code of any linked template
+```
+
+## References inside a structured value
+
+Sometimes the thing that must exist isn't the cell — it's a field inside it. A
+`Related Records` column holding a list like this references two records, not
+one:
+
+```json
+[
+  { "entity": "contact", "join_value": "C-1001" },
+  { "entity": "listing", "join_value": "L-55" }
+]
+```
+
+Turn on **Values in this column reference another template** (it appears under
+the schema editor for a column that has a [declared
+shape](/help-center/templates/structured-values)) and fill in:
+
+- **Referenced column** — the template and column to match against, as with a
+  single link.
+- **Which field holds the reference** — picked from the column's own schema, not
+  typed. Only the fields a reference can actually be read from are offered, so an
+  unevaluatable path can't be authored.
+- **A second field says which column to match (optional)** — for data where each
+  entry carries its own idea of which key it is quoting. Choosing one gives you a
+  key table: each label in the data maps to the target column it resolves
+  against.
+
+The key table is the part worth getting right. Given the example above, mapping
+`contact → Contact ID` and `listing → Listing Ref` means a `contact` entry is
+checked against **Contact ID** and a `listing` entry against **Listing Ref**. A
+label that isn't in the table is a **violation**, not a pass — which is the whole
+point: "use `old_id` here, not `record_id`" stops being a note in a document.
+
+### What's checked, and where
+
+A structured reference reports three distinct problems, so you can tell a shape
+error from a dangling one:
+
+| Problem | What it means |
+|---|---|
+| Unreadable | The cell isn't valid JSON, or isn't the list/object the path expects. A shape failure, not a broken reference. |
+| No reference | The cell parsed, but nothing was found at the named field. |
+| Unknown key | An entry carries a label the key table doesn't list. |
+
+Structured references are checked **during an import run and in its preview**,
+where the agent reports them before you approve. The sheet grid doesn't re-check
+them when you edit a cell afterwards — it reads a link column as a single value.
+Plain and polymorphic links are re-checked live in the grid.
+
+### Reference paths
+
+The editor writes the path for you, and it is what the API stores. Three forms,
+and only three:
+
+| Path | The cell holds |
+|---|---|
+| `$[*].field` | a list of objects — read `field` from each |
+| `$.field` | one object — read `field` |
+| `$[*]` | a list of plain values — each entry *is* the reference |
+
+Anything else is refused when you save, rather than stored as a rule that looks
+authored and quietly never runs. A few combinations are also refused for the same
+reason:
+
+- A **Discriminator** can't be combined with a reference path — a row-level
+  discriminator picks one target for the whole row, while each entry in a list may
+  point somewhere different. Use the key table instead.
+- A key path must name a field, not a bare `$[*]`, and it must sit on the same
+  side of the array as the value path.
+- A key path requires a key table; a key table requires a key path.
+
+## Links and the Validation Rule dropdown
+
+A link rule is enforced **whenever it is present**, whatever the dropdown says —
+so a column can be shape-checked *and* reference-checked at once, which is the
+usual arrangement for a structured column.
+
+Setting the dropdown to **Link** additionally turns on two things that read it
+directly:
+
+- the grid styles link errors and re-checks a cell as you edit it,
+- the [nested webhook export](/help-center/send/webhooks) sends the referenced
+  record rather than the raw value.
+
+## Over the API
+
+Link rules live on the column's `linkRule` array, which
+[`PATCH /templates/{slug}`](/migration-api/update-a-template) accepts and
+template reads return. Two cautions:
+
+- A `columns` update is a **full replacement**, and `linkRule` is *not* carried
+  over for you the way `schema` is. Echo the rule back with the column, or the
+  link is removed.
+- A rule names its target template by internal id, which the public API doesn't
+  expose. Author links in the dashboard; the API is for preserving and reading
+  them.
+
+## Next
+
+- [Column options](/help-center/templates/columns) — the rest of the per-column settings.
+- [Structured values](/help-center/templates/structured-values) — declaring the shape a reference sits inside.
+- [Webhooks](/help-center/send/webhooks) — what a link does to the exported payload.

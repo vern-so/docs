@@ -23,6 +23,14 @@
             ]
           },
           {
+            "group": "Configure templates",
+            "pages": [
+              "help-center/templates/columns",
+              "help-center/templates/structured-values",
+              "help-center/templates/link-columns"
+            ]
+          },
+          {
             "group": "Onboard a new customer",
             "pages": [
               "help-center/onboard/create-a-company",

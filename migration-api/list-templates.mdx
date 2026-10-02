@@ -98,34 +98,50 @@ that slug.
 </ResponseField>
 
 <ResponseField name="columns" type="object[]">
-  The object's fields and validation rules, in order. Each column has:
+  The object's fields and validation rules, in order. What each setting enforces
+  is documented in [Column options](/help-center/templates/columns). Each column
+  has:
 
   <Expandable title="column">
     <ResponseField name="name" type="string">
-      The column's display name.
+      The column's display name, and the key it is addressed by everywhere else.
+      Columns are matched by name, so renaming one is a delete plus an add.
     </ResponseField>
     <ResponseField name="description" type="string">
-      What the column holds.
+      What the column holds. This is the main thing the import agent reads when
+      deciding which source field maps here.
     </ResponseField>
     <ResponseField name="required" type="boolean">
-      Whether every row must have a value for this column.
+      Flags a cell as invalid when it is missing, null, empty, or whitespace
+      only.
     </ResponseField>
     <ResponseField name="unique" type="boolean">
-      Whether values in this column must be unique across rows.
+      Flags repeated values within **one sheet**. Compared case-insensitively and
+      trimmed; blank cells are skipped.
     </ResponseField>
     <ResponseField name="desiredRule" type="string">
-      The validation rule applied to the column: `none` (no format check), `ai`
-      (Vern infers validity), `strict` (must match `strictRule`), or `link` (must
-      reference another template via `linkRule`).
+      What the column is *for*: `none`, `strict`, `link`, or the legacy `ai`.
+      It is a label, not a gate — every rule a column carries is enforced
+      whichever value this holds. `link` additionally switches on the grid's live
+      link re-check and the nested webhook export.
     </ResponseField>
     <ResponseField name="strictRule" type="string">
-      A regular expression the value must match. Present only when `desiredRule`
-      is `strict`.
+      A POSIX regular expression every non-blank value must match. Not anchored
+      for you — use `^…$` when you mean the whole value. Returned whenever the
+      column carries one, independently of `desiredRule`.
+    </ResponseField>
+    <ResponseField name="schema" type="object">
+      A per-column JSON Schema declaring the value's shape — a list, a record, a
+      list of records. Takes precedence over `strictRule` when both are present.
+      See [Structured values](/help-center/templates/structured-values).
     </ResponseField>
     <ResponseField name="linkRule" type="object[]">
-      Cross-template references — `{ "templateId": "...", "columnName": "..." }`
-      pointing at the column this one links to. Present only when `desiredRule`
-      is `link`.
+      Cross-template references. Each entry carries `templateId` (a string, or an
+      array for polymorphic targets) and `columnName`, optionally plus
+      `discriminator` / `valueMap` for a target chosen per row, and
+      `valuePath` / `keyPath` / `keyMap` for a reference that lives inside a
+      structured value. Returned whenever the column carries one, independently
+      of `desiredRule`. See [Link columns](/help-center/templates/link-columns).
     </ResponseField>
   </Expandable>
 </ResponseField>
