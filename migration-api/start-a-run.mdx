@@ -54,6 +54,22 @@ Requires an `x-api-key` header. See [Authentication](/migration-api/authenticati
   Ignored for `update`, `clarify`, and `execute`. Must be a boolean.
 </ParamField>
 
+<ParamField body="instructions" type="string | null">
+  **`generate` only.** Optional guidance for this migration, **at most 200
+  characters** — e.g. `"Only import active customers and keep their original
+  IDs."` Leading and trailing whitespace is trimmed; blank means none.
+
+  The agent follows it for this migration, but it **cannot override** Vern's own
+  rules, a locked template, or the migration's Memory setting. If the agent can't
+  follow part of it, it says which part and why in its summary.
+
+  It is kept for the whole run — `update`, `clarify`, and `execute` reuse it, so
+  you send it once. It is returned as `instructions` when you
+  [poll the run](/migration-api/poll-a-run), and recorded on the run's `started`
+  entry in the [session log](/migration-api/session-log). Ignored for `update`,
+  `clarify`, and `execute`.
+</ParamField>
+
 The recipe and preview state are carried **server-side** between phases — you
 never send recipe, preview, or build IDs. `execute` runs the recipe behind the
 current preview; `update`/`clarify` act on it.
@@ -107,7 +123,7 @@ generate ──▶ awaiting_approval ──▶ execute ──▶ completed
 
 | Status | Meaning |
 |---|---|
-| `400` | `kind` missing or invalid; `generate` with no files **and** no connected source; `extract_via_api` not a boolean; `update`/`clarify` with no `message`. |
+| `400` | `kind` missing or invalid; `generate` with no files **and** no connected source; `extract_via_api` not a boolean; `instructions` not a string, or longer than 200 characters (`code: "instructions_too_long"` — checked before any rate limit is spent); `update`/`clarify` with no `message`. |
 | `401` | API key missing or invalid. |
 | `404` | No migration with that `{migration_id}` in your account. |
 | `409` | A run is already in progress (the body includes the active `run_id`); the migration has no target templates; `update`/`clarify`/`execute` with no current preview to act on; the approved preview is no longer resumable (generate a fresh one). |

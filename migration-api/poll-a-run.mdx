@@ -24,7 +24,9 @@ Requires an `x-api-key` header. See [Authentication](/migration-api/authenticati
 
 ## Response by status
 
-Every response carries `run_id`, `status`, and `created_at`. Once you've answered
+Every response carries `run_id`, `status`, `created_at`, and `instructions` (the
+guidance you gave when you [started the run](/migration-api/start-a-run#request-body),
+or `null`). Once you've answered
 the agent, the response also echoes `answers` (your reply, read back). The rest
 depends on `status`:
 

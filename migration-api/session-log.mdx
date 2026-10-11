@@ -89,7 +89,12 @@ tell "not yet" from "broken":
         "replaced_existing_data": true
       },
       "audit": [
-        { "at": "2026-08-21T09:14:02.000Z", "event": "started" },
+        {
+          "at": "2026-08-21T09:14:02.000Z",
+          "event": "started",
+          "seed_kind": "generate",
+          "instructions": "Only import active customers."
+        },
         { "at": "2026-08-21T09:17:55.000Z", "event": "plan_approved" }
       ]
     }
@@ -168,7 +173,8 @@ tell "not yet" from "broken":
     </ResponseField>
     <ResponseField name="audit" type="object[]">
       Who did what, in order — `{ at, event, ... }`. Covers the moments that
-      matter for accountability: started, plan approved, templates adjusted.
+      matter for accountability: started, plan approved, templates adjusted. A
+      `started` entry carries the run's `instructions` when any were given.
     </ResponseField>
   </Expandable>
 </ResponseField>

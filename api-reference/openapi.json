@@ -346,12 +346,14 @@
                 "properties": {
                   "kind": { "type": "string", "enum": ["generate", "update", "clarify", "execute"] },
                   "message": { "type": "string", "description": "Required for update and clarify — your instruction or question in plain language." },
-                  "extract_via_api": { "type": "boolean", "description": "generate only. Controls live API extraction from a connected source: true extracts via the connection (alongside any files), false forces file-only, omitted extracts via API only when no files were uploaded and a connection exists." }
+                  "extract_via_api": { "type": "boolean", "description": "generate only. Controls live API extraction from a connected source: true extracts via the connection (alongside any files), false forces file-only, omitted extracts via API only when no files were uploaded and a connection exists." },
+                  "instructions": { "type": ["string", "null"], "maxLength": 200, "description": "generate only. Optional guidance for this migration (at most 200 characters), e.g. \"Only import active customers\". The agent follows it but it cannot override Vern's rules, a locked template or the Memory setting. Kept for every later leg of the run and returned on the run as `instructions`. Longer than 200 characters returns 400 with code instructions_too_long." }
                 }
               },
               "examples": {
                 "generate": { "summary": "Generate a preview", "value": { "kind": "generate" } },
                 "generate_api": { "summary": "Generate from a live source", "value": { "kind": "generate", "extract_via_api": true } },
+                "generate_instructions": { "summary": "Generate with instructions", "value": { "kind": "generate", "instructions": "Only import active customers and keep their original IDs." } },
                 "update": { "summary": "Refine the recipe", "value": { "kind": "update", "message": "Trim whitespace from every phone number." } },
                 "clarify": { "summary": "Ask a read-only question", "value": { "kind": "clarify", "message": "Which column did you map Email from?" } },
                 "execute": { "summary": "Execute for real", "value": { "kind": "execute" } }
@@ -1244,6 +1246,7 @@
           "run_id": { "type": "string", "format": "uuid" },
           "status": { "type": "string", "enum": ["queued", "running", "blocked", "awaiting_approval", "completed", "failed", "canceled"] },
           "created_at": { "type": "string", "format": "date-time" },
+          "instructions": { "type": ["string", "null"], "description": "The guidance given when the migration was generated (at most 200 characters), carried onto every later leg. Null when none was given." },
           "answers": { "type": ["object", "null"], "description": "A read-back of your last reply, present once you've answered a block." },
           "message": { "type": ["string", "null"], "description": "Present while queued/running." },
           "blocked_reason": { "type": "string", "enum": ["question", "credentials"], "description": "Present when blocked — which kind of block it is." },
