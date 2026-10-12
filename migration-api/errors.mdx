@@ -57,16 +57,16 @@ serve:
 | **Jobs** | 5 / hour | [Starting an export](/migration-api/export-jobs) |
 | **Agent** | 5 / hour | [Starting a run](/migration-api/start-a-run), [answering questions](/migration-api/answer-questions), [submitting credentials](/migration-api/submit-credentials) |
 
-Two actions are capped more tightly still, because each one provisions something
-new:
+Two actions also have their own hourly cap, because each one provisions
+something new:
 
 | Action | Limit |
 |---|---|
-| [`POST /migrations`](/migration-api/create-a-migration) | **1 per hour** |
-| [`POST /migrations/{id}/runs`](/migration-api/start-a-run) with `kind: "generate"` | **1 per hour** |
+| [`POST /migrations`](/migration-api/create-a-migration) | **5 per hour** |
+| [`POST /migrations/{id}/runs`](/migration-api/start-a-run) with `kind: "generate"` | **5 per hour** |
 
-Starting a run with `kind` of `update`, `clarify` or `execute` is not capped at
-one per hour — those continue a run you've already started rather than beginning
+Starting a run with `kind` of `update`, `clarify` or `execute` does not count toward
+that cap — those continue a run you've already started rather than beginning
 new work — but they do count against the **Agent** class above.
 
 <Note>
