@@ -98,9 +98,3 @@ Returns `200` with the migration (`"archived": true`).
 | `404` | No migration with this ID in your account, or (PATCH) the named `source` doesn't exist. |
 | `409` | `migration_archived`: the migration is archived (PATCH). `imports_in_flight`: an import is running. Also returned when `external_id` is already used by another migration, or the source name is ambiguous. |
 | `429` | Rate limited. See [Rate limits](/migration-api/errors#rate-limits). |
-
-## Audit trail
-
-Every change made through these calls, or in the app, is recorded in your
-account's audit log: which fields changed, which sheets were added, archives,
-and which API key made the change. Values are not recorded.
