@@ -14,7 +14,7 @@ one rate limit.
 | `401` | API key missing, malformed, or revoked. |
 | `403` | The account has no active plan. Only on endpoints that create work — see [Plans](#plans). |
 | `404` | The referenced migration, run, source, or template isn't in your account. |
-| `409` | A conflict — a reused `external_id`, an ambiguous source name, a run already in progress, or a state precondition (e.g. asking for the [session log](/migration-api/session-log) before the migration settles). |
+| `409` | A conflict — a reused `external_id`, an ambiguous source name, a run already in progress, an [archived migration](/migration-api/update-a-migration#archive-a-migration), or a state precondition (e.g. asking for the [session log](/migration-api/session-log) before the migration settles). |
 | `410` | The resource expired and its data was deleted — an [export job](/migration-api/export-jobs) past its retention window. Start a new one. |
 | `412` | A guarded write lost a race. Only from [knowledge](/migration-api/knowledge) writes sent with `if_unmodified_since` — re-read, merge, and write again. |
 | `429` | A [rate limit](#rate-limits) or the [concurrent-run limit](#concurrent-runs). Check `Retry-After`. |
@@ -37,9 +37,13 @@ string:
 
 Most errors carry only that string: there's no field pointer or request-id
 header today, so branch on the HTTP status and surface `error` for debugging.
-The one exception is the [concurrent-run limit](#concurrent-runs), which adds a
-machine-readable `code` of `run_concurrency_limit` alongside the runs that
-triggered it.
+A few add a machine-readable `code`:
+
+| `code` | Status | Meaning |
+|---|---|---|
+| `run_concurrency_limit` | `429` | The [concurrent-run limit](#concurrent-runs); includes the `runs` responsible. |
+| `migration_archived` | `409` | The migration is [archived](/migration-api/update-a-migration#archive-a-migration); it can be read and exported but not changed. Re-creating an archived `external_id` also includes its `id`. |
+| `imports_in_flight` | `409` | An import is running, so the migration can't be archived or have its source/templates changed yet; includes the `runs`. |
 
 ## Rate limits
 
@@ -171,7 +175,12 @@ Migration **creation** is idempotent on the `external_id` you choose. Re-sending
 (and the same source) returns the **existing migration** — with a `200` instead
 of a `201` — rather than creating a second one. This makes create retries safe
 and doubles as recovery: if you lose a migration ID, re-POST with the same
-`external_id` to get it back.
+`external_id` to get it back, or look it up with
+[`GET /migrations?external_id=…`](/migration-api/find-a-migration#list-migrations).
+
+A repeated create never changes the existing migration. To rename it or change
+its source or templates, use
+[`PATCH /migrations/{id}`](/migration-api/update-a-migration).
 
 Runs are **not** keyed by an idempotency token. Instead, only **one run runs at a
 time per migration** — starting a second while one is in flight returns `409` with

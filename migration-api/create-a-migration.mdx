@@ -41,7 +41,10 @@ and can address every migration in it. See [Authentication](/migration-api/authe
   back so you can match the migration to your records. Max 255 characters;
   alphanumeric, hyphens, and underscores only. Makes creation **idempotent** —
   re-sending the same `external_id` (with the same source) returns the existing
-  migration with a `200`. See [Errors & limits](/migration-api/errors#idempotency).
+  migration with a `200`, **unchanged** — to change it, use
+  [Update a migration](/migration-api/update-a-migration). If that migration is
+  archived you get a `409` with `code: "migration_archived"` and its `id`. See
+  [Errors & limits](/migration-api/errors#idempotency).
 </ParamField>
 
 <ParamField body="templates" type="string[]">
@@ -60,11 +63,15 @@ and can address every migration in it. See [Authentication](/migration-api/authe
   "migration": {
     "id": "c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d",
     "name": "Acme Corp",
+    "external_id": "acme-001",
     "source": "Salesforce",
     "status": "awaiting_files",
     "templates": [
       { "slug": "contacts", "name": "Contacts" }
-    ]
+    ],
+    "archived": false,
+    "created_at": "2026-10-13T04:18:00.000000+00:00",
+    "url": "https://app.vern.so/companies/open/c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d"
   }
 }
 ```
@@ -74,6 +81,9 @@ and can address every migration in it. See [Authentication](/migration-api/authe
 </ResponseField>
 <ResponseField name="migration.name" type="string">
   The display name you provided.
+</ResponseField>
+<ResponseField name="migration.external_id" type="string | null">
+  Your identifier, if you set one.
 </ResponseField>
 <ResponseField name="migration.source" type="string | null">
   The source name, or `null` for a sourceless migration.
@@ -87,6 +97,16 @@ and can address every migration in it. See [Authentication](/migration-api/authe
 <ResponseField name="migration.templates" type="object[]">
   The templates that became sheets, each `{ slug, name }`.
 </ResponseField>
+<ResponseField name="migration.archived" type="boolean">
+  `true` once the migration is [archived](/migration-api/update-a-migration#archive-a-migration).
+</ResponseField>
+<ResponseField name="migration.created_at" type="string (ISO 8601)">
+  When the migration was created.
+</ResponseField>
+<ResponseField name="migration.url" type="string">
+  A link that opens this company in Vern. See
+  [Link to a company](/migration-api/find-a-migration#link-to-a-company).
+</ResponseField>
 
 ## Errors
 
@@ -95,7 +115,7 @@ and can address every migration in it. See [Authentication](/migration-api/authe
 | `400` | `name` missing; `source` not a string; `external_id` malformed; `templates` not an array of slugs; one or more template slugs not found (`Unknown template slug(s): …`). |
 | `401` | API key missing or invalid, or the request used a session token instead of an API key. |
 | `404` | The named `source` isn't a source in your account. |
-| `409` | `external_id` already used by another migration, the source name is ambiguous (two sources share it), or your account's region isn't live yet. |
+| `409` | `external_id` already used by another migration (or by an archived one — `code: "migration_archived"`), the source name is ambiguous (two sources share it), or your account's region isn't live yet. |
 | `429` | **Limited to 5 migrations per hour** per account. Check `Retry-After`. See [Rate limits](/migration-api/errors#rate-limits). |
 | `500` | Server error. |
 
@@ -118,5 +138,6 @@ curl -X POST https://app.vern.so/api/v1/migrations \
 ## Next
 
 - [Upload files](/migration-api/upload-files) — push the customer's data into the migration.
+- [Find a migration](/migration-api/find-a-migration) — look one up later by `external_id`, or list them.
 - [Connect a live source](/migration-api/source-connection) — extract from an API instead of files.
 - [Start a run](/migration-api/start-a-run) — generate a preview once data is in place.

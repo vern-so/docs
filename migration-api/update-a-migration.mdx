@@ -1,0 +1,106 @@
+---
+title: Update a migration
+description: Rename a migration, change its external ID or source, add templates as new sheets, or archive it — the API version of Edit company and Add New Sheet.
+---
+
+```http
+PATCH  https://app.vern.so/api/v1/migrations/{migration_id}
+DELETE https://app.vern.so/api/v1/migrations/{migration_id}
+```
+
+Change a migration after it has been created, instead of creating a new one.
+Re-sending [Create a migration](/migration-api/create-a-migration) with the same
+`external_id` never changes anything. It only returns the existing migration.
+
+## Authentication
+
+Requires an `x-api-key` header. See [Authentication](/migration-api/authentication).
+
+## Update a migration
+
+```http
+PATCH https://app.vern.so/api/v1/migrations/{migration_id}
+```
+
+Send only the fields you want to change. At least one is required; any other
+field is rejected with a `400`.
+
+<ParamField body="name" type="string">
+  New display name. Must be non-blank.
+</ParamField>
+
+<ParamField body="external_id" type="string | null">
+  Your identifier for this customer. Same format as on create (max 255
+  characters; letters, numbers, hyphens, underscores). Must be unique in your
+  account. Pass `null` to clear it.
+</ParamField>
+
+<ParamField body="source" type="string | null">
+  The [source](/migration-api/list-sources) this migration comes from, by name.
+  Pass `null` to make it sourceless.
+</ParamField>
+
+<ParamField body="templates" type="string[]">
+  Template **slugs to add**. Each one gets a new, empty sheet, like **Add New
+  Sheet** in the app. Slugs that already have a sheet are skipped, so it is
+  safe to send the full list you want.
+
+  Templates are **never removed** here, because that would delete a sheet and
+  its data. Remove a sheet in the Vern app if you need to.
+</ParamField>
+
+<Warning>
+  While an import is running, changes to `source` or `templates` are refused
+  with `409` `imports_in_flight`. Wait for the run to finish, or
+  [cancel it](/migration-api/poll-a-run), then retry. `name` and `external_id`
+  can always be changed.
+</Warning>
+
+Returns `200` with the updated migration (the same object as
+[Get a migration](/migration-api/find-a-migration#get-a-migration)).
+
+```bash
+curl -X PATCH https://app.vern.so/api/v1/migrations/c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d \
+  -H "x-api-key: $VERN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "name": "Acme Corporation", "templates": ["contacts", "listings"] }'
+```
+
+## Archive a migration
+
+```http
+DELETE https://app.vern.so/api/v1/migrations/{migration_id}
+```
+
+Archives the migration, the same as **Archive** in the app. An archived migration:
+
+- drops out of [List migrations](/migration-api/find-a-migration#list-migrations)
+  unless you pass `include_archived=true`;
+- can still be read and [exported](/migration-api/export-csv);
+- refuses uploads, runs, messages and updates with `409`
+  `migration_archived`;
+- keeps its `external_id`. Re-creating with that ID returns `409`
+  `migration_archived` and the archived migration's `id`, rather than a new
+  migration.
+
+Restore it from the **Archived** page in Vern. Archiving a migration that is
+already archived does nothing and returns `200`. Archiving is refused with `409`
+`imports_in_flight` while an import is running.
+
+Returns `200` with the migration (`"archived": true`).
+
+## Errors
+
+| Status | Meaning |
+|---|---|
+| `400` | No fields, an unknown field, a blank `name`, a malformed `external_id`, `templates` not an array of slugs, or an unknown template slug. |
+| `401` | API key missing or invalid. |
+| `404` | No migration with this ID in your account, or (PATCH) the named `source` doesn't exist. |
+| `409` | `migration_archived`: the migration is archived (PATCH). `imports_in_flight`: an import is running. Also returned when `external_id` is already used by another migration, or the source name is ambiguous. |
+| `429` | Rate limited. See [Rate limits](/migration-api/errors#rate-limits). |
+
+## Audit trail
+
+Every change made through these calls, or in the app, is recorded in your
+account's audit log: which fields changed, which sheets were added, archives,
+and which API key made the change. Values are not recorded.

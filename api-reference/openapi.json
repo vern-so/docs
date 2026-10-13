@@ -201,10 +201,43 @@
       }
     },
     "/migrations": {
+      "get": {
+        "operationId": "listMigrations",
+        "summary": "List migrations",
+        "description": "List your organisation's migrations, newest first — including companies created in the Vern app. Look one up by the External ID shown on its company page with `external_id`. Archived migrations are hidden unless `include_archived=true`. List items omit `status`; get a single migration for it.",
+        "tags": ["Migrations"],
+        "parameters": [
+          { "name": "external_id", "in": "query", "description": "Exact match on the migration's External ID.", "schema": { "type": "string", "maxLength": 255, "pattern": "^[a-zA-Z0-9_-]+$" }, "example": "acme-001" },
+          { "name": "source", "in": "query", "description": "Source name. An unknown name returns an empty list.", "schema": { "type": "string" } },
+          { "name": "include_archived", "in": "query", "schema": { "type": "boolean", "default": false } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 200, "default": 50 } },
+          { "name": "cursor", "in": "query", "description": "The `next_cursor` from the previous page.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of migrations.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "migrations": { "type": "array", "items": { "$ref": "#/components/schemas/Migration" } },
+                    "next_cursor": { "type": ["string", "null"], "description": "Pass as `cursor` for the next page; null on the last." }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "409": { "$ref": "#/components/responses/AmbiguousSource" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      },
       "post": {
         "operationId": "createMigration",
         "summary": "Create a migration",
-        "description": "Create a migration workspace for one customer — a workbook with one sheet per template. Requires API-key auth specifically. `external_id` makes creation idempotent: re-sending the same one (with the same source) returns the existing migration with a 200.",
+        "description": "Create a migration workspace for one customer — a workbook with one sheet per template. Requires API-key auth specifically. `external_id` makes creation idempotent: re-sending the same one (with the same source) returns the existing migration, unchanged, with a 200 — use Update a migration to change it. If that migration is archived you get a 409 `migration_archived` with its `id` instead.",
         "tags": ["Migrations"],
         "requestBody": {
           "required": true,
@@ -237,9 +270,13 @@
                   "migration": {
                     "id": "c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d",
                     "name": "Acme Corp",
+                    "external_id": "acme-001",
                     "source": "Salesforce",
                     "status": "awaiting_files",
-                    "templates": [ { "slug": "contacts", "name": "Contacts" } ]
+                    "templates": [ { "slug": "contacts", "name": "Contacts" } ],
+                    "archived": false,
+                    "created_at": "2026-10-13T04:18:00.000000+00:00",
+                    "url": "https://app.vern.so/companies/open/c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d"
                   }
                 }
               }
@@ -248,6 +285,99 @@
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/migrations/{migration_id}": {
+      "parameters": [ { "$ref": "#/components/parameters/MigrationId" } ],
+      "get": {
+        "operationId": "getMigration",
+        "summary": "Get a migration",
+        "description": "One migration, with its `status`.",
+        "tags": ["Migrations"],
+        "responses": {
+          "200": {
+            "description": "The migration.",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object", "properties": { "migration": { "$ref": "#/components/schemas/Migration" } } },
+                "example": { "migration": {
+                    "id": "c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d",
+                    "name": "Acme Corp",
+                    "external_id": "acme-001",
+                    "source": "Salesforce",
+                    "status": "ready",
+                    "templates": [ { "slug": "contacts", "name": "Contacts" } ],
+                    "archived": false,
+                    "created_at": "2026-10-13T04:18:00.000000+00:00",
+                    "url": "https://app.vern.so/companies/open/c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d"
+                  } }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/MigrationNotFound" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      },
+      "patch": {
+        "operationId": "updateMigration",
+        "summary": "Update a migration",
+        "description": "The API version of the app's Edit company and Add New Sheet. Send only the fields to change. `templates` ADDS templates — each slug without a sheet gets a new, empty one; slugs that already have a sheet are skipped; nothing is removed. Changing `source` or `templates` is refused (409 `imports_in_flight`) while an import is running; `name` and `external_id` can always change. Archived migrations refuse edits (409 `migration_archived`).",
+        "tags": ["Migrations"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "minProperties": 1,
+                "additionalProperties": false,
+                "properties": {
+                  "name": { "type": "string", "description": "New display name. Must be non-blank." },
+                  "source": { "type": ["string", "null"], "description": "Source name, or null for a sourceless migration." },
+                  "external_id": { "type": ["string", "null"], "maxLength": 255, "pattern": "^[a-zA-Z0-9_-]+$", "description": "Your identifier for this customer. Null clears it. Must be unique in your organisation." },
+                  "templates": { "type": "array", "items": { "type": "string" }, "description": "Template slugs to add, one new sheet each." }
+                }
+              },
+              "example": { "name": "Acme Corporation", "templates": ["listings"] }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated migration.",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object", "properties": { "migration": { "$ref": "#/components/schemas/Migration" } } }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      },
+      "delete": {
+        "operationId": "archiveMigration",
+        "summary": "Archive a migration",
+        "description": "Archives the migration, like Archive in the Vern app. It drops out of List migrations (unless `include_archived=true`), stays readable and exportable, and refuses uploads, runs and edits with 409 `migration_archived`. Restore it from the Archived page in Vern. Refused (409 `imports_in_flight`) while an import is running. Archiving an archived migration is a no-op.",
+        "tags": ["Migrations"],
+        "responses": {
+          "200": {
+            "description": "The archived migration (`archived: true`).",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object", "properties": { "migration": { "$ref": "#/components/schemas/Migration" } } }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/MigrationNotFound" },
           "409": { "$ref": "#/components/responses/Conflict" },
           "429": { "$ref": "#/components/responses/RateLimited" }
         }
@@ -1038,7 +1168,7 @@
         "name": "migration_id",
         "in": "path",
         "required": true,
-        "description": "The migration ID returned by Create a migration.",
+        "description": "The migration ID — returned by Create a migration and List migrations, and shown (with a copy button) as Migration ID on the company page in Vern. Companies created in the app have one too.",
         "schema": { "type": "string", "format": "uuid" },
         "example": "c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d"
       },
@@ -1185,11 +1315,15 @@
       "Migration": {
         "type": "object",
         "properties": {
-          "id": { "type": "string", "format": "uuid", "description": "The migration ID — pass it to every later call." },
+          "id": { "type": "string", "format": "uuid", "description": "The migration ID — pass it to every later call. Shown as Migration ID on the company page in Vern." },
           "name": { "type": "string" },
+          "external_id": { "type": ["string", "null"] },
           "source": { "type": ["string", "null"] },
-          "status": { "type": "string", "enum": ["awaiting_files", "ready", "awaiting_approval", "completed"] },
-          "templates": { "type": "array", "items": { "type": "object", "properties": { "slug": { "type": "string" }, "name": { "type": "string" } } } }
+          "status": { "type": "string", "enum": ["awaiting_files", "ready", "awaiting_approval", "completed"], "description": "Omitted from List migrations items." },
+          "templates": { "type": "array", "items": { "type": "object", "properties": { "slug": { "type": "string" }, "name": { "type": "string" } } } },
+          "archived": { "type": "boolean", "description": "Archived migrations stay readable and exportable but refuse uploads, runs and edits." },
+          "created_at": { "type": "string", "format": "date-time" },
+          "url": { "type": "string", "format": "uri", "description": "Opens the company in Vern. `/companies/open/{key}` also accepts the external_id." }
         }
       },
       "SignedUpload": {

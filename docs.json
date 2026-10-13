@@ -98,6 +98,8 @@
                 "group": "Migrations",
                 "pages": [
                   "migration-api/create-a-migration",
+                  "migration-api/find-a-migration",
+                  "migration-api/update-a-migration",
                   "migration-api/upload-files",
                   "migration-api/source-connection"
                 ]
@@ -165,6 +167,10 @@
             "openapi": "api-reference/openapi.json",
             "pages": [
               "POST /migrations",
+              "GET /migrations",
+              "GET /migrations/{migration_id}",
+              "PATCH /migrations/{migration_id}",
+              "DELETE /migrations/{migration_id}",
               "POST /migrations/{migration_id}/files",
               "GET /migrations/{migration_id}/files",
               "POST /migrations/{migration_id}/source-connection",

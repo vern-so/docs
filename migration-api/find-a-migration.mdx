@@ -1,0 +1,123 @@
+---
+title: Find a migration
+description: List your migrations, look one up by your external ID, find a migration ID in the Vern app, and link straight to a company page.
+---
+
+```http
+GET https://app.vern.so/api/v1/migrations
+GET https://app.vern.so/api/v1/migrations/{migration_id}
+```
+
+Every company in Vern is a migration you can drive through this API, whether
+you created it with [Create a migration](/migration-api/create-a-migration) or
+in the Vern app. These calls find one when you don't have its ID to hand.
+
+## Where to find a migration ID
+
+- **In the Vern app** — open the company. Its **Migration ID** is in the header
+  next to the External ID; click it to copy.
+- **From the API** — `id` in every migration object, from
+  [Create a migration](/migration-api/create-a-migration) and the list below.
+- **From your own ID** — if you set an `external_id`, look the migration up by
+  it (next section).
+
+## Authentication
+
+Requires an `x-api-key` header. See [Authentication](/migration-api/authentication).
+
+## List migrations
+
+```http
+GET https://app.vern.so/api/v1/migrations
+```
+
+Newest first. Archived migrations are left out unless you ask for them.
+
+<ParamField query="external_id" type="string">
+  Exact match on the migration's External ID — the tag shown on its company
+  page. External IDs are unique within your account, so this returns at most
+  one migration.
+</ParamField>
+
+<ParamField query="source" type="string">
+  Only migrations from this [source](/migration-api/list-sources), by name. An
+  unknown name returns an empty list.
+</ParamField>
+
+<ParamField query="include_archived" type="boolean" default="false">
+  Include [archived](/migration-api/update-a-migration#archive-a-migration)
+  migrations.
+</ParamField>
+
+<ParamField query="limit" type="integer" default="50">
+  Page size, 1–200.
+</ParamField>
+
+<ParamField query="cursor" type="string">
+  The `next_cursor` from the previous page.
+</ParamField>
+
+```json
+{
+  "migrations": [
+    {
+      "id": "c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d",
+      "name": "Acme Corp",
+      "external_id": "acme-001",
+      "source": "Salesforce",
+      "templates": [{ "slug": "contacts", "name": "Contacts" }],
+      "archived": false,
+      "created_at": "2026-10-13T04:18:00.000000+00:00",
+      "url": "https://app.vern.so/companies/open/c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d"
+    }
+  ],
+  "next_cursor": null
+}
+```
+
+List items **omit `status`** — working it out takes several lookups per
+migration. Get the single migration when you need it.
+
+Keep calling with `cursor` set to `next_cursor` until it comes back `null`.
+
+```bash
+curl "https://app.vern.so/api/v1/migrations?external_id=acme-001" \
+  -H "x-api-key: $VERN_API_KEY"
+```
+
+## Get a migration
+
+```http
+GET https://app.vern.so/api/v1/migrations/{migration_id}
+```
+
+Returns `{ "migration": { … } }`: the same object as the list, plus `status`
+(`awaiting_files`, `ready`, `awaiting_approval` or `completed`). Archived
+migrations can still be read.
+
+## Link to a company
+
+Every migration has a `url` that opens its company page in Vern:
+
+```
+https://app.vern.so/companies/open/{key}
+```
+
+`key` can be the **migration ID** or the **external ID**, so you can build the
+link from whichever your system stores. The person opening it signs in to Vern
+first if needed, and only sees companies in their own account. An archived
+company opens the Archived page.
+
+## Errors
+
+| Status | Meaning |
+|---|---|
+| `400` | `external_id` malformed, `limit` outside 1–200, or a `cursor` that wasn't issued by this endpoint. |
+| `401` | API key missing or invalid. |
+| `404` | (Get) No migration with this ID in your account. |
+| `409` | (List) The `source` name is ambiguous. |
+| `429` | Rate limited. See [Rate limits](/migration-api/errors#rate-limits). |
+
+## Next
+
+- [Update a migration](/migration-api/update-a-migration) — rename, re-tag, change the source, add templates, or archive.
