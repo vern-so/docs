@@ -55,15 +55,15 @@ serve:
 | **Reads** | 30 / minute | Polling a run, the preview, the session log, the thread, listing files, export job status and downloads, listing and reading sources and templates |
 | **Writes** | 30 / minute | Knowledge, pinning a source, source connections, editing a template or source, [requesting upload URLs](/migration-api/upload-files) |
 | **Jobs** | 15 / hour | [Starting an export](/migration-api/export-jobs) |
-| **Agent** | 15 / hour | [Starting a run](/migration-api/start-a-run), [answering questions](/migration-api/answer-questions), [submitting credentials](/migration-api/submit-credentials) |
+| **Agent** | 30 / hour | [Starting a run](/migration-api/start-a-run), [answering questions](/migration-api/answer-questions), [submitting credentials](/migration-api/submit-credentials) |
 
 Two actions also have their own hourly cap, because each one provisions
 something new:
 
 | Action | Limit |
 |---|---|
-| [`POST /migrations`](/migration-api/create-a-migration) | **15 per hour** |
-| [`POST /migrations/{id}/runs`](/migration-api/start-a-run) with `kind: "generate"` | **15 per hour** |
+| [`POST /migrations`](/migration-api/create-a-migration) | **30 per hour** |
+| [`POST /migrations/{id}/runs`](/migration-api/start-a-run) with `kind: "generate"` | **30 per hour** |
 
 Starting a run with `kind` of `update`, `clarify` or `execute` does not count toward
 that cap — those continue a run you've already started rather than beginning
