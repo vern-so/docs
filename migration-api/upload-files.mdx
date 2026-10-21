@@ -123,7 +123,7 @@ landed before generating.
 | `400` | `files` missing or empty, an entry is missing `name`, an unsupported file type, more than 25 entries, or the migration would exceed 400 files / 5 documents. See [File limits](/migration-api/errors#file-limits). |
 | `401` | API key missing or invalid. |
 | `404` | No migration with that `{migration_id}` in your account. |
-| `429` | **Limited to 10 requests per minute** per account (the Writes class). Check `Retry-After`. See [Rate limits](/migration-api/errors#rate-limits). |
+| `429` | **Limited to 30 requests per minute** per account (the Writes class). Check `Retry-After`. See [Rate limits](/migration-api/errors#rate-limits). |
 | `500` | Server error (including a failure to mint the signed URL). |
 
 ## Next
