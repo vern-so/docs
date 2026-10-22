@@ -1165,7 +1165,7 @@
         "type": "object",
         "properties": {
           "name": { "type": "string" },
-          "description": { "type": "string", "maxLength": 200, "description": "What the column holds. At most 200 characters for a new or changed value." },
+          "description": { "type": "string", "maxLength": 500, "description": "What the column holds. At most 500 characters for a new or changed value." },
           "required": { "type": "boolean" },
           "unique": { "type": "boolean" },
           "desiredRule": { "type": "string", "enum": ["none", "ai", "strict", "link"] },
