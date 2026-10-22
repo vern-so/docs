@@ -47,6 +47,10 @@ At least one field is required.
   plus `schema` (a per-column JSON Schema; pass `null` to remove one) and
   `linkRule` (reference targets). What each setting enforces is documented in
   [Column options](/help-center/templates/columns).
+  A column `description` can be at most **200 characters** — longer guidance
+  belongs in the template's own `description`. A description already over the
+  limit can be sent back unchanged; changing it to another value over 200 is
+  refused with a `400`.
   Cross-cell rules stored on the template are always preserved. Validation-rule
   changes automatically revalidate the sheets already using this template.
 
