@@ -1,0 +1,77 @@
+---
+title: Home
+description: Describe a migration and the Vern agent plans it, builds it across Vern once you approve, and fixes what needs attention.
+---
+
+**Home** is where you start in Vern. It's one agent that can work across everything in your account — companies, sources, templates, knowledge, writers, scouts, lists and workflows. Tell it what you need in plain English, and it plans the work, shows you the plan, and builds it once you approve.
+
+You land on Home when you sign in. You can also open it from **Home** in the sidebar.
+
+## Ask for something
+
+Type what you want in the message box and press **Send**. For example:
+
+- *"Build the migration for Riverside Hall from this export."*
+- *"Why did last night's sync fail, and how do I fix it?"*
+- *"Make `external_id` required and unique on the Events template."*
+
+Not sure where to start? Click one of the example prompts under the message box — it fills the box so you can edit it before sending.
+
+## Attach files
+
+Click the paperclip, or drop files onto the message box. Home takes the same files an import does — Excel, CSV, SQL dumps, Word documents, PDFs and zip archives — plus **Markdown** (`.md`) files. You can attach up to 25 files to a message.
+
+You don't have to say what each file is. The agent opens them and works out where each belongs:
+
+- **Customer data** goes to the company's workbook, ready to import.
+- **A document describing a data shape** can become a template.
+- **Context documents** — mapping notes, business rules, a README — become **knowledge** on the right source, company or template. Knowledge changes always arrive as a diff for you to approve.
+
+Files the agent never uses are cleaned up automatically.
+
+## Link a GitHub repository
+
+If your team keeps migration docs, mapping rules or sample data in GitHub, click the repository icon next to the paperclip and pick one or more repositories. Linked repos show as green pills beside any attached files.
+
+The agent looks through the repo first — its file list, then READMEs, docs and rules — and uses what it finds to build the templates and knowledge for the job. It can also copy data files from the repo into the conversation. It only ever **reads**: it never writes to your repositories, and it won't copy secrets it finds into Vern.
+
+An admin has to connect GitHub first. See [Integrations](/help-center/settings/integrations).
+
+## Approve the plan
+
+For anything bigger than a quick question, the agent proposes **one plan** before it changes anything. The plan card lists every step — for example *create the company*, *add the files*, *update the source's knowledge*, *build the writer*, *schedule the sync*.
+
+- Click **Approve plan** and the agent works through the steps, ticking each one off.
+- Click **Not now** and nothing changes. Tell the agent what to do differently.
+
+Some steps ask again even inside an approved plan:
+
+| Step | What you see |
+|---|---|
+| Knowledge edits | A **diff** of the document — removed lines in red, added lines in green — with **Approve** and **Don't**. Unchanged stretches are folded; click them to expand. |
+| Deletes | A red card with **Delete** and **Cancel**. Deletes can't be undone. |
+| Sending data outside Vern | A card that says so, with **Approve** and **Don't**. |
+
+Cards waiting on you sit just above the message box, so the conversation stays in view above them.
+
+## Builds that run on their own
+
+Building a migration, a writer or a source connector takes longer, so the agent hands those to the specialist agent and keeps you posted. If that agent needs an answer, its question appears in Home and you can reply right there. Credentials are never entered in chat — follow the **Open** link to enter them securely on the build's own page.
+
+## The pipeline
+
+While the agent works, the **Pipeline** panel on the right lists what this conversation planned, created or is building — companies, sources, templates, lists, scouts, workflows and writers — with a status for each. Click any item to open it.
+
+## Past conversations
+
+Click the history icon (top right) to reopen an earlier conversation, or **+** to start a new one. When a job is done, **Back to Home** next to the Send button takes you back to a fresh start.
+
+## What the agent can and can't do
+
+The agent can only do what you could do yourself in Vern. Admin-only actions need an Admin, and runs that cost credits need an active plan. If something isn't allowed, the agent tells you why.
+
+## Next
+
+- [Needs attention](/help-center/home/needs-attention) — failed runs, waiting approvals and knowledge the nightly review flagged.
+- [Integrations](/help-center/settings/integrations) — connect GitHub.
+- [MCP server](/mcp/overview) — use the same agent tools from Claude Code, Cursor or any MCP client.

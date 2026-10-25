@@ -23,6 +23,13 @@
             ]
           },
           {
+            "group": "Home agent",
+            "pages": [
+              "help-center/home/overview",
+              "help-center/home/needs-attention"
+            ]
+          },
+          {
             "group": "Configure templates",
             "pages": [
               "help-center/templates/columns",
@@ -45,6 +52,14 @@
             ]
           },
           {
+            "group": "Scouts, Lists & Workflows",
+            "pages": [
+              "help-center/scouts/scouts",
+              "help-center/scouts/lists",
+              "help-center/scouts/workflows"
+            ]
+          },
+          {
             "group": "Send data to your app",
             "pages": [
               "help-center/send/export-a-workbook",
@@ -57,7 +72,8 @@
             "pages": [
               "help-center/settings/team",
               "help-center/settings/data-retention",
-              "help-center/settings/api-keys"
+              "help-center/settings/api-keys",
+              "help-center/settings/integrations"
             ]
           }
         ]
@@ -78,6 +94,12 @@
             "pages": [
               "migration-api/quickstart",
               "migration-api/authentication"
+            ]
+          },
+          {
+            "group": "MCP server",
+            "pages": [
+              "mcp/overview"
             ]
           },
           {

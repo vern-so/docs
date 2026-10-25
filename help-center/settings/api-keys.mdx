@@ -1,19 +1,31 @@
 ---
 title: API keys
-description: Generate keys for the Vern REST API.
+description: Generate keys for the Vern REST API and the MCP server.
 ---
 
-API keys let your backend run customer migrations end to end without anyone logging into the dashboard.
+API keys let your backend run customer migrations end to end without anyone logging into the dashboard, and let AI assistants like Claude Code or Cursor work in your account through Vern's [MCP server](/mcp/overview).
 
 ## Generate a key
 
-Go to [Settings → API keys](https://app.vern.so/api-keys) and click **New key**. Give it a name (e.g. "Production server"). Copy the key — Vern doesn't show it again.
+Go to [Settings → API keys](https://app.vern.so/api-keys) and click **New key**. Give it a name (e.g. "Production server"), choose its **MCP access** (below), and create it. Copy the key — Vern doesn't show it again.
 
 Treat it like a password. Don't commit it. Don't put it in client-side code. Use environment variables.
 
 <Note>
   Creating and revoking keys is **Admin-only**. See [Team](/help-center/settings/team) for what each role can do.
 </Note>
+
+## MCP access
+
+Each key has an **MCP access** setting that decides what an AI assistant using it may do through the [MCP server](/mcp/overview):
+
+| Access | Lets the assistant |
+|---|---|
+| **Read** | Look up companies, templates, runs and knowledge. Always on. |
+| **Write** | Create, change and run things (includes read). |
+| **Delete** | Delete things, after a confirm step (includes read). |
+
+Keys start as **Read**. To change a key's access, open its row's menu and click **Edit**. MCP access has no effect on the Migration API.
 
 ## Rotate or revoke
 
@@ -40,5 +52,6 @@ Workbook-export webhook payloads are signed separately via Svix, not authenticat
 
 ## Next
 
+- [MCP server](/mcp/overview) — connect Claude Code, Cursor or another MCP client.
 - [Migration API quickstart](/migration-api/quickstart) — make your first API call.
 - [Webhooks](/help-center/send/webhooks) — receive workbook exports from Vern.

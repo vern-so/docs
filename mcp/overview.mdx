@@ -1,0 +1,100 @@
+---
+title: MCP server
+description: Use Vern from Claude Code, Cursor or any MCP client — the same tools the Home agent uses, behind an API key you scope.
+---
+
+Vern runs a [Model Context Protocol](https://modelcontextprotocol.io) server, so an AI assistant you already use can work in your Vern account: look up companies, sources, templates and runs, update knowledge, create and run things, and start builds.
+
+These are the same operations the [Home agent](/help-center/home/overview) uses, with the same rules: an assistant can only do what the key allows, and deletes or sends to outside systems still need a person to confirm.
+
+## Endpoint
+
+| | |
+|---|---|
+| URL | `https://app.vern.so/api/mcp` |
+| Transport | Streamable HTTP (stateless — every call is a `POST`, answered with JSON) |
+| Auth | A Vern API key: `Authorization: Bearer ve_…` (or the `x-api-key` header) |
+
+## 1. Create a key with MCP access
+
+Go to [Settings → API keys](https://app.vern.so/api-keys) and click **New key**. Under **MCP access**, choose what the assistant may do:
+
+| Access | Lets the assistant |
+|---|---|
+| **Read** | Look up companies, templates, runs and knowledge. Always on. |
+| **Write** | Create, change and run things (includes read). |
+| **Delete** | Delete things, after a confirm step (includes read). |
+
+Start with **Read** and widen it later — you can edit a key's access at any time. Keys created before MCP access existed are read-only until an Admin widens them.
+
+<Note>
+  Creating keys and changing their access is **Admin-only**. The assistant acts as the person who created the key, in that key's company. MCP access doesn't affect what the key can do on the [Migration API](/migration-api/introduction).
+</Note>
+
+## 2. Add Vern to your client
+
+<Tabs>
+  <Tab title="Claude Code">
+    ```bash
+    claude mcp add --transport http vern https://app.vern.so/api/mcp \
+      --header "Authorization: Bearer ve_YOUR_KEY"
+    ```
+
+    Run `/mcp` inside Claude Code to check it's connected.
+  </Tab>
+  <Tab title="Cursor">
+    Add this to `~/.cursor/mcp.json` (or `.cursor/mcp.json` in a project):
+
+    ```json
+    {
+      "mcpServers": {
+        "vern": {
+          "url": "https://app.vern.so/api/mcp",
+          "headers": { "Authorization": "Bearer ve_YOUR_KEY" }
+        }
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Other clients">
+    Any client that supports remote servers over **Streamable HTTP** with a custom header works. Point it at `https://app.vern.so/api/mcp` and send `Authorization: Bearer ve_YOUR_KEY`.
+
+    Clients that can only connect with OAuth (no custom headers) aren't supported yet.
+  </Tab>
+</Tabs>
+
+Treat the key like a password: keep it out of shared or committed config files where you can, for example by using your client's environment-variable support.
+
+## 3. Ask away
+
+Try *"What's in my Vern account?"* — the assistant starts with an overview, then digs in with the list and get tools. For example:
+
+- *"Which runs failed this week, and why?"*
+- *"Read the knowledge on the Northwind source and tidy its structure."*
+- *"Make `external_id` required on the Events template."*
+
+## What the tools cover
+
+| Area | Examples |
+|---|---|
+| Overview and lookups | `get_overview`, `list_*` and `get_*` for companies, sources, templates, lists, scouts, workflows, writers and runs |
+| Knowledge | `read_knowledge`, `review_knowledge`, `update_knowledge` |
+| Changes | creating and updating companies, sources, templates, template columns, lists, scouts and workflows (needs **Write**) |
+| Runs and builds | starting list and scout runs, testing and running workflows, and `start_migration_build`, `start_writer_build`, `start_source_build` (needs **Write**) |
+
+Which tools a client sees depends on the key's access and on your plan — tools a key can't use aren't listed.
+
+## Confirmations
+
+Deletes and anything that sends data outside Vern take two calls. The first returns `approval_required` with an `action_id` and a plain-English summary; the assistant should show you the summary and, only if you agree, call `confirm_action` with that id. Deletes also need the **Delete** access.
+
+Long builds (a migration, a writer or a source connector) run on their own after they start. If one needs an answer or credentials, finish it in Vern — credentials are never sent through MCP.
+
+## Limits and revoking
+
+Requests are rate-limited per connection and per company. Delete a key on the API keys page and any client using it is cut off immediately.
+
+## Next
+
+- [API keys](/help-center/settings/api-keys) — create, scope and revoke keys.
+- [Home](/help-center/home/overview) — the same agent, inside Vern.

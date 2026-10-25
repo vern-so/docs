@@ -1,0 +1,39 @@
+---
+title: Needs attention
+description: Everything in your account that's waiting on someone — and the nightly knowledge review that keeps your knowledge accurate.
+---
+
+Below the message box on [Home](/help-center/home/overview), **Needs attention** lists what's waiting on your team. It starts collapsed — click it to open the list.
+
+## What shows up
+
+| Item | What it means |
+|---|---|
+| **Run failed** | A list, scout, workflow, import or writer run failed. |
+| **Workflow is paused** | A scheduled workflow stopped, with the reason. |
+| **Plan waiting for approval** | A plan in a Home conversation hasn't been approved yet. |
+| **Waiting for approval** | A single change (or a delete) is waiting for someone to approve it. |
+| **Waiting for your answer** | A build handed to another agent has a question for you. |
+| **Knowledge issues** | The nightly review found problems in a source's, company's or template's knowledge. |
+
+Click a failed run, a paused workflow or a knowledge issue and Home starts a new conversation about it straight away — the agent already knows which run or document you mean, investigates, and proposes the fix. Click a waiting plan, approval or question to jump back to the conversation it belongs to.
+
+## The nightly knowledge review
+
+Every Vern agent reads your **knowledge** — what you've taught it about each source, company and template — before it works. Knowledge that's wrong, contradictory or hard to read makes every migration worse, so Vern reviews it every night.
+
+The review only re-reads what changed since its last check, together with anything a migration connects it to (a source, the company migrating off it, and the templates it lands in). It looks for:
+
+- **Contradictions** — two documents disagreeing, for example a source's notes and a company's notes giving different date formats.
+- **Duplicates and outdated facts** — the same rule written twice, or a fact that no longer holds.
+- **Structure** — walls of text that should be headings and lists.
+- **Facts in the wrong place** — knowledge that belongs on a different document. A source document describes the data being imported, a template describes the target structure, and a company holds that customer's business context.
+- **Column facts** — rules like *required*, *unique* or *must be an email* written in prose, which belong on the template column itself, where every import is held to them.
+- **Size** — a document over its limit. Runs that read it are blocked until it's trimmed, so these are marked critical.
+
+Each finding becomes a **Knowledge issues** item. Click it and the agent reads the documents, then proposes the fix — rewritten knowledge as a diff, or a change to the template column — for you to approve. Nothing changes until you do.
+
+## Next
+
+- [Home](/help-center/home/overview) — how plans and approvals work.
+- [Template columns](/help-center/templates/columns) — the column rules the review can suggest.

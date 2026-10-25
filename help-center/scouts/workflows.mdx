@@ -1,0 +1,85 @@
+---
+title: Workflows
+description: Chain lists, scouts or an API source, the migration and a writer — and run them on a schedule.
+---
+
+A **workflow** keeps data flowing on its own. It collects its inputs (a [list](/help-center/scouts/lists) and the [scouts](/help-center/scouts/scouts) that use it, or an API source), runs the migration into a workbook, and can write the result to your API through a [writer](/help-center/send/write-to-an-api) — every hour, every day, or whenever you choose.
+
+You'll find workflows under **Workflows** in the sidebar.
+
+<Note>
+  Workflows are in **beta**, alongside Scouts and Lists. They're available on every account.
+</Note>
+
+## Build a workflow
+
+Click **New workflow** (or the **+** next to Workflows in the sidebar). A workflow has up to three kinds of step.
+
+<Steps>
+  <Step title="Inputs">
+    Add up to 10 inputs. They run in order, and you can reorder them.
+
+    - **Add a list** — pick a list and override any of its parameters that aren't marked Fixed. Then choose which **scouts using this list** run on its entries (scouts set to *From a list*). Per scout:
+      - **Re-check every entry each run** — off: only new entries are scouted. On: every entry is collected again, so changes are picked up.
+      - **Re-run flagged entries once before migrating** — retry anything that came back flagged.
+    - **Add API source** — pick a connected source and its streams. Each run pulls everything since the last successful run.
+  </Step>
+  <Step title="Migration">
+    **Add migration** — choose a workbook with template sheets, and up to 10 **Files to keep** (everything else in the workbook is replaced each run).
+
+    Turn on **Update rows already in the workbook instead of adding copies** to replace rows by their unique key (it's always on when re-check is on). Templates without a unique column add rows instead.
+
+    There's no recipe to pick: the first test run builds it — and may ask you a question.
+  </Step>
+  <Step title="Write">
+    **Add write** — choose a writer. It sends only the rows this run imported, and reports what was written, updated, deleted, unchanged or failed.
+  </Step>
+</Steps>
+
+## Schedule it
+
+Under **When it runs**, pick how often it repeats:
+
+| Repeat | |
+|---|---|
+| Every 15 minutes / Every 30 minutes | |
+| Every hour | at a minute you choose |
+| Every day | at a time you choose |
+| Every few days | every 2–30 days from a start date, at a time |
+| On chosen days | e.g. weekdays, at a time |
+| Once a week | on a day, at a time |
+
+Times are wall-clock times in the **Timezone** you choose, so *daily at 06:00* stays 06:00 across daylight-saving changes.
+
+Optionally add an **Email** notification — **Only when a run fails**, or **After every run (and failures)**.
+
+## Test, approve, then run
+
+A workflow can't run on its own until someone approves it:
+
+1. **Test run** — takes 3 entries through every step, including writing to the destination. Test runs don't send emails.
+2. **Approve** — enabled once a test run of the current setup completes.
+3. **Run now**, or switch the **Schedule** on.
+
+The badge shows **Approved**, **Not approved yet** or **Changed since approval**. Editing a step means testing and approving again.
+
+## Runs
+
+Each run shows how many entries were new, and the run detail breaks it down per input, list, scout, migration and write. A run can end **Done**, **Nothing new**, **Failed** or **Canceled**.
+
+- If any input fails, the whole run stops and those entries are retried next run.
+- An entry that keeps failing is set aside after 3 attempts.
+- If a scheduled run fails, the workflow is **paused** with the reason, and shows up in [Needs attention](/help-center/home/needs-attention) on Home — click it and the agent investigates.
+
+Deleting a workflow keeps its lists, scouts, sources, recipe and writer.
+
+## Good to know
+
+- One list or scout runs at a time per company; workflow steps wait their turn.
+- With re-check on, each entry takes roughly 30–90 seconds, up to 10 at once.
+- You can also ask [Home](/help-center/home/overview) to set up a workflow for you, e.g. *"Re-sync new Northwind events every day at 06:00."*
+
+## Next
+
+- [Lists](/help-center/scouts/lists) and [Scouts](/help-center/scouts/scouts) — the inputs.
+- [Write to an API](/help-center/send/write-to-an-api) — the writer at the end.

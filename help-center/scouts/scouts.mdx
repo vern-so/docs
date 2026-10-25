@@ -1,0 +1,90 @@
+---
+title: Scouts
+description: Browser agents that pull data and documents off sites that have no API and no export button.
+---
+
+Some customer data lives in a portal you can only reach through a browser — no API, no export. A **scout** is a saved browser agent for one of those sites: where to start, plain-English instructions, and the columns you want back. It signs in the way you would, opens each record the way you would, and brings the data (and any documents) back for your workbook.
+
+You'll find scouts under **Scouts** in the sidebar.
+
+<Note>
+  Scouts, [Lists](/help-center/scouts/lists) and [Workflows](/help-center/scouts/workflows) are in **beta**. They're available on every account.
+</Note>
+
+## Create a scout
+
+Click **New scout** (or the **+** next to Scouts in the sidebar). The wizard has three steps.
+
+<Steps>
+  <Step title="Site">
+    Give it a **Name**, pick the **Workbook** where the output lands, and enter the **Start URL**. Point the URL at the page that lists the records, not the site's home page.
+  </Step>
+  <Step title="What to collect">
+    Choose how the scout gets its **entries** (one entry = one record to collect):
+
+    - **Find them on the site** — the scout walks the site and lists every record it can reach. You review the list before anything is collected.
+    - **I'll provide the list** — paste or upload up to 500 entries.
+    - **From a list** — use the latest collection of a [List](/help-center/scouts/lists).
+
+    Then tell it what to do on each entry:
+
+    - **Link to each entry** (optional) — a URL pattern with `{id}`, e.g. `https://portal.example.com/owners/{id}`. With a pattern, instructions are optional.
+    - **Instructions** — plain English. Text in square brackets is clicked when each entry's page opens, e.g. *Open [Contact details] and read the email*.
+    - **Template** — the scout collects that template's columns. Add a hint per column if it helps.
+    - **Also download documents** — turn on to collect files too, and say which ones in **What should it download?**
+  </Step>
+  <Step title="Access & speed">
+    - **Stay signed in between runs** — reuse the sign-in session on later runs. The session is stored by our browser provider, outside your data region.
+    - **Agents at once** — how many entries are worked on in parallel (1–10, default 3).
+  </Step>
+</Steps>
+
+Click **Create scout** — or **Create and sign in** if the site needs a login. That opens a secure live browser on the scout's page: sign in there once, and the scout reuses the session.
+
+**Duplicate scout** (in the ⋮ menu) starts a new scout pre-filled from this one, including its saved sign-in.
+
+## Preview and curate the entries
+
+For scouts that find their own entries, open the **Preview** tab (**Your list** for a provided list) and run it. The scout lists every entry it can reach. Then curate:
+
+- **✕** removes an entry the walk got wrong (the header ✕ clears all), and you can undo.
+- Add any entries it missed.
+- **Download preview list** saves the list as a file.
+
+The run collects exactly the list you approved — nothing more. If you change the scout's key settings, you'll see *Saved — preview again before running*: preview again before the next full run.
+
+Scouts set to **From a list** skip the preview — they collect every entry in the list's latest run.
+
+## Run it
+
+Click **Run N entries**. Or open the menu on that button and choose **Run a sample (first 5)** to check the output first.
+
+Every entry gets its own browser agent. Watch the table fill as they finish. Each entry ends up **Captured**, **Needs review**, **Not found** or **Failed**.
+
+Click any entry to open its drawer:
+
+- the **activity trail** — every page it opened, what it read, clicked and downloaded,
+- the **values** and **files** it collected,
+- **Watch the replay** — a recording of the browser session (kept for a limited time),
+- **Re-pull this entry** — run that one entry again.
+
+To retry everything flagged at once, click **Clean up (N)** → **Re-run flagged entries**. Each is retried in a fresh session, and only better results replace the old ones.
+
+## Get the results into your workbook
+
+Results stay on the scout until you click **Send to workbook**, which delivers a CSV of the rows plus any documents. From the ⋮ menu you can also **Download CSV** or **Download files (.zip)**.
+
+If the scout's template changes, a banner offers to **Update** the scout to match.
+
+Pick an earlier run from the run history on the left of the tabs to see its results.
+
+## Good to know
+
+- **One at a time.** One list or scout runs at a time per company; start another and it waits its turn.
+- **Sign-in expired?** Use **Sign in again** from the ⋮ menu.
+- **Deleting a scout** keeps any files already sent to the workbook.
+
+## Next
+
+- [Lists](/help-center/scouts/lists) — collect the entries a scout works through.
+- [Workflows](/help-center/scouts/workflows) — run lists, scouts, the migration and a writer on a schedule.

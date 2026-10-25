@@ -1,0 +1,65 @@
+---
+title: Lists
+description: Collect the IDs off a site — every order, property or account — as the entries a scout or workflow works through.
+---
+
+A **list** collects identifiers off a site: every order number, property ID or account on a listing page. Each identifier is an **entry**. Scouts set to **From a list** work through those entries, and [Workflows](/help-center/scouts/workflows) collect the list again on a schedule and pass on only what's new.
+
+You'll find lists under **Lists** in the sidebar.
+
+<Note>
+  Lists are in **beta**, alongside [Scouts](/help-center/scouts/scouts) and [Workflows](/help-center/scouts/workflows). They're available on every account.
+</Note>
+
+## Create a list
+
+Click **New list** (or the **+** next to Lists in the sidebar) and fill in the form.
+
+### Site
+
+A **Name** and the **List page URL** — the page that shows the records.
+
+### What to collect
+
+- **Identifier** — which value identifies each row, in plain English, e.g. *The Order # column*.
+- **The ID may be in the row's link** (optional) — paste the address of one entry and set a **Link pattern** with `{id}`. If rows aren't links, the list can click an element to open them instead.
+- **Extra columns** (optional) — anything else to capture per row, each with a name and a description.
+
+### Filters & parameters
+
+- **Instructions** — plain English for filtering or navigating. Text in square brackets is clicked, e.g. *Click [Completed] then [Apply]*.
+- **Parameters** — values the list fills in on each run. Each has a name, where it goes (**In the URL** or **On the page**), a kind (**Date**, **Choice** or **Text**) and a value. Switch on **Fixed** to stop workflows from changing it.
+- **Find filters on the page** — suggests parameters from the page's own filters (available once the list is saved).
+- **Date values** can be relative, so each run picks up the right window: `{today}`, `{yesterday}`, `{today-7d}`, `{start_of_week}`, `{start_of_month}`, `{end_of_month}`, `{last_run_date}` and more. Add a format with a colon, e.g. `{yesterday:MM/DD/YYYY}`. The form previews what a run started now would use.
+- **Timezone** — what "today" means for those dates.
+
+### Sign-in
+
+**Sign in to this site** to open a secure browser and log in once, or **use the sign-in from a scout** that already has one.
+
+### Getting more entries
+
+How to get past the first page: **Automatic**, **Pages**, **A "Load more" button** or **Scrolling down**. **Max items per run** caps a run at up to 5,000 entries.
+
+Click **Create list**.
+
+## Collect
+
+Open the list and click **Collect** (**Stop** to end early). The run summary shows how many items came from how many pages, any warnings, and the parameter values it used. The table shows each identifier and its extra columns; **New** marks entries that weren't in earlier runs.
+
+You can add entries by hand to the latest run — they're marked **Manual**. Earlier runs are in the run picker; runs started by a workflow are marked **From a workflow**.
+
+## Use it with a scout
+
+Create a [scout](/help-center/scouts/scouts) and choose **From a list** in the *What to collect* step. Run on its own, the scout collects every entry from the list's latest run. In a workflow, it takes only entries it hasn't collected before — unless you turn on **Re-check every entry each run**.
+
+To collect the list on a schedule, add it to a [Workflow](/help-center/scouts/workflows).
+
+## Good to know
+
+- One list or scout runs at a time per company; others wait their turn.
+
+## Next
+
+- [Scouts](/help-center/scouts/scouts) — collect the data behind each entry.
+- [Workflows](/help-center/scouts/workflows) — run it all on a schedule.

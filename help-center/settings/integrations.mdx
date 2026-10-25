@@ -1,0 +1,61 @@
+---
+title: Integrations
+description: Connect GitHub so the Home agent can read the repositories where your migration docs, rules and sample data live.
+---
+
+Many teams keep migration knowledge in code: mapping docs, business rules, scripts and sample exports. Connect GitHub and you can link those repositories to a job in [Home](/help-center/home/overview) — the agent reads them before it plans.
+
+Vern's access is **read-only**. It can read file contents and repository metadata. It can't push, open pull requests, create issues or change anything.
+
+## Connect GitHub
+
+<Steps>
+  <Step title="Open Integrations">
+    Open the user menu (bottom left) and go to **Developer → Integrations**, or go straight to [app.vern.so/integrations](https://app.vern.so/integrations).
+  </Step>
+  <Step title="Click Connect GitHub">
+    GitHub opens and asks where to install the **Vern App**. Pick your organisation or account.
+  </Step>
+  <Step title="Choose the repositories">
+    Choose **Only select repositories** and pick the ones Vern may read — or **All repositories** if you prefer. You can change this later in GitHub.
+  </Step>
+  <Step title="Back in Vern">
+    Click **Install**. GitHub sends you back to Integrations, with the account listed under GitHub.
+  </Step>
+</Steps>
+
+<Note>
+  Connecting and disconnecting is **Admin-only**. Everyone on the team can see what's connected and link the repos to a job. See [Team](/help-center/settings/team) for roles.
+</Note>
+
+You can connect more than one GitHub organisation — click **Connect another**.
+
+## Use it in Home
+
+In Home, click the repository icon next to the paperclip and pick one or more repositories (search by name). Each shows as a green pill next to your attached files. Send your message and the agent:
+
+1. looks through the repository's files,
+2. reads READMEs, docs and mapping rules,
+3. turns what it finds into the right knowledge and templates — proposed as a plan, with knowledge changes as diffs you approve,
+4. copies any data files it needs (for example sample CSVs) into the conversation, so they can be imported.
+
+It never copies secrets it finds — `.env` files, keys or tokens — into Vern.
+
+## Change which repositories Vern sees
+
+Vern only sees the repositories the GitHub app is installed on. To add or remove some, open GitHub → your organisation's **Settings → GitHub Apps → Vern App → Configure**.
+
+## Disconnect
+
+On Integrations, click the disconnect button next to the account. Vern uninstalls its GitHub app from that account and deletes its stored access straight away. Connects and disconnects are recorded in your audit log.
+
+## Security
+
+- GitHub access tokens are short-lived and created only when the agent reads a repository. Nothing long-lived is stored for GitHub.
+- Repository contents the agent reads are used for that job; only what you approve is saved as knowledge or templates.
+- Data stays in your account's data region.
+
+## Next
+
+- [Home](/help-center/home/overview) — link repositories to a job.
+- [Team](/help-center/settings/team) — who can connect integrations.
