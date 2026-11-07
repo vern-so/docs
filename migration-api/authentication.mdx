@@ -13,6 +13,20 @@ curl https://app.vern.so/api/v1/migrations \
 A key is scoped to your **account** and can address every migration in it. The
 key's creator becomes the owner of any migration it provisions.
 
+## Base URL
+
+Send requests to the base URL for your account's data region:
+
+| Account hosted in | Base URL |
+|---|---|
+| United States | `https://app.vern.so/api/v1` |
+| Australia | `https://au.app.vern.so/api/v1` |
+
+The examples in these docs use the US base URL. If your account is hosted in
+Australia, swap in `https://au.app.vern.so/api/v1`. Requests sent to the other
+region's base URL are refused with `421`. See
+[Data region](/migration-api/errors#data-region).
+
 ## Get a key
 
 Sign in to [app.vern.so](https://app.vern.so) and go to [Settings → API keys](https://app.vern.so/api-keys). Click **New key** and copy it — Vern doesn't show it again after creation.
