@@ -12,9 +12,15 @@ concepts and end-to-end walkthroughs, then come back to try the calls.
 
 ## Base URL
 
-```
-https://app.vern.so/api/v1
-```
+Use the base URL for the region your account's data is hosted in:
+
+| Account hosted in | Base URL |
+|---|---|
+| United States | `https://app.vern.so/api/v1` |
+| Australia | `https://au.app.vern.so/api/v1` |
+
+A key used against the other region's base URL gets a `421` naming the right one.
+See [Data region](/migration-api/errors#data-region).
 
 ## Authentication
 

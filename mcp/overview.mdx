@@ -11,9 +11,13 @@ These are the same operations the [Home agent](/help-center/home/overview) uses,
 
 | | |
 |---|---|
-| URL | `https://app.vern.so/api/mcp` |
+| URL | `https://app.vern.so/api/mcp` (US-hosted accounts) · `https://au.app.vern.so/api/mcp` (Australia-hosted accounts) |
 | Transport | Streamable HTTP (stateless — every call is a `POST`, answered with JSON) |
 | Auth | A Vern API key: `Authorization: Bearer ve_…` (or the `x-api-key` header) |
+
+If your account is hosted in Australia, use `https://au.app.vern.so/api/mcp` in
+the setup below. A key sent to the other region's server gets a `421` with a
+JSON-RPC error whose `data.mcp_url` is the server to use.
 
 ## 1. Create a key with MCP access
 

@@ -17,6 +17,7 @@ one rate limit.
 | `409` | A conflict — a reused `external_id`, an ambiguous source name, a run already in progress, or a state precondition (e.g. asking for the [session log](/migration-api/session-log) before the migration settles). |
 | `410` | The resource expired and its data was deleted — an [export job](/migration-api/export-jobs) past its retention window. Start a new one. |
 | `412` | A guarded write lost a race. Only from [knowledge](/migration-api/knowledge) writes sent with `if_unmodified_since` — re-read, merge, and write again. |
+| `421` | Wrong region: your account's data is hosted in another region. The body names the base URL to use — see [Data region](#data-region). |
 | `429` | A [rate limit](#rate-limits) or the [concurrent-run limit](#concurrent-runs). Check `Retry-After`. |
 | `500` | Server error — safe to retry idempotent requests. |
 | `502` | An upstream worker couldn't be reached — document parsing or the export executor. Retry. |
@@ -191,8 +192,32 @@ capped at [3 runs in progress](#concurrent-runs).
 
 ## Data region
 
-Migrations are created in your **account's region**. If you need data to land in
-a specific region for residency reasons, talk to us at
+Migrations are created in your **account's region**, and your account's requests
+are processed in that region. Each region has its own base URL:
+
+| Account hosted in | Base URL | MCP server |
+|---|---|---|
+| United States | `https://app.vern.so/api/v1` | `https://app.vern.so/api/mcp` |
+| Australia | `https://au.app.vern.so/api/v1` | `https://au.app.vern.so/api/mcp` |
+
+A key used against the other region's base URL is refused with `421 Misdirected
+Request` before any work happens. The body tells you where to send it:
+
+```json
+{
+  "error": "This account's data is served from https://au.app.vern.so. Use https://au.app.vern.so/api/v1 for API calls.",
+  "code": "wrong_region",
+  "region": "syd",
+  "base_url": "https://au.app.vern.so/api/v1",
+  "mcp_url": "https://au.app.vern.so/api/mcp",
+  "app_url": "https://au.app.vern.so"
+}
+```
+
+Switch your client's base URL to `base_url` and retry. Don't retry against the
+same URL: the answer won't change.
+
+If you need data to land in a specific region for residency reasons, talk to us at
 [roupen@vern.so](mailto:roupen@vern.so) — additional regions are enabled per account.
 
 ## Next

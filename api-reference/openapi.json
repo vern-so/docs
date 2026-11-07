@@ -6,7 +6,8 @@
     "description": "Run Vern as a headless migration engine. Create a migration, upload a customer's files, run the managed agent to generate a preview, then execute and export clean data. See the Migration API guides for concepts and walkthroughs."
   },
   "servers": [
-    { "url": "https://app.vern.so/api/v1" }
+    { "url": "https://app.vern.so/api/v1", "description": "US-hosted accounts" },
+    { "url": "https://au.app.vern.so/api/v1", "description": "Australia-hosted accounts" }
   ],
   "security": [
     { "apiKey": [] }
