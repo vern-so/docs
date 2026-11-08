@@ -1,0 +1,64 @@
+---
+title: Sources
+description: The systems your customers are moving off — and everything Vern learns about each one, reused on every migration from it.
+---
+
+A **source** is a system your customers move off — ServiceM8, Xero, a legacy
+CRM, an in-house database. Each company you onboard can be linked to the source
+it's coming from, and everything Vern learns about that system lives on the
+source, so the next customer from it is faster.
+
+Go to **Sources** in the sidebar.
+
+## Add a source
+
+Click **Add** and pick from the **Library sources**, or add your own
+source system with its name and login URL. Library sources come with an API
+connector already described; for anything else, customers send you export
+files.
+
+Each source is badged by how data arrives:
+
+| Badge | Data comes from |
+|---|---|
+| **API** | The source's API. On the import page you can choose **Extract via {Source}**, enter the customer's credentials, and Vern pulls the data itself. |
+| **Export files** | Files the customer exports and you upload. |
+
+No connector for a system you need? [Build one](/help-center/sources/source-builder).
+
+## A source's page
+
+Open a source to see four tabs:
+
+| Tab | What's there |
+|---|---|
+| **Knowledge** | What Vern knows about this system — its quirks, field meanings, date formats, status codes. The migration agent reads it before every import from this source and adds what it learns. You can edit it. |
+| **Objects** | The record types the source holds (contacts, invoices, jobs…), for API sources. |
+| **Config** | How the connector signs in and which fields it needs, for library sources. |
+| **History** | Every import that has used this source. |
+
+## Reuse a recipe
+
+Every import writes a **recipe** — the logic that turns this source's data into
+your templates — and the next import from the same source starts from the best
+earlier one automatically.
+
+To make one recipe the default, click **Publish & bind import recipe** on the
+source and choose an import. Vern snapshots its recipe as a fixed version and
+sets it as this source's default. Migrations created through the
+[Migration API](/migration-api/introduction) inherit it.
+
+## Knowledge, company or template?
+
+Vern keeps three kinds of knowledge, and the [nightly review](/help-center/home/needs-attention)
+flags facts in the wrong one:
+
+- **Source** — how the data being imported is shaped: *"dates are DD/MM/YYYY"*.
+- **Company** — that one customer's business context: *"they treat archived jobs
+  as cancelled"*. On the company's **Knowledge** tab.
+- **Template** — the target structure in your app.
+
+## Next
+
+- [Source builder](/help-center/sources/source-builder) — build an API connector for any source.
+- [How import works](/help-center/import/how-it-works) — where source knowledge and recipes are used.

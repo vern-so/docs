@@ -1,0 +1,41 @@
+---
+title: Billing, usage and storage
+description: Your plan, what you've used this month, and how much file storage your account has left.
+---
+
+Open the user menu (bottom left) and choose **Billing and Usage** or **Storage**.
+
+## Billing and Usage
+
+The page shows your current plan, what it includes, and this month's usage.
+
+- **Credit plans** include a monthly allowance of **Vern Credits**. Credits are
+  consumed **per source cell** an import reads, and usage beyond the allowance
+  is billed at $0.02 per credit. The page charts usage and breaks it down per
+  migration, and shows when monthly usage resets.
+- **Pay-as-you-go** plans bill per 1,000 workbook rows imported.
+
+Click **Manage Plan** to change your plan or payment details in Stripe. Only
+the teammate on the Stripe subscription or a company Admin can manage billing.
+
+Runs that cost credits — imports, scouts, lists, workflows and writer runs,
+including those started by the [Home agent](/help-center/home/overview) or the
+[Migration API](/migration-api/introduction) — need an active plan.
+
+## Storage
+
+**Storage** shows how much space uploaded files use across all your companies,
+against your account's limit, with a per-company breakdown of files and size.
+
+- Near the limit you'll see **Approaching your storage limit**.
+- At the limit, **Storage limit reached** — new uploads are paused until space
+  is freed.
+
+To free space, delete companies or uploaded files you no longer need. A
+[retention policy](/help-center/settings/data-retention) can do this for you
+automatically.
+
+## Next
+
+- [Team](/help-center/settings/team) — who's an Admin.
+- [Data retention](/help-center/settings/data-retention) — purge old workbook data on a schedule.
