@@ -5,7 +5,7 @@ description: Every setting on a template column, what it enforces, and the error
 
 A template is a named set of columns, and a column is the unit of validation: it
 carries the name the agent matches your source data against, the description it
-reasons from, and the rules every cell has to pass.
+reasons from, where its value comes from, and the rules every cell has to pass.
 
 ## Where to configure them
 
@@ -47,6 +47,31 @@ Write what a *good* value looks like, including the cases that trip people up:
 
 If the agent keeps misreading a column, the description is almost always the fix.
 
+A description can be up to **500 characters** — the editor shows a counter.
+Click **✨** to have AI draft one from the column name.
+
+## Value
+
+**Value** decides where a column's contents come from:
+
+| Value | Filled by |
+|---|---|
+| **Standard** | The import — the agent maps your customer's data into it. The default. |
+| **Calculated** | A formula over other columns, e.g. `=ROUND([Price] * [Qty], 2)`. |
+| **Extracted** | A text-extraction model that pulls one thing out of another column's free text, e.g. the medication from a clinical note. |
+
+Calculated and extracted cells are read-only in the grid, and the import agent
+never writes them. Each has its own page:
+
+<CardGroup cols={2}>
+  <Card title="Calculated columns" icon="function" href="/help-center/templates/calculated-columns">
+    Formula syntax, functions, errors, and when values recompute.
+  </Card>
+  <Card title="Extracted columns" icon="wand-magic-sparkles" href="/help-center/templates/extracted-columns">
+    What to extract, how the column's shape picks the result, and Re-extract.
+  </Card>
+</CardGroup>
+
 ## Required
 
 Flags a cell as invalid when it has no value.
@@ -86,11 +111,12 @@ The dropdown picks how a cell's *content* is checked. Three options:
 Strict holds a regular expression that every non-blank cell must match. You
 author it three ways, all of which produce the same stored pattern:
 
-- **Visual blocks** — the default. Build the pattern from labelled pieces
-  (`Digits (11)`, `Letters (1+)`, `@`, `Choice Options`, …) rather than writing
+- **Visual blocks** — the default. Click **Add Validation Block** and build the
+  pattern from labelled pieces (`Letters Only`, `Alphanumeric`, `Integer`,
+  `At Symbol (@)`, `Date (YYYY-MM-DD)`, `Custom Options`, …) rather than writing
   regex. Each block takes parameters such as an exact length or a min/max range.
 - **Presets** — start from a ready-made pattern for a category (Email, Phone,
-  Text, Number, Date, ID / Code) and adjust its parameters.
+  Text, Number, Date, ID / Code, Custom) and adjust its parameters.
 - **AI** — switching a column to Strict while it has a name and a description
   generates a pattern from them. Review it; it is a starting point, not an
   answer.
@@ -104,6 +130,12 @@ Two things to know about how it is applied:
   when you mean the whole value.
 
 A failing cell records `Value does not match required pattern`.
+
+Patterns use JavaScript regex syntax. The grid and the import preview check
+them with a fast, safe matcher that has limits: a pattern over 512 characters,
+or one that uses lookarounds (`(?=…)`, `(?!…)`) or backreferences (`\1`), can't
+be checked there — the **Test Pattern** box says so. Such patterns still save,
+and are still enforced when an import runs.
 
 ### Link
 
@@ -139,9 +171,9 @@ at once, and each is enforced on its own:
   checks.
 - Setting the dropdown to **Link** additionally turns on the grid's link
   behaviour: link errors are styled in the sheet and re-checked live as you edit
-  a cell, and the [nested webhook export](/help-center/send/webhooks) sends the
-  referenced record instead of the raw value. Those two surfaces are the only
-  things that read the dropdown rather than the rule itself.
+  a cell. The [writer](/help-center/send/write-to-an-api) build agent also
+  reads it to see which templates refer to which when it plans how to write
+  related records.
 
 Practical upshot: pick the dropdown value that matches what the column is *for*,
 and don't worry that adding a second rule will switch the first one off.
@@ -157,12 +189,17 @@ only for what changed:
 - Toggling **Unique** re-runs duplicate detection, and clears duplicate errors
   when you turn it off.
 - **Removing** a column clears every error recorded against it.
+- Adding or changing a **formula** recalculates that column on every sheet.
+- Changing an **extracted** column's settings re-extracts it on every sheet, in
+  the background.
 
 Each sheet's invalid count is recalculated and its cache cleared afterwards, so
 the workbook reflects the new rules without anyone reopening it.
 
 ## Next
 
+- [Calculated columns](/help-center/templates/calculated-columns) — formulas.
+- [Extracted columns](/help-center/templates/extracted-columns) — values pulled from free text.
 - [Link columns](/help-center/templates/link-columns) — references between templates.
 - [Structured values](/help-center/templates/structured-values) — lists and records in one column.
 - [Spot-check and fix](/help-center/import/spot-check-and-fix) — working through what validation flags.

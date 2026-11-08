@@ -1,0 +1,101 @@
+---
+title: Extracted columns
+description: Pull a value out of another column's free text — a medication from a clinical note, a phone number from a comment — with a text-extraction model that runs inside Vern.
+---
+
+An **extracted** column is filled by reading another column's free text and
+pulling out one thing: the prescribed medication from a doctor's note, the
+contact's mobile number from a comments field, the product mentioned in a
+support ticket.
+
+| Notes (source) | Medication (extracted) |
+|---|---|
+| Started metformin 500mg BID; review in 3 months. | metformin |
+| Patient declined statins. Continue lisinopril 10 mg daily. | lisinopril |
+
+## Make a column extracted
+
+Open the column in [Templates](https://app.vern.so/templates). Under **Value**,
+pick **Extracted**, then fill in:
+
+- **Read from** — the text column to read. It must be an ordinary column on the
+  same template; it can't be another calculated or extracted column.
+- **What to extract** — say it in words, up to 200 characters:
+  *"the prescribed medication"*, *"the customer's mobile number"*.
+
+Paste a sample into the test box and press **Enter** to see what comes back
+before you save. The first test can take around 20 seconds while the model
+starts; after that it's quick.
+
+A column is extracted **or** [calculated](/help-center/templates/calculated-columns),
+never both.
+
+## What comes back depends on the column's shape
+
+Vern uses one dedicated text-extraction model (GLiNER2) for every extracted
+column. What it returns is decided by the column's
+[shape](/help-center/templates/structured-values) — the **Each cell holds**
+setting — so set the shape to match what you want:
+
+| Each cell holds | The cell gets |
+|---|---|
+| **A single value** | The single most confident match. |
+| **A list of values** | Every match, with duplicates removed, as a JSON list. |
+| **A record** | One value per declared field, as a JSON object. |
+| **A list of records** | One object per thing found, each with the declared fields. |
+
+For a record or list of records, the model reads each **field's name and
+description** to know what to look for — so a `Medications` column holding a
+list of records with `name`, `dose` and `frequency` fields turns
+*"metformin 500mg BID"* into
+`[{"name": "metformin", "dose": "500mg", "frequency": "BID"}]`.
+
+A match has to clear a fixed confidence bar. When nothing in the text clears
+it, the cell is left blank.
+
+<Note>
+  The model runs on Vern's own servers in your account's data region. Your
+  notes aren't sent to an AI provider, and nothing is downloaded at run time —
+  which is why extracted columns are suitable for clinical and other sensitive
+  free text.
+</Note>
+
+## When it runs
+
+- **On import** — every row the import writes is extracted, and the import
+  preview shows extracted values too.
+- **Large imports** — when a sheet has more than 20,000 distinct source texts,
+  the import finishes first with the column blank, then a background job fills
+  it in. The column's header pulses, and its header info shows
+  **Extracting… N / M** while it works.
+- **Re-extract** — click the column header in a sheet to open its info, then
+  click **Re-extract** to run it again over the whole sheet, for example after
+  you've edited source text. If the last run failed, the reason is shown there.
+- **When the settings change** — saving a new **Read from** or **What to
+  extract** re-extracts every sheet built from the template, in the
+  background. Changing only the column's shape doesn't; use **Re-extract**.
+
+Only one extraction runs per sheet at a time. Calculated columns that use an
+extracted column are recalculated when it finishes.
+
+## Things to know
+
+- **Editing the source cell doesn't re-extract.** The model is too slow to run
+  on every keystroke; use **Re-extract** when you're done editing.
+- **Long text is read in full.** Notes longer than a few hundred words are read
+  in overlapping chunks rather than cut off.
+- **Speed.** Expect roughly 1,000–2,000 notes a minute. Identical texts are
+  only read once.
+- **Failures don't fail the import.** If extraction can't run for a column,
+  that column is left blank, the rest of the import completes, and you can
+  **Re-extract** later.
+- **Read-only.** Extracted cells can't be typed over in the grid, and the
+  import agent never writes them. Their column header shows **✦**.
+- **In scouts**, an extracted column is treated as an ordinary field: the scout
+  reads the value from the page directly.
+
+## Next
+
+- [Calculated columns](/help-center/templates/calculated-columns) — derive a value with a formula.
+- [Structured values](/help-center/templates/structured-values) — declare the shape an extraction fills.
+- [Column options](/help-center/templates/columns) — every other column setting.

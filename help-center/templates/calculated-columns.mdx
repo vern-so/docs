@@ -1,0 +1,101 @@
+---
+title: Calculated columns
+description: Fill a column from a formula over other columns — computed on import and kept up to date as you edit.
+---
+
+A **calculated** column is filled by a formula instead of from your customer's
+data. Use it for anything you can derive from other columns: a line total, a
+full name, a status that depends on a date, a fallback when a field is blank.
+
+```text
+=ROUND([Price] * [Qty] * (1 + [Tax Rate]), 2)
+```
+
+## Make a column calculated
+
+Open the column in [Templates](https://app.vern.so/templates). Under **Value**,
+pick **Calculated** (the other options are **Standard** — filled from the
+source data — and [**Extracted**](/help-center/templates/extracted-columns)).
+Type the formula into the **Formula** box.
+
+- Type `@` to pick a column; it's inserted as `[Column Name]`.
+- Click **Functions** for the list of functions and operators.
+- Use the **Test** box to enter sample values for each column the formula
+  uses and see the result before you save.
+
+A column is calculated **or** extracted, never both.
+
+## Formula syntax
+
+The language is a small, Excel-style subset. The leading `=` is optional.
+
+| Piece | How to write it |
+|---|---|
+| Column | `[Column Name]` — write `]]` for a literal `]` in a name |
+| Text | `"like this"` — write `""` for a quote inside text |
+| Number | `12`, `0.5`, `1e3` |
+| True / false | `TRUE`, `FALSE` |
+| Arithmetic | `+ - * /` and `( )` |
+| Join text | `&` — `[First Name] & " " & [Last Name]` |
+| Compare | `= <> < <= > >=` |
+
+### Functions
+
+| Function | What it does |
+|---|---|
+| `ROUND(number, digits)` | Rounds half away from zero. `digits` defaults to 0. |
+| `ABS(number)` | The number without its sign. |
+| `MIN(a, b, …)` / `MAX(a, b, …)` | The smallest / largest number. Lists are expanded. |
+| `SUM(a, b, …)` | The total. Lists are expanded, blanks skipped. |
+| `AVERAGE(a, b, …)` | The mean. Lists are expanded, blanks skipped. |
+| `IF(condition, then, else)` | Only the branch that's chosen is evaluated — `IF([Qty] = 0, 0, [Total] / [Qty])` never divides by zero. |
+| `COALESCE(a, b, …)` | The first value that isn't blank. |
+| `CONCAT(a, b, …)` | Joins as text, the same as `a & b`. |
+
+No other functions are available; an unknown name is an error.
+
+## How values are read
+
+Formulas follow Excel where it matters for migrated data:
+
+- A **blank** cell counts as `0` in arithmetic and `""` in text.
+- Text that reads as a number is a number: `"1,250.00"`, `"$5"` and `"15%"`
+  (0.15) all work in arithmetic.
+- Text comparisons ignore case: `[Status] = "active"` matches `Active`.
+- A formula can be up to 2,000 characters.
+
+## Errors
+
+When a formula can't produce a value for a row, the cell holds an error value
+and is flagged invalid with `Formula error: #…`:
+
+| Value | Typical cause |
+|---|---|
+| `#DIV/0!` | Dividing by zero (or by a blank). |
+| `#VALUE!` | Arithmetic on text that isn't a number. |
+| `#NUM!` | A result that isn't a finite number. |
+
+Some mistakes are refused when you save, so they never reach a sheet: a column
+name that doesn't exist on the template, a formula that refers to its own
+column, and formulas that refer to each other in a loop.
+
+## When it computes
+
+- **On import** — for every row the import writes.
+- **When you edit the grid** — changing a cell a formula uses, adding a row,
+  filling a column down, or applying a chat edit recalculates the affected rows.
+- **When the formula changes** — saving a new formula recalculates every sheet
+  built from the template.
+- **In scouts** — calculated columns are computed from what the scout
+  collected, not read from the page.
+
+Calculated cells are **read-only**: the grid won't let you type over them, and
+the import agent never writes them. Their column header shows **ƒx**.
+
+A formula can use an [Extracted](/help-center/templates/extracted-columns)
+column; it's recalculated when the extraction finishes.
+
+## Next
+
+- [Extracted columns](/help-center/templates/extracted-columns) — pull a value out of free text.
+- [Column options](/help-center/templates/columns) — every other column setting.
