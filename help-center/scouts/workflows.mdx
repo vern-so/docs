@@ -8,7 +8,7 @@ A **workflow** keeps data flowing on its own. It collects its inputs (a [list](/
 You'll find workflows under **Workflows** in the sidebar.
 
 <Note>
-  Workflows are in **beta**, alongside Scouts and Lists. They're available on every account.
+  Workflows are in **beta**, alongside Scouts and Lists. Workflows are available on every account, but **lists and scouts are only available for accounts whose data is stored in the US**. Accounts hosted in Australia can build workflows from **API sources** only: list and scout steps can't be saved there, and an existing workflow that has one is paused with the reason when it next starts.
 </Note>
 
 ## Build a workflow
@@ -17,7 +17,7 @@ Click **New workflow** (or the **+** next to Workflows in the sidebar). A workfl
 
 <Steps>
   <Step title="Inputs">
-    Add up to 10 inputs. They run in order, and you can reorder them.
+    Add up to 10 scouts and API sources in total (a list itself doesn't count). They run in order, and you can reorder them.
 
     - **Add a list** — pick a list and override any of its parameters that aren't marked Fixed. Then choose which **scouts using this list** run on its entries (scouts set to *From a list*). Per scout:
       - **Re-check every entry each run** — off: only new entries are scouted. On: every entry is collected again, so changes are picked up.

@@ -19,12 +19,16 @@ Not sure where to start? Click one of the example prompts under the message box 
 
 ## Attach files
 
-Click the paperclip, or drop files onto the message box. Home takes the same files an import does — Excel, CSV, SQL dumps, Word documents, PDFs and zip archives — plus **Markdown** (`.md`) files. You can attach up to 25 files to a message.
+Click the paperclip, or drop files onto the message box. Home takes the same files an import does — Excel, CSV, SQL dumps (`.sql`, `.bak`), XML and ZIP archives — plus **Markdown** (`.md`) files. You can attach up to 25 files to a message.
+
+<Note>
+  PDF, Word and image files are temporarily unavailable — Home refuses them at upload, and documents inside a ZIP are skipped.
+</Note>
 
 You don't have to say what each file is. The agent opens them and works out where each belongs:
 
 - **Customer data** goes to the company's workbook, ready to import.
-- **A document describing a data shape** can become a template.
+- **A file describing a data shape** — a schema, a spec, a sample — can become a template, including [calculated](/help-center/templates/calculated-columns) and [extracted](/help-center/templates/extracted-columns) columns.
 - **Context documents** — mapping notes, business rules, a README — become **knowledge** on the right source, company or template. Knowledge changes always arrive as a diff for you to approve.
 
 Files the agent never uses are cleaned up automatically.
@@ -44,6 +48,8 @@ For anything bigger than a quick question, the agent proposes **one plan** befor
 - Click **Approve plan** and the agent works through the steps, ticking each one off.
 - Click **Not now** and nothing changes. Tell the agent what to do differently.
 
+Only the person who asked can approve their plan, and a plan expires after **24 hours** — after that, ask again.
+
 Some steps ask again even inside an approved plan:
 
 | Step | What you see |
@@ -60,18 +66,25 @@ Building a migration, a writer or a source connector takes longer, so the agent 
 
 ## The pipeline
 
-While the agent works, the **Pipeline** panel on the right lists what this conversation planned, created or is building — companies, sources, templates, lists, scouts, workflows and writers — with a status for each. Click any item to open it.
+While the agent works, the **Pipeline** panel on the right lists what this conversation planned, created or is building — companies, sources, source connectors, templates, lists, scouts, workflows and writers — with a status for each (**Ready**, **Working**, **Needs your input**, **Failed** or **Deleted**). Click any item to open it.
 
 ## Past conversations
 
-Click the history icon (top right) to reopen an earlier conversation, or **+** to start a new one. When a job is done, **Back to Home** next to the Send button takes you back to a fresh start.
+Click the history icon (top right) to reopen an earlier conversation, or **New chat** to start a new one. When a job is done, **Back to Home** next to the Send button takes you back to a fresh start.
 
 ## What the agent can and can't do
 
 The agent can only do what you could do yourself in Vern. Admin-only actions need an Admin, and runs that cost credits need an active plan. If something isn't allowed, the agent tells you why.
 
+Lists and scouts are only available for accounts whose data is stored in the US, so for accounts hosted in Australia the agent won't create or run them; it builds workflows from API sources instead.
+
+## Use it from Slack
+
+The same agent is available in Slack — mention `@Vern` in a channel or send it a direct message. See [Slack](/help-center/settings/slack).
+
 ## Next
 
 - [Needs attention](/help-center/home/needs-attention) — failed runs, waiting approvals and knowledge the nightly review flagged.
 - [Integrations](/help-center/settings/integrations) — connect GitHub.
+- [Slack](/help-center/settings/slack) — talk to the agent from Slack.
 - [MCP server](/mcp/overview) — use the same agent tools from Claude Code, Cursor or any MCP client.
