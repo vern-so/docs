@@ -1,0 +1,26 @@
+---
+title: Recipe format
+description: Choose whether the import agent writes its recipes in Python or SQL.
+---
+
+Every import builds a **recipe** — the steps that turn your customer's files
+into clean rows. **Recipe format** chooses the language that recipe is written
+in, and so what you see on a migration's **Recipe** tab. The imported data is
+identical either way.
+
+Open the user menu (bottom left) and choose **Recipe format**. It's
+**Admin-only**.
+
+| Format | Choose it when |
+|---|---|
+| **Python (default)** | Suits most teams. |
+| **SQL** | The people reviewing imports read SQL. The recipe tab shows the SQL. |
+
+The setting applies to migrations started from then on. Migrations already in
+progress, and every import you've already run, keep the format they were
+written in. The page tells you how many migrations are in progress before you
+switch.
+
+## Next
+
+- [How import works](/help-center/import/how-it-works) — where the recipe is written and reviewed.

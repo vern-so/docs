@@ -92,6 +92,14 @@ Shape checking also runs regardless of what the **Validation Rule** dropdown
 says. A column whose rule is **None** but which carries a schema is still
 validated against it.
 
+## Where else the shape is used
+
+- **Extracted columns.** On an [extracted column](/help-center/templates/extracted-columns),
+  the shape decides what the model returns: one value, a list of matches, or
+  records whose fields are read using each field's name and description.
+- **Scouts.** A [scout](/help-center/scouts/scouts) returns a structured column
+  as JSON and checks each collected value against the shape before saving it.
+
 ## Referencing other templates from inside a structured value
 
 When the thing that has to exist in another template is a *field* of a record

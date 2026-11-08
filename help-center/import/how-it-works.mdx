@@ -1,55 +1,126 @@
 ---
 title: How import works
-description: The AI agent that maps your customer's data into your schema.
+description: The migration agent that maps your customer's data into your templates — you watch, steer and approve before anything is written.
 ---
 
-Most of the work of onboarding a customer is converting their messy data into your clean schema. Vern's import agent does that for you in four steps you can review and override.
+Most of the work of onboarding a customer is converting their messy export into
+your clean schema. Vern's **migration agent** does that for you. It reads the
+files, works out how they map onto your templates, writes a script (the
+**recipe**) to do it, previews the result, and asks you whenever something
+needs a decision. Nothing is written to the workbook until you click **Run
+import**.
 
-You start with a file (CSV, Excel, or PDF). You end with rows that pass your template rules and are ready to send to your app.
+## Start an import
 
-## The four steps
+Open the company and click **Import** (or **Re-import** from the workbook's
+**⋯** menu). Then on the upload screen:
 
-<Steps>
-  <Step title="Upload">
-    Open the sheet you want to import into and click **Import**. Drop in the file.
+1. **Add the files.** Click or drop files into the upload area.
+   - Accepted: **CSV, Excel** (`.xlsx`, `.xls`, `.xlsm`, `.xltx`, `.xltm`),
+     **SQL dumps** (`.sql`, `.bak`), **XML** and **ZIP** archives of any of these.
+   - Up to 5 GB per file, 20 GB per upload, and 400 files per import.
+   - Files already in the workbook from an earlier import can be brought in too —
+     turn on **Include previous data**.
+2. **Add instructions (optional).** **Instructions for this migration** is for
+   anything specific to this run — *"ignore archived jobs"*, *"phone numbers are
+   all Australian"*.
+3. Click **Start import**.
 
-    Vern handles CSV, Excel, and PDF — including multi-table PDFs and Excel files without proper header rows. If you re-upload a file with the same name, Vern warns you so you don't double-import by accident.
-  </Step>
-  <Step title="Clarify">
-    The agent reads your file, compares it to your template, and asks a few clarifying questions. It might ask how to interpret an ambiguous column, what to do with partial records, or how to normalize a date.
+If the company's [source](/help-center/sources/sources) has an API connector,
+you can switch on **Extract via** *source name* instead of uploading — enter the
+customer's credentials once and click **Extract** (or **Extract & upload** to
+combine both).
 
-    For unknowns the agent can resolve itself, it runs a web search instead of asking you. The goal is to ask only the questions you actually need to answer.
-  </Step>
-  <Step title="Review plan">
-    Vern generates a plain-English **migration plan** describing exactly what it'll do — column-by-column mappings, transformations, validation expectations.
+<Note>
+  PDF, Word and image files (scanned documents) are **temporarily
+  unavailable**. Uploading one shows *"Document extraction (PDF, image and
+  presentation files) is temporarily unavailable. CSV and Excel files are
+  supported."* Documents inside a ZIP are skipped and listed as skipped.
+</Note>
 
-    Read it. Tweak the questions you answered if anything looks wrong. Vern regenerates the plan on the fly.
+If you upload a file whose name matches one already in the workbook, Vern asks
+whether to **Skip** it, **Upload anyway**, or **Replace** the existing one.
 
-    If you've imported a similar file before, Vern reuses that plan. Toggle **Ignore previous plan** if you want a fresh one (for example, the source's export format changed).
-  </Step>
-  <Step title="Execute">
-    Click **Execute**. The agent runs the plan as a script over your file. You see progress live.
+## Watch the agent work
 
-    When it finishes, the sheet shows the imported rows, marked valid (green), needs-review (yellow), or invalid (red) against your template rules.
-  </Step>
-</Steps>
+The import opens as a console with four tabs:
 
-## Plans are reusable
+| Tab | What it shows |
+|---|---|
+| **Activity** | The agent's progress, its questions, and the changes it proposes. |
+| **Recipe** | The script it's writing to transform the data (shown as **SQL** if your account uses [SQL recipes](/help-center/settings/recipe-format)). |
+| **Uploads** | The source files, so you can see what it's reading. |
+| **Preview** | What each sheet will look like, from a dry run on the data, with invalid cells marked. |
 
-The plan Vern generates is split into two parts: a **recipe** (the portable logic for "ServiceM8 → our schema") and an **adapter** (one customer's specific values). The recipe carries over to your next customer using the same source. The adapter starts fresh each time.
+Along the way the agent may stop and ask:
 
-This means the second customer you onboard from a given system is dramatically faster than the first.
+- **Questions** — how to read an ambiguous column, what to do with partial
+  records, which of two date formats is right. Pick an answer or type your own,
+  then click **Continue**.
+- **Template updates** — when the data has something your templates can't hold,
+  it proposes the change. Click **Apply updates** to accept, or carry on
+  without. Turn on **Template lock** on the company to stop it proposing these.
+- **Conflicts** — when the data contradicts a template rule, it shows both sides
+  and asks which wins. Click **Apply** on your choice.
 
-## If something goes wrong mid-import
+For things it can look up itself — what a source system's status code means, an
+industry abbreviation — the agent searches the web rather than asking you.
 
-You can stop a running import. The agent shuts down gracefully on the server, not just in your browser.
+### Steer it
 
-You can't run two imports concurrently on the same sheet — Vern blocks the second one so you don't get conflicting writes.
+There's one message box at the bottom:
+
+- Type a change and click **Apply edit** — *"split @Name into first and last"*,
+  *"drop rows where status is test"*. The recipe and preview update.
+- Switch on **Ask** to ask a read-only question — *"what happens to rows with no
+  email?"* — without changing anything.
+- On any of your messages, click **Undo from here** to roll the import back to that
+  point.
+- The **⋯** menu picks the **Model** — **Speed**, or **Thinking** for hard
+  migrations — and has **Clear chat**.
+
+## Run it
+
+When the preview looks right, click **Run import**. The agent runs the recipe
+over all the data and writes the rows to the workbook. When it finishes you'll
+see *Successfully imported N rows*, and the sheets show every value checked
+against your template rules: invalid cells are tinted red (often with an
+AI-suggested correction to pick from), and warnings from AI rules are tinted
+orange.
+
+[Calculated](/help-center/templates/calculated-columns) and
+[extracted](/help-center/templates/extracted-columns) columns are filled in as
+part of the run.
+
+## Stop or cancel
+
+- **Stop** ends what the agent is doing right now. It stops on the server, not
+  just in your browser.
+- **Cancel import** abandons the run and returns you to the upload screen,
+  keeping your files and answers.
+
+Only one import can run for a workbook at a time.
+
+## Imports get faster
+
+Every import produces a **recipe** — the portable logic for *"this source →
+your templates"* — and keeps the customer-specific details separate. On the
+next import from the same source system, the agent starts from the best
+earlier recipe instead of from scratch, so the second customer you onboard from
+a system is much faster than the first. To make one recipe the default for a
+source, use **Publish & bind import recipe** on the [source](/help-center/sources/sources).
+
+What the agent learns about the customer goes into the company's **Knowledge**
+tab, and what it learns about the source system into the source's knowledge —
+both are read on every later run. Turn off **Memory** on the company to keep a
+test run from saving anything.
 
 ## After import
 
-If the agent missed something — a value didn't normalize, a rule was misinterpreted — [spot-check and fix](/help-center/import/spot-check-and-fix) the sheet. That's what manual edits and chat are for.
+If something needs fixing — a value didn't normalize, a rule was misread —
+[spot-check and fix](/help-center/import/spot-check-and-fix) in the sheet.
 
 ## Next
 
-- [Spot-check and fix](/help-center/import/spot-check-and-fix) — what to do when the agent isn't perfect.
+- [Spot-check and fix](/help-center/import/spot-check-and-fix) — edit cells and fix columns with chat.
+- [Export a workbook](/help-center/send/export-a-workbook) — send the result to your app.

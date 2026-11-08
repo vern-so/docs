@@ -7,7 +7,7 @@ API keys let your backend run customer migrations end to end without anyone logg
 
 ## Generate a key
 
-Go to [Settings → API keys](https://app.vern.so/api-keys) and click **New key**. Give it a name (e.g. "Production server"), choose its **MCP access** (below), and create it. Copy the key — Vern doesn't show it again.
+Open the user menu (bottom left), go to **Developer → [API Keys](https://app.vern.so/api-keys)** and click **Create API Key**. Give it a name (e.g. "Production server"), choose its **MCP access** (below), and create it. Copy the key — Vern doesn't show it again.
 
 Treat it like a password. Don't commit it. Don't put it in client-side code. Use environment variables.
 
@@ -25,11 +25,11 @@ Each key has an **MCP access** setting that decides what an AI assistant using i
 | **Write** | Create, change and run things (includes read). |
 | **Delete** | Delete things, after a confirm step (includes read). |
 
-Keys start as **Read**. To change a key's access, open its row's menu and click **Edit**. MCP access has no effect on the Migration API.
+Keys start as **Read**. To change a key's access or rename it, open its row's menu and click **Edit**. MCP access has no effect on the Migration API.
 
 ## Rotate or revoke
 
-To revoke a key, open its row's menu and click **Delete**. Any request using that key fails immediately with a 401.
+To revoke a key, open its row's menu, click **Delete** and type `DELETE` to confirm. Any request using that key fails immediately with a 401.
 
 To rotate, create a new key, swap it in your environment, then delete the old one.
 
@@ -48,10 +48,7 @@ See the [Migration API quickstart](/migration-api/quickstart) for full setup.
 
 - Create a migration — [`POST /api/v1/migrations`](/migration-api/create-a-migration) — then upload files, run the agent, and export clean data.
 
-Workbook-export webhook payloads are signed separately via Svix, not authenticated with API keys — see [Webhooks](/help-center/send/webhooks).
-
 ## Next
 
 - [MCP server](/mcp/overview) — connect Claude Code, Cursor or another MCP client.
 - [Migration API quickstart](/migration-api/quickstart) — make your first API call.
-- [Webhooks](/help-center/send/webhooks) — receive workbook exports from Vern.

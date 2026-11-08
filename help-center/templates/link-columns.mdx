@@ -143,8 +143,9 @@ Setting the dropdown to **Link** additionally turns on two things that read it
 directly:
 
 - the grid styles link errors and re-checks a cell as you edit it,
-- the [nested webhook export](/help-center/send/webhooks) sends the referenced
-  record rather than the raw value.
+- the [writer](/help-center/send/write-to-an-api) build agent sees the column
+  as a reference to the target template when it plans how to write related
+  records.
 
 ## Over the API
 
@@ -163,4 +164,4 @@ template reads return. Two cautions:
 
 - [Column options](/help-center/templates/columns) — the rest of the per-column settings.
 - [Structured values](/help-center/templates/structured-values) — declaring the shape a reference sits inside.
-- [Webhooks](/help-center/send/webhooks) — what a link does to the exported payload.
+- [Write to an API](/help-center/send/write-to-an-api) — writers that follow links between templates.

@@ -201,7 +201,7 @@ curl "https://app.vern.so/api/v1/migrations/c0a8012e-.../log?format=md" \
 | `409` | Still in progress. Body carries `status` and `retry_after_seconds`. |
 | `429` | **30 requests per minute** per account (the Reads class). Check `Retry-After`. See [Rate limits](/migration-api/errors#rate-limits). |
 | `500` | Server error. |
-| `503` | The migration's data region is unavailable. |
+| `503` | The log couldn't be assembled this time (a transient failure reading the migration's history). Retry — it's never answered with an empty log instead. |
 
 ## What the log cannot tell you
 

@@ -7,9 +7,10 @@ By default, workbook data stays in Vern indefinitely. If your compliance posture
 
 ## Set the policy
 
-Go to **Settings → Data retention**. Pick a window:
+Open the user menu (bottom left) and choose **Data retention** — it's only
+shown to Admins. Pick a window:
 
-- **Forever** — data stays until you delete it. This is the default.
+- **Never** — data stays until you delete it. This is the default.
 - **7 days**
 - **30 days**
 - **90 days**
@@ -21,6 +22,12 @@ accepted values — retention is a fixed set of presets rather than a free-text
 number of days, so there's no "custom" window.
 
 The policy applies to every company under your account.
+
+Before you confirm, Vern tells you how many existing workbooks are already
+inactive for longer than the window you picked. Those are deleted on the next
+daily run, **without** a warning email, because they're already past it.
+Otherwise, owners get a warning email roughly **7 days** before a workbook is
+deleted.
 
 ## What gets purged
 
@@ -41,8 +48,9 @@ Short-lived artefacts have their own fixed windows and are removed independently
 of your policy:
 
 - **Export jobs** and their files — 24 hours
+- **Agent activity streams** (the live feed of an agent run) — 14 days
 
-The company itself, magic links, and templates aren't touched — only customer data.
+The company itself and your templates aren't touched — only customer data.
 
 ## What "last activity" means
 
@@ -57,6 +65,10 @@ window would have caught.
 
 Stored source credentials are purged from the secret store and any cached copies
 cleared at the same time, so a deleted tenant leaves no usable credential behind.
+
+This also happens automatically when a subscription ends: **30 days** after a
+plan is cancelled or a trial lapses, the account is marked for offboarding,
+and after a dry run and at least one further day, its data is purged.
 
 <Note>
   Offboarding is deliberately not a self-serve button. It's irreversible bulk

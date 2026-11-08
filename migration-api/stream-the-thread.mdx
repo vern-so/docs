@@ -110,7 +110,7 @@ data: {"last_sequence":1043}
 
 The stream tails new events until the migration has no active run and the backlog
 is drained, then sends a final `event: done` carrying the last sequence. It also
-closes after a time budget (~5 minutes) — when it does, **reconnect** with
+closes after a time budget (~29 minutes) — when it does, **reconnect** with
 `?after=<last_sequence>` to continue exactly where you left off. Watch for an
 `event: error` message, which signals a stream-side error before close.
 
@@ -127,6 +127,7 @@ curl -N "https://app.vern.so/api/v1/migrations/c0a8012e-.../thread/stream?includ
 | `404` | The migration isn't in your account. |
 | `429` | **30 requests per minute** per account (the Reads class). Check `Retry-After`. See [Rate limits](/migration-api/errors#rate-limits). |
 | `500` | Server error. |
+| `503` | (snapshot) The migration's history couldn't be loaded this time — a transient failure. Retry; it's never answered with an empty thread instead. The stream reports the same kind of failure as an `event: error` frame. |
 
 ## Next
 

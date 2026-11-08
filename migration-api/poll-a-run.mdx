@@ -53,7 +53,7 @@ A **completed `execute`** carries a report:
 
 ```json
 {
-  "run_id": "e5d4c3b2-...",
+  "run_id": "d4c3b2a1-...",
   "status": "completed",
   "created_at": "2026-06-19T15:40:02.000Z",
   "report": {
@@ -76,9 +76,8 @@ A **completed `execute`** carries a report:
 <ResponseField name="report.invalidCellCount" type="number">
   The number of **rows** that still have at least one cell that failed validation
   — not a count of individual cells. The import succeeded; those rows are simply
-  flagged. The default CSV download (`?filter=valid`) excludes any flagged row
-  entirely, so a single bad cell drops its whole row. See
-  [Export CSV](/migration-api/export-csv).
+  flagged. CSV exports include every row, flagged or not, so check this count
+  before you load the data. See [Export CSV](/migration-api/export-csv).
 </ResponseField>
 <ResponseField name="report.coverage" type="object | null">
   An optional value-completeness profile — per-column fill/distinct stats for the
@@ -204,7 +203,8 @@ curl -X PATCH https://app.vern.so/api/v1/migrations/c0a8012e-.../runs/d4c3b2a1-.
 | `400` | (PATCH) body isn't `{ "status": "cancel_requested" }`. |
 | `401` | API key missing or invalid. |
 | `404` | No such run, or the migration isn't in your account. |
-| `429` | **30 requests per minute** per account (the Reads class). Check `Retry-After`. See [Rate limits](/migration-api/errors#rate-limits). |
+| `409` | (PATCH) The migration is archived (`code: "migration_archived"`). |
+| `429` | **30 requests per minute** per account — polling is in the **Reads** class, cancelling in the **Writes** class. Check `Retry-After`. See [Rate limits](/migration-api/errors#rate-limits). |
 | `500` | Server error. |
 
 ## Example

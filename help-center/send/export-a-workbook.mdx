@@ -1,55 +1,69 @@
 ---
 title: Export a workbook
-description: Send cleaned data out of Vern — as CSV, via webhook, or straight into your API.
+description: Get cleaned data out of Vern — download it as CSV, or write it straight into your app's API with a writer.
 ---
 
-Once a workbook looks right, hit **Export** on a sheet's header. One dialog covers every way to get data out.
+Once a workbook looks right, click **Export** in the workbook header (or on the
+company page). The dialog has two tabs:
+
+| Tab | Use it when |
+|---|---|
+| **CSV** | You want a file — to hand off, load manually, or keep as a backup. |
+| **Writer** | You want the rows written straight into your app through its API. |
+
+The **Writer** tab only appears once you've [built a writer](/help-center/send/write-to-an-api).
+
+<Note>
+  Exporting is **Admin-only**, because it takes a customer's whole dataset out
+  of Vern. Members who try get a permission error. See [Team](/help-center/settings/team).
+</Note>
 
 ## CSV
 
-The simplest option. Choose **CSV** in the export dialog, pick the rows you want (everything, or a filtered subset), click **Export**.
+1. Under **Sheets**, tick the sheets to include (**Select All** / **Deselect
+   All**). Each shows its record count, and how many are invalid.
+2. Click **Export**.
 
-A file like `acme-employees-2026-05-12.csv` downloads with template column names as headers, one row per record. Validation errors aren't included — what you export is what's in the sheet.
+Vern prepares the file in the background (*Preparing export…*) and the download
+starts on its own when it's ready.
 
-Use this when:
-- You need a human-readable handoff to someone outside Vern.
-- You're manually loading the data into your app once.
-- You want a backup before making a risky change.
+- **One sheet** downloads as a CSV named like
+  `acme-workbook-employees-2026-11-09.csv`.
+- **Several sheets** download as a ZIP, `acme-workbook_sheets.zip`, with one CSV
+  per sheet.
 
-## Webhook
+The headers are your template's column names, one row per record. **Every row
+is included**, invalid ones too — what you export is what’s in the sheet, so
+fix the invalid rows first if you only want clean data.
 
-Choose **Webhook** in the export dialog, pick the endpoint you've configured, click **Export**. Vern delivers the rows to your endpoint in batches.
-
-Use this when:
-- You want the cleaned data to land in your app automatically.
-- You're integrating Vern into your existing onboarding pipeline.
-- You're sending data more than once (it's slow to manually export CSVs every time).
-
-You'll need to [set up a webhook endpoint](/help-center/send/webhooks) first.
+Finished exports stay on the dialog's **Recent** tab for 24 hours, so you
+can **Download** them again; after that they expire.
 
 ## Writer
 
-Choose **Writer** in the export dialog to push the workbook straight into your app's API — no endpoint to build on your side. Pick a writer you've already set up, confirm the base URL and credentials for this run, and click **Export**. Vern auto-maps each sheet to the writer's templates and writes the rows to your API, streaming progress as it goes.
+A writer pushes the workbook into your app's API — no endpoint to build on your
+side.
 
-Use this when:
-- You already have an API (or an OpenAPI spec) and don't want to stand up a webhook receiver.
-- You want Vern to call your existing endpoints directly.
+1. Choose the **Writer** tab and pick a writer.
+2. Check the **Base URL** and credentials. They're prefilled from the writer;
+   edits here apply to this run only.
+3. Check the mapping: each sheet is matched to one of the writer's templates,
+   and any sheet the writer can't write is flagged.
+4. Click **Write to API**.
 
-You'll need to [build a writer](/help-center/send/write-to-an-api) first.
+Progress streams live. Failures are grouped by the API's response — for example
+`HTTP 422: email is invalid` — so you can see exactly which rows were rejected
+and why. Fix the data and click **Write again**, or click **Fix with the build
+agent** to have the writer's agent correct the mapping.
 
-## Preview vs production endpoints
+[Build a writer →](/help-center/send/write-to-an-api)
 
-The export dialog shows two channels: **preview** (for staging/testing) and **production**. Configure separate endpoints for each in your webhook settings — preview goes to your test environment, production to your live one.
+## From your backend
 
-## Nested or flat
-
-For webhook exports, you can choose how related sheets are delivered:
-
-- **Flat** — each sheet is its own array of rows. Good for independent sheets.
-- **Nested** — child sheets are nested under their parents via link rules. Good when sheets have foreign-key relationships and you want them grouped.
-
-Vern handles circular links between sheets cleanly. The payload schemas for both formats are in the [Webhooks](/help-center/send/webhooks#payload-format) reference.
+To pull cleaned data from your own code instead, use the Migration API's
+[CSV export](/migration-api/export-csv) and [export jobs](/migration-api/export-jobs).
 
 ## Next
 
-- [Webhooks](/help-center/send/webhooks) — set up the endpoint that catches exports.
+- [Write to an API](/help-center/send/write-to-an-api) — build the writer the Writer tab uses.
+- [Data retention](/help-center/settings/data-retention) — how long exported files and workbook data are kept.

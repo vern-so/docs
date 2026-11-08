@@ -94,6 +94,7 @@ leaving them out returns exactly what it always has.
 
 | Status | Meaning |
 |---|---|
+| `400` | `fields` was given but empty (`empty_field_selection`), or names a column that appears in no sheet of the preview (`unknown_field`, listing the valid names). |
 | `401` | API key missing or invalid. |
 | `404` | No preview generated yet, or the migration isn't in your account. |
 | `429` | **30 requests per minute** per account (the Reads class). Check `Retry-After`. See [Rate limits](/migration-api/errors#rate-limits). |

@@ -1,58 +1,72 @@
 ---
 title: Spot-check and fix
-description: Catch and fix anything the import agent missed.
+description: Review what the import produced, then fix single cells by hand and whole columns with chat.
 ---
 
-The import agent gets most things right, but it isn't perfect. Use this when you need to verify a few values, fix a column it interpreted wrong, or bulk-transform something after the fact.
+The import agent gets most things right, but it isn't perfect. Use the sheet to
+check a few values, and the workbook chat to fix a column it interpreted wrong
+or to transform something after the fact.
 
-## Look around the sheet
+## Work in the sheet
 
-A sheet behaves like a normal spreadsheet:
+Open the company and click a sheet on the **Data** tab. A sheet behaves like a
+normal spreadsheet:
 
-- **Click** a cell to select. **Double-click** to edit.
-- **Click and drag** to select a range. **Shift+click** column headers to select multiple columns; right-click to bulk-delete or insert.
-- **Filter** by validity, completeness, column presence, or duplicates from the toolbar at the top.
-- **Pivot** a sheet's rows into columns (or back) when the shape doesn't match what you want.
-- **Undo** (Ctrl/Cmd+Z) works across the whole workbook, not just the current sheet.
+- **Click** a cell to select it, **double-click** to edit.
+- **Click and drag** to select a range. **Shift+click** column headers to
+  select several columns; right-click to insert or delete.
+- **Undo** (Ctrl/Cmd+Z) works per sheet: it undoes your last change on the sheet you are in.
+- Invalid cells are tinted red. Where Vern has a likely fix, the cell offers
+  **AI-suggested corrections** to pick from.
 
-## Trace a value back with Check
+[Calculated](/help-center/templates/calculated-columns) (**ƒx**) and
+[extracted](/help-center/templates/extracted-columns) (**✦**) columns are
+read-only — change their formula or extraction on the template instead.
 
-If you're not sure where a value came from, open the **Check** panel on a cell. You'll see:
+### Filter
 
-- The source file and row the value originated from.
-- The transformation the agent applied to get it.
-- The AI's plain-English explanation of why it chose that value.
+Click the **Filters** icon in the toolbar. Its tabs narrow the sheet to what you
+need to look at:
 
-This is the audit trail for any cell — useful when a customer challenges a value, or when you're not sure if the agent did the right thing.
+| Tab | Does |
+|---|---|
+| **Status** | Filter records by validation status — valid or invalid. |
+| **Columns** | Show or hide columns in the table. |
+| **Quick** | Filter rows by cell content. |
+| **Complete** | Filter records by data completeness. |
+| **Duplicates** | Find potential duplicate records. |
+
+Click **Apply Filters**; **Clear all** resets them.
 
 ## Bulk-fix with chat
 
-For anything bigger than a one-off cell edit, use chat.
+For anything bigger than a one-off edit, open the workbook chat.
 
-<Frame>
-  <img src="/images/prompt.png" alt="Chat panel" />
-</Frame>
-
-Open the chat panel. Reference columns by typing `@` and picking from the dropdown (works across sheets). Some examples:
+Reference columns by typing `@` and picking from the list — it works across
+sheets (`@Contacts.Phone`). Double-clicking a column header inserts it for you.
+Some examples:
 
 - `Fix the format of @Phone Number`
 - `Combine @First Name and @Last Name into @Full Name`
 - `Extract emergency contact phone numbers from @Notes into @Emergency Phone`
-- `Calculate @Age from @Date of Birth`
+- `Check every source record came across — are any contacts missing?`
 
-The chat:
+How chat works:
 
-- Persists across reloads and sheet switches — your conversation is saved.
-- Lets you **queue** the next message while it's still streaming.
-- Lets you **stop** mid-stream if it's heading the wrong way.
-- Can call multiple tools in one prompt — "do X and then Y" works.
-- Shows a **preview** of multi-step operations before applying them, so you can confirm.
+- It runs on the same migration agent as the import, so it knows the source
+  files, the recipe and your templates.
+- Changes arrive as a card showing what will change. **Approve** it to apply
+  it, or skip it. Nothing is written until you approve.
+- You can **Stop** it mid-answer if it's heading the wrong way.
+- Conversations are saved, and you can keep more than one.
 
 ## Templates do the heavy lifting
 
-The chat uses your template's column descriptions and validation rules to know what good data looks like. The better your templates, the better chat's results. If chat is consistently misinterpreting a column, fix the column's [description](/help-center/templates/columns#description).
+Chat and the import agent use your template's column descriptions and rules to
+know what good data looks like. If either keeps misinterpreting a column, fix
+the column's [description](/help-center/templates/columns#description).
 
 ## Next
 
 - [Column options](/help-center/templates/columns) — the descriptions and rules chat reads.
-- [How import works](/help-center/import/how-it-works) — to avoid needing to spot-check, get the agent's input right.
+- [Export a workbook](/help-center/send/export-a-workbook) — send the data on.

@@ -8,7 +8,7 @@ Some customer data lives in a portal you can only reach through a browser — no
 You'll find scouts under **Scouts** in the sidebar.
 
 <Note>
-  Scouts, [Lists](/help-center/scouts/lists) and [Workflows](/help-center/scouts/workflows) are in **beta**. They're available on every account.
+  Scouts, [Lists](/help-center/scouts/lists) and [Workflows](/help-center/scouts/workflows) are in **beta**. **Lists and Scouts are available only for accounts whose data is stored in the US.** They use a hosted browser and AI models outside Australia, so accounts hosted in Australia don't have them; those accounts can still use Workflows with API sources.
 </Note>
 
 ## Create a scout
@@ -36,6 +36,8 @@ Click **New scout** (or the **+** next to Scouts in the sidebar). The wizard has
   <Step title="Access & speed">
     - **Stay signed in between runs** — reuse the sign-in session on later runs. The session is stored by our browser provider, outside your data region.
     - **Agents at once** — how many entries are worked on in parallel (1–10, default 3).
+
+    You can change these later on the scout's **Settings** tab, which also has **Max records per run** (1–500).
   </Step>
 </Steps>
 
@@ -61,10 +63,21 @@ Click **Run N entries**. Or open the menu on that button and choose **Run a samp
 
 Every entry gets its own browser agent. Watch the table fill as they finish. Each entry ends up **Captured**, **Needs review**, **Not found** or **Failed**.
 
+### Value checks
+
+Every value a scout collects is checked against the template's rules — **Required**, **Unique**, the **Strict** pattern and any [structured shape](/help-center/templates/structured-values) — before it's saved:
+
+- If an entry breaks a rule, its agent is told what was wrong and reads the page once more, and the better of the two reads is kept.
+- If it still breaks a rule, the entry is marked **Needs review**, and its drawer lists the values that break the template's rules.
+- **Unique** is checked across the whole run — a value already collected for another entry is flagged with that entry's number.
+
+A field the agent couldn't find on the page comes back blank rather than guessed. Structured (list or record) columns come back as JSON, and [calculated columns](/help-center/templates/calculated-columns) are computed from what was collected rather than read from the page.
+
 Click any entry to open its drawer:
 
 - the **activity trail** — every page it opened, what it read, clicked and downloaded,
-- the **values** and **files** it collected,
+- the **values** and **files** it collected, and any values that broke a rule,
+- for a provided list, which entry of your list it was (*#N in your list*),
 - **Watch the replay** — a recording of the browser session (kept for a limited time),
 - **Re-pull this entry** — run that one entry again.
 

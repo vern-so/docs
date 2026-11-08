@@ -1,31 +1,71 @@
 ---
 title: Create a company
-description: Set up a company for one customer you're onboarding.
+description: Set up a company for one customer you're onboarding — its workbook, knowledge and migration settings.
 ---
 
-A company holds everything for one customer you're onboarding — their workbook, magic link, and any data you collect for them.
-
-<Frame>
-  <img src="/images/%23company.png" alt="Companies dashboard" />
-</Frame>
+A company holds everything for one customer you're onboarding: their workbook
+(one sheet per template), the files you import for them, what Vern has learned
+about them, and their migration settings.
 
 ## Create one
 
-1. Go to [Companies](https://app.vern.so/companies) and click **New company**.
-2. Name it after your customer.
-3. Pick the templates that should become sheets in their workbook. Each template becomes one sheet, pre-validated against your schema.
+1. Go to [Companies](https://app.vern.so/companies) and click **Create**.
+2. Fill in the **Create Company** dialog:
+   - **Name** — typically your customer's name.
+   - **External ID** — filled in from the name; change it to the id your own
+     system uses for this customer. It's how the [Migration API](/migration-api/create-a-migration)
+     finds the company again.
+   - **Source** — the system the customer is moving off, if you know it. Pick
+     one from the list or **+ Add source**. See [Sources](/help-center/sources/sources).
+   - **Templates** — the templates that become sheets in their workbook.
+3. Click **Create Company**. Vern builds the workbook and takes you straight to
+   the [import](/help-center/import/how-it-works) page so you can add their files.
 
-That's it. You now have:
+You can also ask [Home](/help-center/home/overview) to create the company for you
+— attach the customer's export and it sets up the company, workbook and import
+in one plan.
 
-- A **workbook** with one sheet per template you picked.
-- A **magic link** you can share with the customer to collect data.
-- A **Properties card** on the company page where you'll see the source, link, and any external ID.
+## The company page
 
-## What you do next
+The header shows the company's **Source**, its **External ID** and its
+**Migration ID** (the id the Migration API uses); click either id to copy it.
+The **⋯** menu has **Edit** and **Delete**.
 
-- [Share a magic link](/help-center/onboard/share-a-magic-link) — let the customer upload data, answer questions, or grant access to their old system.
-- [Run an import](/help-center/import/how-it-works) — once you have files, run the import agent.
+The main button follows the migration's state — **Import**, **Import N files**,
+**Continue import**, **View import** or **Re-import**. **Export** appears once
+the workbook has records.
+
+Three tabs:
+
+| Tab | What's there |
+|---|---|
+| **Data** | The workbook's sheets, with record and invalid counts. Click one to open it. |
+| **Knowledge** | Notes about this customer that the import agent reads before every run — their conventions, preferences and exceptions. The agent adds to it as it learns, and you can edit it. |
+| **Settings** | Two switches for this migration (below). |
+
+### Settings
+
+- **Memory** — *Saves what it learns for next time.* Vern keeps the import
+  recipe, source notes and this customer's preferences, and reuses them on the
+  next import. Turn it off for a one-off or test migration: the import still
+  runs and rows are still written, but nothing it learns is kept. You can only
+  turn it off after the migration has completed a run.
+- **Template lock** — *Stops Vern changing the data model.* No new columns and
+  no changes to validation rules, not even for a single import. The agent maps
+  what fits and tells you what it couldn't carry.
+
+## Archive a workbook
+
+To put a finished workbook out of the way without deleting it, choose
+**Archive** from the workbook's **⋯** menu. Archived workbooks are listed under
+**Archive** on the Companies page, where you can unarchive or delete them.
+
+## Next
+
+- [How import works](/help-center/import/how-it-works) — get the customer's data in.
+- [Sources](/help-center/sources/sources) — the systems your customers move off, and what Vern knows about them.
 
 <Tip>
-  Building this into your product? You can create a customer's migration and workbook over the API and run the whole flow headlessly. See [Create a migration](/migration-api/create-a-migration).
+  Building this into your product? Create the company and workbook over the API
+  and run the whole flow headlessly. See [Create a migration](/migration-api/create-a-migration).
 </Tip>

@@ -11,7 +11,7 @@ If you'd rather build or adjust columns by hand, see [Column options](/help-cent
 
 <Steps>
   <Step title="Copy the prompt">
-    Use the prompt below, or go to [Templates](https://app.vern.so/templates) → **New** → **Create with AI** and click **Copy prompt**. Paste it into ChatGPT, Claude, or Gemini — pick the most capable model (Claude Opus, a ChatGPT reasoning model, or Gemini Pro).
+    Use the prompt below, or go to [Templates](https://app.vern.so/templates), click **New**, choose **Create with AI** and click **Copy prompt**. Paste it into ChatGPT, Claude, or Gemini — pick the most capable model (Claude Opus, a ChatGPT reasoning model, or Gemini Pro).
   </Step>
   <Step title="Attach your reference material">
     Give the AI a database export, sample spreadsheets, API docs, or screenshots. It won't draft anything without at least one.
@@ -20,9 +20,20 @@ If you'd rather build or adjust columns by hand, see [Column options](/help-cent
     The AI lists the choices it made in plain language. Correct anything, then confirm. It returns a single `vern_templates.yaml` file.
   </Step>
   <Step title="Upload the result">
-    In Vern, click **Upload vern_templates.yaml**. Each table becomes one template, ready in your [Templates](https://app.vern.so/templates) list. Vern asks before overwriting any name clash.
+    In the same **Create with AI** dialog, click **Upload vern_templates.yaml** (`.yaml`, `.yml` or `.json`). Each table becomes one template, ready in your [Templates](https://app.vern.so/templates) list. Vern asks before overwriting any name clash.
   </Step>
 </Steps>
+
+## Other ways to create templates
+
+The **New** dialog also offers:
+
+- **Upload LinkML file** — if you already have a `vern_templates.yaml` (or one downloaded from Vern).
+- **Create from scratch** — build the columns yourself in the editor.
+
+To export templates as LinkML, click **⋯ → Edit** on the Templates list, select the templates, and click **Download LinkML**. The same selection lets you **Group** templates or **Delete** them.
+
+You can also ask [Home](/help-center/home/overview) to create templates from a file or a description.
 
 ## The prompt
 
@@ -43,7 +54,9 @@ Read every reference file IN FULL and draft the classes and their slots. Capture
 - Which columns must always have a value, and which single column uniquely identifies each row (like an ID, code, or UID). Treat "the source always returns this column" and "this column must always have a value" as different things: a system-generated or read-only column that can still be empty or null (for example a "deleted at" timestamp that is only set once a row is deleted) is NOT a required column.
 - The rule you picked for what counts as a valid value — a list of allowed options, a format like "email" or "date", a length limit, a number range, etc.
 - Any column that points to a row in another table, and which column in the other table it points to.
-- Anything from the source you had to flatten or compress to fit (nested objects, arrays, inheritance, composite keys, default values, examples, units, and so on) — say in plain English what was in the source and where you captured that detail in the descriptions.
+- Any nested object, array, or "one of these shapes" value you found, and the JSON Schema you will use to validate it.
+- Any column that can point to more than one table depending on another column's value — say which column decides the type, which values it can contain, and which table each value points to.
+- Anything from the source you had to flatten or compress to fit (inheritance, composite keys, default values, examples, units, and so on) — say in plain English what was in the source and where you captured that detail in the descriptions.
 Present these as a numbered list, then ask me whether anything needs adjusting. Wait for my response before continuing.
 
 STEP 3 — Output.
@@ -84,18 +97,95 @@ classes:
         description: When the fund opened.
         range: date
 
-  Investors:
-    description: People or entities invested in a fund.
+  Customers:
+    description: Customers who place orders.
     attributes:
-      investor_uid:
-        description: Unique investor identifier.
+      entity_id:
+        description: Stable customer identifier.
         identifier: true
         required: true
-        pattern: "^.{1,64}$"
-      fund_code:
-        description: The fund this investor belongs to.
+        pattern: "^CUST-[0-9]{3}$"
+
+  Suppliers:
+    description: Suppliers who fulfill orders.
+    attributes:
+      entity_id:
+        description: Stable supplier identifier.
+        identifier: true
         required: true
-        range: Funds
+        pattern: "^SUP-[0-9]{3}$"
+
+  Orders:
+    description: Orders that can belong to a customer or supplier.
+    attributes:
+      order_id:
+        description: Stable order identifier.
+        identifier: true
+        required: true
+        pattern: "^ORD-[0-9]{3}$"
+      counterparty_type:
+        description: Type of entity referenced by the counterparty identifier.
+        required: true
+        pattern: "^(customer|supplier)$"
+      counterparty_id:
+        description: Identifier for the customer or supplier on the order.
+        required: true
+        annotations:
+          vern_link_rule:
+            value:
+              type: polymorphic
+              columnName: entity_id
+              discriminator: counterparty_type
+              targetTemplates:
+                - Customers
+                - Suppliers
+              valueMap:
+                customer: Customers
+                supplier: Suppliers
+      delivery_address:
+        description: Delivery address for the order.
+        required: true
+        annotations:
+          vern_json_schema:
+            value:
+              type: object
+              properties:
+                postcode:
+                  type: string
+                  pattern: "^[0-9]{4}$"
+                city:
+                  type: string
+                  minLength: 1
+                country:
+                  type: string
+                  enum:
+                    - AU
+              required:
+                - postcode
+                - city
+                - country
+              additionalProperties: false
+      line_items:
+        description: Line items on the order.
+        required: true
+        annotations:
+          vern_json_schema:
+            value:
+              type: array
+              minItems: 1
+              items:
+                type: object
+                properties:
+                  sku:
+                    type: string
+                    pattern: "^[A-Z]{3}-[0-9]+$"
+                  qty:
+                    type: string
+                    pattern: "^[0-9]+$"
+                required:
+                  - sku
+                  - qty
+                additionalProperties: false
 
 How Vern interprets LinkML:
 - Each top-level entry under classes: becomes one Vern template, named by the class name.
@@ -107,12 +197,28 @@ How Vern interprets LinkML:
 - range: <OtherClass> makes the slot a foreign key to that class. The target class MUST have a slot with identifier: true, which becomes the linked column. A foreign-key slot must NOT have a pattern.
 - range: <EnumName> (with the enum defined under top-level enums:) becomes a regex matching the enum's permissible values.
 - range: integer | float | boolean | date | datetime | time | uri produces a sensible default regex.
+- annotations.vern_json_schema.value preserves a full Draft 2020-12 JSON Schema for a structured column. Use it for nested objects, arrays of objects, and oneOf / anyOf / allOf shapes. Do NOT use it for simple strings, dates, numbers, booleans, or ordinary enums; use range:, pattern:, or top-level enums: for those.
+- annotations.vern_link_rule.value preserves a polymorphic link. Use it when one column can point to different templates depending on another column's value. The annotation must include:
+  - type: polymorphic
+  - columnName: the target column name to search in every target template, such as entity_id
+  - discriminator: the column in this same class that decides which target template to use
+  - targetTemplates: the target class names, not IDs
+  - valueMap: a map from discriminator value to target class name
+- A polymorphic link slot should NOT also have range: or pattern:. Every class named in targetTemplates or valueMap MUST be included in the same file.
+
+JSON Schema annotation rules:
+- Put the JSON Schema object directly under annotations.vern_json_schema.value as YAML, not as a quoted JSON string.
+- Use type: object with properties:, required:, and additionalProperties: false for nested objects.
+- Use type: array with items: for arrays. If the array cannot be empty, include minItems: 1.
+- Use oneOf for discriminated shapes. Each branch should include a constant discriminator field using const: and should set additionalProperties: false.
+- Keep the schema strict enough to reject wrong shapes, missing required nested fields, unexpected extra fields, and invalid nested formats.
 
 Descriptions document the source data only. Every description must read as documentation of what the class or slot means in the source system. NEVER mention this prompt, the consuming platform, the name "Vern", LinkML itself, validation behaviour, or how a value is stored or imported. Phrases like "stored as a single value", "imported as", or "not supported" must never appear in any description: text.
 
-Preserve information from constructs LinkML-for-Vern can't carry directly. The following features will be silently dropped or downgraded, so do NOT emit them as LinkML — instead, fold the information they would have carried into description: text so nothing from the source is lost:
+Preserve information from source constructs that plain LinkML-for-Vern can't carry directly. Some should use Vern-specific annotations; others should be folded into description: text so nothing from the source is lost:
 
-- Arrays / multivalued slots / nested objects. Emit the slot as a single value (no multivalued:). In the slot's description, name the nested shape and list every nested field as "field_name (type)", comma-separated, so the structure survives. Example: "Line items on the invoice. Each item has: sku (string), qty (integer), unit_price (decimal), tax_code (string)."
+- Arrays / multivalued slots / nested objects. Do NOT emit multivalued:. If the value is genuinely structured, preserve the shape with annotations.vern_json_schema.value. If it is just a simple comma-separated/list-like text field with no real item structure, describe that in description: text instead.
+- Polymorphic links. Do NOT approximate them with a single range:. Preserve them with annotations.vern_link_rule.value. Include all target classes in the file.
 - is_a inheritance. Inline every parent attribute into the child class so the class is self-contained. In the child class's description, add: "Inherits from <Parent> in the source schema." Repeat for each ancestor in the chain.
 - mixins. Inline every mixin attribute into the class. In the class's description, add: "Includes mixins: <Mixin1>, <Mixin2>."
 - Composite unique_keys. Only a single identifier: slot is honoured. Pick the most stable / human-meaningful column of the composite key as identifier: true, and on EVERY column that participates in the key (including the chosen identifier), add to its description: "Part of a composite unique key with (<other1>, <other2>)."

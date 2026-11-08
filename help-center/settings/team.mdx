@@ -7,16 +7,23 @@ Vern accounts are shared across your team. Add anyone who needs to manage custom
 
 ## Invite a teammate
 
-Go to **Settings → Team** and click **Invite**. Enter their email and pick a role.
+Open the user menu (bottom left) and choose **Invite team**. Click **Add User**,
+enter their **Name**, **Email** and **Role**, then open the **Add User** menu and
+choose how they get in:
 
-They receive an email containing a **one-time invite link**. Opening it lets them
-set their own password and join your account. Once they're in, they can see your
-companies, templates, sources, and workbooks — subject to their role.
+| Option | What they receive |
+|---|---|
+| **Send invite link** | An email to confirm their address and join. |
+| **Send temporary password** | An email with a one-time Vern link that signs them straight in; they set their own password when they first log in. |
+
+Either way they set their own password — Vern never emails one. Once they're
+in, they can see your companies, templates, sources and workbooks, subject to
+their role.
 
 <Note>
-  Invite links expire after **72 hours** and can be used **once**. If one lapses
-  or has already been used, send a fresh invite — the old link can't be revived.
-  Vern never emails a password.
+  A **temporary password** link expires after **72 hours** and can be used
+  **once** — it's built so that email link scanners can't use it up. If an
+  invite lapses, open the person's row menu and click **Resend Invitation**.
 </Note>
 
 ## Roles
@@ -27,19 +34,21 @@ Vern** — not about who can do day-to-day import work.
 <ResponseField name="Admin" type="role">
   Everything a Member can do, plus:
 
-  - Invite and remove teammates
-  - Manage billing
-  - Configure [data retention](/help-center/settings/data-retention)
-  - Create and revoke [API keys](/help-center/settings/api-keys)
-  - **Export data** — downloading a sheet or workbook as CSV/ZIP
-  - Configure source credentials and [API writers](/help-center/send/write-to-an-api)
+  - Add and remove teammates, and change roles
+  - Manage billing (as can the teammate on the Stripe subscription)
+  - Configure [data retention](/help-center/settings/data-retention) and the [recipe format](/help-center/settings/recipe-format)
+  - Create, edit and delete [API keys](/help-center/settings/api-keys)
+  - **Export data** — downloading sheets as CSV or a ZIP
+  - Build, edit and run [writers](/help-center/send/write-to-an-api) and [source builders](/help-center/sources/source-builder), and manage stored source credentials
+  - Connect and disconnect [GitHub](/help-center/settings/integrations) and [Slack](/help-center/settings/slack)
 </ResponseField>
 
 <ResponseField name="Member" type="role">
   Full access to the day-to-day work: open companies, upload files, run imports,
   review and fix flagged rows, edit templates.
 
-  Members **cannot** export data, manage API keys, or configure credentials.
+  Members **cannot** export data, manage API keys, build writers or source
+  connectors, or configure credentials.
   Attempting one of those returns a permission error rather than failing
   silently.
 </ResponseField>
@@ -51,9 +60,18 @@ Vern** — not about who can do day-to-day import work.
   make them Admins, or have an Admin run the export.
 </Warning>
 
+Admins change someone's role straight from the **Role** column.
+
 ## Remove a teammate
 
-Open their row's menu and click **Remove**. Their session ends immediately. Anything they created stays in your account — work isn't tied to one person.
+Open their row's menu, click **Delete** and confirm. Their Vern login is removed
+and their session ends immediately. Anything they created stays in your account
+— work isn't tied to one person.
+
+## Your own account
+
+Choose **Account** in the user menu to change your name and avatar. **Dark
+Mode** is a switch in the same menu.
 
 ## Next
 

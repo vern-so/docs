@@ -1,0 +1,50 @@
+---
+title: Source builder
+description: Have an agent build an API connector for any source system, so Vern can pull a customer's data itself instead of waiting on exports.
+---
+
+When a source system has an API but no connector in Vern's library, a **source
+builder** makes one. Point it at the API's docs and an agent works out how to
+sign in, which objects to pull and how to page through them — then you add the
+finished connector to your [sources](/help-center/sources/sources).
+
+Building a source is **Admin-only**. You can also ask
+[Home](/help-center/home/overview) to build one for you.
+
+## Build one
+
+<Steps>
+  <Step title="Start">
+    Go to **Sources**, click **Source builders**, then **Build a source**.
+    Under **Search for the API**, enter a docs or OpenAPI URL, or just an API
+    name (e.g. *Chargebee*).
+  </Step>
+  <Step title="Let the agent build it">
+    The agent reads the API, picks the endpoints, and writes the connector. It
+    may stop to ask you to choose between options — answer and it continues.
+    Request a change at any time, for example *"Add the invoices stream"* or
+    *"Only pull active customers"*, and **Stop** it if it's heading the wrong
+    way.
+  </Step>
+  <Step title="Verify (optional)">
+    Click **Verify connector** and enter a real account's credentials. The agent
+    dry-runs every stream until each one passes, then publishes the verified
+    version. You can skip this — the connector is published **Unverified** and
+    you enter credentials when you start a migration.
+  </Step>
+  <Step title="Add to sources">
+    Click **Add to sources**. The source now appears with an **API** badge, and
+    imports for companies on it can use **Extract via** *source name*.
+  </Step>
+</Steps>
+
+APIs that only support interactive OAuth sign-in aren't supported yet; the
+agent tells you if it finds one.
+
+Credentials are never typed into the chat. They're entered on the build's own
+page and stored write-only.
+
+## Next
+
+- [Sources](/help-center/sources/sources) — where the finished connector lives.
+- [Write to an API](/help-center/send/write-to-an-api) — the same idea, for writing data into your app.
