@@ -5,61 +5,72 @@ description: Onboard your first customer end to end in about ten minutes.
 
 This walks you from an empty account to a customer's data sitting in your app.
 
+<Tip>
+  In a hurry? Go to [Home](/help-center/home/overview), attach the customer's
+  export and say *"build the migration for this customer"*. The agent does every
+  step below once you approve its plan.
+</Tip>
+
 ## Before you start
 
 - A Vern account at [app.vern.so](https://app.vern.so).
-- A sample CSV or export from a real (or fake) customer of yours.
+- A sample export from a real (or fake) customer of yours — CSV, Excel, a SQL
+  dump, XML, or a ZIP of those.
 
-## 1. Create a template
+## 1. Create your templates
 
-A template defines what your data should look like — the columns you need, and the rules each one has to pass.
+A template defines what your data should look like — the columns you need, and
+the rules each one has to pass.
 
 1. Go to [Templates](https://app.vern.so/templates) and click **New**.
-2. Upload a CSV of clean sample data, or have an AI draft your templates from a schema or API docs. Vern generates a column-by-column draft with descriptions and validation rules.
-3. Review the draft. Tighten anything the AI got wrong.
+2. Choose **Create with AI** to have an AI draft your templates from a schema,
+   spreadsheet or API docs, **Upload LinkML file** if you already have a
+   `vern_templates.yaml`, or **Create from scratch**.
+3. Review the columns. Tighten anything the AI got wrong.
 
 [Generate templates with AI →](/help-center/get-started/generate-templates)
 
 ## 2. Create a company
 
-A company represents one customer you're onboarding. It holds their workbook, magic link, and any data you pull in for them.
+A company represents one customer you're onboarding. It holds their workbook
+(one sheet per template), their files, and what Vern learns about them.
 
-1. Go to [Companies](https://app.vern.so/companies) and click **New company**.
-2. Give it a name (typically your customer's name).
-3. Pick the templates that should become sheets in their workbook.
+1. Go to [Companies](https://app.vern.so/companies) and click **Create**.
+2. Enter the customer's **Name**, and optionally the **Source** system they're
+   moving off.
+3. Pick the **Templates** that become sheets in their workbook, then click
+   **Create Company**.
 
 [Learn more about creating a company →](/help-center/onboard/create-a-company)
 
-## 3. Get the data
+## 3. Import the data
 
-Pick whichever fits the customer:
+Vern takes you straight to the import page.
 
-- **Share the magic link** — your customer uploads files, fills out questions, or grants access to their old system. [Magic links →](/help-center/onboard/share-a-magic-link)
-- **Drop in a file** — upload a CSV, Excel, or PDF directly into the workbook.
+1. Drop in the customer's files and click **Start import**.
+2. The migration agent reads them, maps them onto your templates and shows a
+   **Preview**. Answer any questions it asks.
+3. When the preview looks right, click **Run import**.
 
-## 4. Import it
+[Learn how import works →](/help-center/import/how-it-works)
 
-Click **Import** on a sheet. Vern's agent runs the import in four steps you can review:
+## 4. Check it
 
-1. **Upload** — pick the file.
-2. **Clarify** — answer a few questions about what you want.
-3. **Review plan** — read the generated migration plan and tweak.
-4. **Execute** — run it, see the result.
+Open a sheet. Invalid cells are tinted red. Fix single cells by hand, or ask the
+workbook chat to fix a whole column.
 
-If anything looks off afterwards, spot-check in the sheet and fix with chat.
+[Spot-check and fix →](/help-center/import/spot-check-and-fix)
 
-[Learn how the import flow works →](/help-center/import/how-it-works)
+## 5. Send it to your app
 
-## 5. Send to your app
+Click **Export** in the workbook header.
 
-When the workbook looks good, hit **Export**.
+- **CSV** — download one sheet, or a ZIP of several.
+- **Writer** — write the rows straight into your app's API.
 
-- **CSV** — download for manual upload.
-- **Webhook** — stream batches to an endpoint your app owns.
-
-[Set up an export →](/help-center/send/export-a-workbook)
+[Export a workbook →](/help-center/send/export-a-workbook)
 
 ## Next steps
 
-- [How import works](/help-center/import/how-it-works) — deep dive into the agent-driven flow.
-- [Migration API](/migration-api/introduction) — automate everything via the API.
+- [How import works](/help-center/import/how-it-works) — the agent-driven import in depth.
+- [Migration API](/migration-api/introduction) — automate everything from your backend.

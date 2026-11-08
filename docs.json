@@ -33,6 +33,8 @@
             "group": "Configure templates",
             "pages": [
               "help-center/templates/columns",
+              "help-center/templates/calculated-columns",
+              "help-center/templates/extracted-columns",
               "help-center/templates/structured-values",
               "help-center/templates/link-columns"
             ]
@@ -40,8 +42,7 @@
           {
             "group": "Onboard a new customer",
             "pages": [
-              "help-center/onboard/create-a-company",
-              "help-center/onboard/share-a-magic-link"
+              "help-center/onboard/create-a-company"
             ]
           },
           {
@@ -49,6 +50,13 @@
             "pages": [
               "help-center/import/how-it-works",
               "help-center/import/spot-check-and-fix"
+            ]
+          },
+          {
+            "group": "Sources",
+            "pages": [
+              "help-center/sources/sources",
+              "help-center/sources/source-builder"
             ]
           },
           {
@@ -63,17 +71,19 @@
             "group": "Send data to your app",
             "pages": [
               "help-center/send/export-a-workbook",
-              "help-center/send/write-to-an-api",
-              "help-center/send/webhooks"
+              "help-center/send/write-to-an-api"
             ]
           },
           {
             "group": "Settings",
             "pages": [
               "help-center/settings/team",
+              "help-center/settings/billing-and-usage",
               "help-center/settings/data-retention",
+              "help-center/settings/recipe-format",
               "help-center/settings/api-keys",
-              "help-center/settings/integrations"
+              "help-center/settings/integrations",
+              "help-center/settings/slack"
             ]
           }
         ]
@@ -120,6 +130,7 @@
                 "group": "Migrations",
                 "pages": [
                   "migration-api/create-a-migration",
+                  "migration-api/manage-migrations",
                   "migration-api/upload-files",
                   "migration-api/source-connection"
                 ]
@@ -187,6 +198,10 @@
             "openapi": "api-reference/openapi.json",
             "pages": [
               "POST /migrations",
+              "GET /migrations",
+              "GET /migrations/{migration_id}",
+              "PATCH /migrations/{migration_id}",
+              "DELETE /migrations/{migration_id}",
               "POST /migrations/{migration_id}/files",
               "GET /migrations/{migration_id}/files",
               "POST /migrations/{migration_id}/source-connection",
@@ -224,6 +239,16 @@
       }
     ]
   },
+  "redirects": [
+    {
+      "source": "/help-center/onboard/share-a-magic-link",
+      "destination": "/help-center/onboard/create-a-company"
+    },
+    {
+      "source": "/help-center/send/webhooks",
+      "destination": "/help-center/send/export-a-workbook"
+    }
+  ],
   "logo": {
     "light": "/logo/light.svg",
     "dark": "/logo/dark.svg"
