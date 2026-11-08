@@ -117,9 +117,10 @@ A `409` means a run is holding the document while it writes — retry shortly.
 | `400` | Malformed body, or `knowledge` missing. |
 | `401` | API key missing or invalid. |
 | `404` | No such source, or no migration with that id in your account. |
-| `409` | (source) The name matches more than one source, or a run currently holds the document. |
+| `409` | (source) The name matches more than one source. (write) A run currently holds the document — retry after it settles. (customer write) The migration is archived (`code: "migration_archived"`). |
 | `412` | `if_unmodified_since` didn't match — someone else wrote first. Re-read and merge. |
-| `429` | **30 requests per minute** per account (the Writes class). Check `Retry-After`. See [Rate limits](/migration-api/errors#rate-limits). |
+| `422` | (write) The new text is over the limit (`code: "knowledge_too_long"`, with `limit` and `length`): **10,000 characters** for source and customer knowledge. Re-sending an unchanged value is always accepted. |
+| `429` | **30 requests per minute** per account — reads are in the **Reads** class, writes in the **Writes** class. Check `Retry-After`. See [Rate limits](/migration-api/errors#rate-limits). |
 | `500` | Server error. |
 
 ## Naming a source

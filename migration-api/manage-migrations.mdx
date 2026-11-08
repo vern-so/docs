@@ -1,0 +1,265 @@
+---
+title: Manage migrations
+description: List your migrations, read one with its status, change its name, source, external ID or templates, and archive it.
+---
+
+```http
+GET    https://app.vern.so/api/v1/migrations
+GET    https://app.vern.so/api/v1/migrations/{migration_id}
+PATCH  https://app.vern.so/api/v1/migrations/{migration_id}
+DELETE https://app.vern.so/api/v1/migrations/{migration_id}
+```
+
+These endpoints manage migrations after you've
+[created them](/migration-api/create-a-migration). They cover every migration in
+your account, including companies created in the Vern app — an app-created
+company is addressed by its company id, which the company page shows as
+**Migration ID**.
+
+## Authentication
+
+Requires an `x-api-key` header. The key can address every migration in its
+account; a migration from another account returns `404`, never `403`. See
+[Authentication](/migration-api/authentication).
+
+## The migration object
+
+Every endpoint here returns migrations in the same shape:
+
+```json
+{
+  "id": "c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d",
+  "name": "Acme Corp",
+  "external_id": "acme-001",
+  "source": "Salesforce",
+  "status": "awaiting_approval",
+  "templates": [
+    { "slug": "contacts", "name": "Contacts" }
+  ],
+  "archived": false,
+  "created_at": "2026-06-19T15:29:40.000Z",
+  "url": "https://app.vern.so/companies/open/c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d"
+}
+```
+
+<ResponseField name="id" type="string (uuid)">
+  The migration ID — pass it to every other call.
+</ResponseField>
+<ResponseField name="name" type="string">
+  The display name.
+</ResponseField>
+<ResponseField name="external_id" type="string | null">
+  Your own identifier for this customer, or `null`.
+</ResponseField>
+<ResponseField name="source" type="string | null">
+  The source name, or `null` for a sourceless migration.
+</ResponseField>
+<ResponseField name="status" type="string">
+  `awaiting_files`, `ready`, `awaiting_approval` or `completed` — see
+  [Core concepts → Migration](/migration-api/concepts#migration-the-instance).
+  **Omitted from list results**, because working it out costs several lookups per
+  migration; [get the migration](#get-a-migration) to read it.
+</ResponseField>
+<ResponseField name="templates" type="object[]">
+  The templates that have a sheet in this migration, each `{ slug, name }`.
+</ResponseField>
+<ResponseField name="archived" type="boolean">
+  `true` once the migration is [archived](#archive-a-migration).
+</ResponseField>
+<ResponseField name="created_at" type="string (date-time)">
+  When the migration was created.
+</ResponseField>
+<ResponseField name="url" type="string">
+  Opens the company in the Vern app. `/companies/open/{key}` also accepts the
+  `external_id` in place of the id.
+</ResponseField>
+
+## List migrations
+
+```http
+GET https://app.vern.so/api/v1/migrations
+```
+
+Returns your migrations newest first, a page at a time.
+
+<ParamField query="external_id" type="string">
+  Exact match on the migration's external ID (the one shown on its company page).
+  Alphanumeric, hyphens and underscores, at most 255 characters.
+</ParamField>
+<ParamField query="source" type="string">
+  Only migrations from this source, by name. A name that matches no source
+  returns an empty page, not a `404`.
+</ParamField>
+<ParamField query="include_archived" type="boolean" default="false">
+  Pass `true` to include archived migrations. By default they're left out.
+</ParamField>
+<ParamField query="limit" type="integer" default="50">
+  Page size, from 1 to 200.
+</ParamField>
+<ParamField query="cursor" type="string">
+  The `next_cursor` from the previous page. Omit it for the first page.
+</ParamField>
+
+```json
+{
+  "migrations": [
+    {
+      "id": "c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d",
+      "name": "Acme Corp",
+      "external_id": "acme-001",
+      "source": "Salesforce",
+      "templates": [{ "slug": "contacts", "name": "Contacts" }],
+      "archived": false,
+      "created_at": "2026-06-19T15:29:40.000Z",
+      "url": "https://app.vern.so/companies/open/c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d"
+    }
+  ],
+  "next_cursor": "WyIyMDI2LTA2LTE5VDE1OjI5OjQwLjAwMFoiLCJjMGE4MDEyZS0uLi4iXQ"
+}
+```
+
+<ResponseField name="next_cursor" type="string | null">
+  Pass it as `cursor` to get the next page. `null` on the last page. Treat it as
+  opaque.
+</ResponseField>
+
+To page through everything, repeat the call with each `next_cursor` until it comes
+back `null`:
+
+```bash
+curl "https://app.vern.so/api/v1/migrations?limit=200" \
+  -H "x-api-key: $VERN_API_KEY"
+
+curl "https://app.vern.so/api/v1/migrations?limit=200&cursor=$NEXT_CURSOR" \
+  -H "x-api-key: $VERN_API_KEY"
+```
+
+To find the migration for one of your customers, filter by `external_id`:
+
+```bash
+curl "https://app.vern.so/api/v1/migrations?external_id=acme-001" \
+  -H "x-api-key: $VERN_API_KEY"
+```
+
+## Get a migration
+
+```http
+GET https://app.vern.so/api/v1/migrations/{migration_id}
+```
+
+Returns `{ "migration": { … } }`, including its `status`. Archived migrations can
+still be read.
+
+```bash
+curl https://app.vern.so/api/v1/migrations/c0a8012e-... \
+  -H "x-api-key: $VERN_API_KEY"
+```
+
+## Update a migration
+
+```http
+PATCH https://app.vern.so/api/v1/migrations/{migration_id}
+```
+
+The API version of the app's **Edit company** and **Add New Sheet**. Send only
+the fields you want to change; any other field is refused with `400`.
+
+<ParamField body="name" type="string">
+  New display name. Must not be blank.
+</ParamField>
+<ParamField body="source" type="string | null">
+  The source name to bind, or `null` (or empty) to make the migration sourceless.
+</ParamField>
+<ParamField body="external_id" type="string | null">
+  A new external ID, or `null` to clear it. Alphanumeric, hyphens and
+  underscores, at most 255 characters, and unique among your migrations.
+</ParamField>
+<ParamField body="templates" type="string[]">
+  Template slugs to **add**. Each one without a sheet gets a new, empty sheet;
+  slugs that already have one are skipped. Templates are never removed this way,
+  because removing one would drop its sheet and data.
+</ParamField>
+
+Changing `source` or adding `templates` is refused with `409`
+(`code: "imports_in_flight"`) while an import is in progress for the migration —
+including a preview waiting for approval — because it would change what that
+import reads from or writes into. Cancel it or let it finish first. `name` and
+`external_id` can always change.
+
+```bash
+curl -X PATCH https://app.vern.so/api/v1/migrations/c0a8012e-... \
+  -H "x-api-key: $VERN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "name": "Acme Corporation", "templates": ["accounts"] }'
+```
+
+`200 OK` with the updated `{ "migration": { … } }`.
+
+## Archive a migration
+
+```http
+DELETE https://app.vern.so/api/v1/migrations/{migration_id}
+```
+
+Archives the migration, like **Archive** in the app. Nothing is deleted:
+
+- It drops out of [`GET /migrations`](#list-migrations) unless you pass
+  `include_archived=true`.
+- It stays readable — the migration, its runs, files, preview, thread,
+  [session log](/migration-api/session-log) and knowledge — and
+  [exportable](/migration-api/export-jobs).
+- Anything that changes it is refused with `409` and
+  `code: "migration_archived"`: uploads, runs, answers, credentials, knowledge,
+  source connection, cancelling a run, and `PATCH`.
+
+```json
+{
+  "error": "This migration is archived. Restore it from the Archived page in Vern before changing it.",
+  "code": "migration_archived"
+}
+```
+
+To bring it back, restore it from the **Archived** page in Vern. There is no
+restore endpoint.
+
+You can't archive while an import is in progress, including a preview waiting
+for approval: the request is refused with `409`, `code: "imports_in_flight"`,
+and the runs to [cancel](/migration-api/poll-a-run#cancel-a-run) first:
+
+```json
+{
+  "error": "An import is still in progress for this company. Cancel it before archiving.",
+  "code": "imports_in_flight",
+  "runs": [
+    { "id": "d4c3b2a1-...", "status": "awaiting_approval", "updatedAt": "2026-06-19T15:40:02.000Z", "runKind": "generate" }
+  ]
+}
+```
+
+Archiving an archived migration does nothing and returns the same `200`.
+
+```bash
+curl -X DELETE https://app.vern.so/api/v1/migrations/c0a8012e-... \
+  -H "x-api-key: $VERN_API_KEY"
+```
+
+`200 OK` with the migration, now `"archived": true`.
+
+## Errors
+
+| Status | Meaning |
+|---|---|
+| `400` | List: a malformed `external_id`, a `limit` outside 1–200, or an invalid `cursor`. PATCH: malformed JSON, no fields, an unknown field, a blank `name`, a malformed `external_id`, `templates` not an array of slugs, or an unknown template slug. |
+| `401` | API key missing or invalid. |
+| `404` | No migration with that `{migration_id}` in your account, or (PATCH) the named `source` doesn't exist. |
+| `409` | `migration_archived` (PATCH on an archived migration); `imports_in_flight` (archiving, or changing `source`/`templates`, while an import is in progress — the body lists the `runs`); the `external_id` is already used by another migration; the source name is ambiguous; or your account's region isn't live yet. |
+| `429` | Listing and getting are **Reads** (30 / minute); PATCH and DELETE are **Writes** (30 / minute). Check `Retry-After`. See [Rate limits](/migration-api/errors#rate-limits). |
+| `500` | Server error. A PATCH that changed some fields but failed to add the templates says so; retry with just `templates`. |
+
+See [Errors & limits](/migration-api/errors) for the shared error model.
+
+## Next
+
+- [Create a migration](/migration-api/create-a-migration)
+- [Upload files](/migration-api/upload-files)
+- [Poll a run](/migration-api/poll-a-run) — including how to cancel one.

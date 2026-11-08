@@ -125,10 +125,13 @@ generate ──▶ awaiting_approval ──▶ execute ──▶ completed
 |---|---|
 | `400` | `kind` missing or invalid; `generate` with no files **and** no connected source; `extract_via_api` not a boolean; `instructions` not a string, or longer than 200 characters (`code: "instructions_too_long"` — checked before any rate limit is spent); `update`/`clarify` with no `message`. |
 | `401` | API key missing or invalid. |
+| `403` | Your account has no active plan. See [Plans](/migration-api/errors#plans). |
 | `404` | No migration with that `{migration_id}` in your account. |
-| `409` | A run is already in progress (the body includes the active `run_id`); the migration has no target templates; `update`/`clarify`/`execute` with no current preview to act on; the approved preview is no longer resumable (generate a fresh one). |
-| `429` | **`kind: "generate"` is limited to 30 per hour** per account, and an account may have at most **3 runs in progress**. The concurrency refusal carries `code: "run_concurrency_limit"` and the blocking runs. See [Errors & limits](/migration-api/errors#concurrent-runs). |
+| `409` | A run is already in progress (the body includes the active `run_id`); the migration has no target templates; `update`/`clarify`/`execute` with no current preview to act on; the approved preview is no longer resumable (generate a fresh one); or the migration is archived (`code: "migration_archived"`). |
+| `422` | `generate`, `update` or `execute`: knowledge this migration uses is over its size limit, so the run wasn't started (`code: "knowledge_too_long"`). `documents[]` lists each one as `{ kind, id, name, length, limit }` — shorten it on its [Knowledge](/migration-api/knowledge) endpoint and retry. `clarify` is never blocked by this. |
+| `429` | **`kind: "generate"` is limited to 30 per hour** per account, and an account may have at most **3 runs in progress**. The concurrency refusal carries `code: "run_concurrency_limit"` and the blocking runs. Every kind also counts against the **Agent** class (30 per hour). See [Errors & limits](/migration-api/errors#concurrent-runs). |
 | `500` | Server error. |
+| `503` | `execute` only: the go-ahead couldn't be delivered to the waiting run. Nothing was started — retry. |
 
 A `409` from an in-flight run is how you **recover a run** you lost track of — the
 response carries its `run_id`:
@@ -136,6 +139,21 @@ response carries its `run_id`:
 ```json
 { "error": "A run is already in progress for this migration.", "run_id": "d4c3b2a1-..." }
 ```
+
+A `422` names the over-limit documents:
+
+```json
+{
+  "error": "This migration can't start: some of the knowledge it uses is longer than allowed. Shorten it on its Knowledge tab, then try again.",
+  "code": "knowledge_too_long",
+  "documents": [
+    { "kind": "migration", "id": "8f2e...", "name": null, "length": 12450, "limit": 10000 }
+  ]
+}
+```
+
+The limits are 10,000 characters for source and migration knowledge and 5,000
+for a template's description.
 
 ## Examples
 

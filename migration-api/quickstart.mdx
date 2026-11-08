@@ -171,7 +171,9 @@ The base URL is `https://app.vern.so/api/v1`.
   </Step>
 
   <Step title="Execute the import">
-    Happy with the preview? Start an `execute` run to import for real.
+    Happy with the preview? Start an `execute` run to import for real. It resumes
+    the **same run** — the response carries the same `run_id` (`d4c3b2a1-...`)
+    with `status: "running"`, so keep polling the `poll_url` you already have.
 
     ```bash
     curl -X POST https://app.vern.so/api/v1/migrations/c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d/runs \
@@ -184,7 +186,7 @@ The base URL is `https://app.vern.so/api/v1`.
 
     ```json
     {
-      "run_id": "e5d4c3b2-...",
+      "run_id": "d4c3b2a1-...",
       "status": "completed",
       "created_at": "2026-06-19T15:40:02.000Z",
       "report": {
@@ -197,14 +199,13 @@ The base URL is `https://app.vern.so/api/v1`.
     ```
 
     A `completed` execute with `invalidCellCount > 0` means that many rows still
-    have at least one cell that failed validation — the rest are clean. The default
-    CSV download (`?filter=valid`) excludes those rows. See
+    have at least one cell that failed validation — the rest are clean. The CSV
+    download includes every row, flagged or not. See
     [Poll a run](/migration-api/poll-a-run).
   </Step>
 
   <Step title="Deliver the clean data">
-    Download a sheet's validated rows as a CSV, addressed by template slug (valid
-    rows only, by default):
+    Download a sheet's rows as a CSV, addressed by template slug:
 
     ```bash
     curl "https://app.vern.so/api/v1/migrations/c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d/exports/contacts.csv" \
@@ -212,8 +213,8 @@ The base URL is `https://app.vern.so/api/v1`.
       -o contacts-clean.csv
     ```
 
-    See [Export CSV](/migration-api/export-csv) for filters and streaming into
-    your own storage.
+    See [Export CSV](/migration-api/export-csv) for choosing columns and streaming
+    into your own storage.
   </Step>
 </Steps>
 

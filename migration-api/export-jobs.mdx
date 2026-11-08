@@ -107,8 +107,8 @@ GET https://app.vern.so/api/v1/migrations/{migration_id}/exports/jobs/{job_id}
   don't store it — mint a fresh one by polling again if it lapses.
 </ResponseField>
 <ResponseField name="expires_at" type="string">
-  When the export file is deleted. After this the job returns nothing to
-  download; queue a new one.
+  When the export file is deleted. After this the job still answers `200` with
+  its last `status`, but `download_url` is `null`; queue a new one.
 </ResponseField>
 <ResponseField name="error" type="string | null">
   Why the export failed, when it did.
@@ -118,10 +118,11 @@ GET https://app.vern.so/api/v1/migrations/{migration_id}/exports/jobs/{job_id}
 
 | Status | Meaning |
 |---|---|
-| `400` | Neither `slug` nor `slugs` supplied, or a slug doesn't match a template. |
+| `400` | Neither `slug` nor `slugs` supplied; `fields` not an array, empty, or naming a column that doesn't exist (`unknown_field`); or a sheet has no template columns. |
 | `401` | API key missing or invalid. |
-| `404` | No migration with that id in your account, or no such job. |
-| `409` | An export for this migration is already running. |
+| `403` | Your account has no active plan. See [Plans](/migration-api/errors#plans). |
+| `404` | No migration with that id in your account, a slug that doesn't match a template (`Unknown template slug(s): …`), a template with no sheet in this migration, or no such job. |
+| `409` | `omit_empty` was requested but no completed import has column coverage (`code: "coverage_unavailable"`); no columns are left on a sheet after `fields`/`omit_empty`; or a compressed (parquet) sheet has no data to export yet. |
 | `429` | **15 requests per hour** per account (the Jobs class). Check `Retry-After`. See [Rate limits](/migration-api/errors#rate-limits). |
 | `500` | Server error. |
 | `502` | The export worker could not be reached. |

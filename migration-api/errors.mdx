@@ -14,14 +14,15 @@ one rate limit.
 | `401` | API key missing, malformed, or revoked. |
 | `403` | The account has no active plan. Only on endpoints that create work — see [Plans](#plans). |
 | `404` | The referenced migration, run, source, or template isn't in your account. |
-| `409` | A conflict — a reused `external_id`, an ambiguous source name, a run already in progress, or a state precondition (e.g. asking for the [session log](/migration-api/session-log) before the migration settles). |
-| `410` | The resource expired and its data was deleted — an [export job](/migration-api/export-jobs) past its retention window. Start a new one. |
+| `409` | A conflict — a reused `external_id`, an ambiguous source name, a run already in progress, an [archived migration](/migration-api/manage-migrations#archive-a-migration) (`migration_archived`), an import in the way (`imports_in_flight`), or a state precondition (e.g. asking for the [session log](/migration-api/session-log) before the migration settles). |
 | `412` | A guarded write lost a race. Only from [knowledge](/migration-api/knowledge) writes sent with `if_unmodified_since` — re-read, merge, and write again. |
+| `413` | An [upload](/migration-api/upload-files) would take your account over its 50 GB storage limit (`storage_quota_exceeded`). |
 | `421` | Wrong region: your account's data is hosted in another region. The body names the base URL to use — see [Data region](#data-region). |
+| `422` | Knowledge is over its size limit (`knowledge_too_long`) — either the text you're saving, or knowledge a run would load, which stops the run from starting. |
 | `429` | A [rate limit](#rate-limits) or the [concurrent-run limit](#concurrent-runs). Check `Retry-After`. |
 | `500` | Server error — safe to retry idempotent requests. |
-| `502` | An upstream worker couldn't be reached — document parsing or the export executor. Retry. |
-| `503` | The feature isn't available in your account's data region. |
+| `502` | The export worker couldn't be started. The [export job](/migration-api/export-jobs) is marked `failed`; queue a new one. |
+| `503` | Temporarily unavailable — retry. Either document extraction is switched off (`DOCUMENT_EXTRACTION_DISABLED`, when you request a PDF, Word or image upload), or a transient failure: the session log or thread couldn't be loaded, or an answer, credentials or the go-ahead to execute couldn't be delivered to a waiting run. |
 
 Run-level failures are different from request errors: a `POST /runs` request can
 return `201` (accepted) and then resolve to a `failed` run. Read the run's
@@ -36,11 +37,27 @@ string:
 { "error": "external_id must be alphanumeric (hyphens/underscores allowed), max 255 chars" }
 ```
 
-Most errors carry only that string: there's no field pointer or request-id
-header today, so branch on the HTTP status and surface `error` for debugging.
-The one exception is the [concurrent-run limit](#concurrent-runs), which adds a
-machine-readable `code` of `run_concurrency_limit` alongside the runs that
-triggered it.
+There's no field pointer or request-id header today, so branch on the HTTP
+status and surface `error` for debugging. Where a status alone is ambiguous, the
+body adds a machine-readable `code` — branch on that rather than on the message
+text:
+
+| `code` | Status | Meaning |
+|---|---|---|
+| `migration_archived` | `409` | The migration is [archived](/migration-api/manage-migrations#archive-a-migration). Uploads, runs, answers, credentials, knowledge, the source connection, cancelling and edits are refused; reads and exports still work. Restore it in Vern. |
+| `imports_in_flight` | `409` | Archiving a migration, or changing its source or templates, while an import is in progress. `runs` lists the runs to cancel or wait for. |
+| `run_concurrency_limit` | `429` | Your account already has 3 runs in progress — see [Concurrent runs](#concurrent-runs). |
+| `instructions_too_long` | `400` | A `generate` run's `instructions` is over 200 characters. |
+| `knowledge_too_long` | `422` | Knowledge is over its limit: 10,000 characters for source and migration knowledge, 5,000 for a template description. A save refusal carries `limit` and `length`; a refused run carries `documents[]`. |
+| `storage_quota_exceeded` | `413` | Your account's uploads would go over 50 GB. Carries `usedBytes` and `limitBytes`. |
+| `DOCUMENT_EXTRACTION_DISABLED` | `503` | Document extraction is currently unavailable, so PDF, Word and image files are refused. See [File limits](#file-limits). |
+| `wrong_region` | `421` | Your account is hosted in another region — see [Data region](#data-region). |
+| `unknown_field` | `400` | `fields` names a column that doesn't exist. The message lists the valid names. |
+| `empty_field_selection` | `400` | `fields` was sent but empty. Omit it to get every column. |
+| `invalid_field_selection` | `400` | `fields` in an export job body isn't an array. |
+| `coverage_unavailable` | `409` | `omit_empty` on an export, but no completed import has per-column coverage to decide from. |
+| `no_columns_selected` | `409` | No columns are left after `fields` / `omit_empty`. |
+| `parquet_sheet_use_export_job` | `409` | The sheet uses compressed storage; use an [export job](/migration-api/export-jobs) instead of the CSV endpoint. |
 
 ## Rate limits
 
@@ -53,8 +70,8 @@ serve:
 
 | Class | Limit | Endpoints |
 |---|---|---|
-| **Reads** | 30 / minute | Polling a run, the preview, the session log, the thread, listing files, export job status and downloads, listing and reading sources and templates |
-| **Writes** | 30 / minute | Knowledge, pinning a source, source connections, editing a template or source, [requesting upload URLs](/migration-api/upload-files) |
+| **Reads** | 30 / minute | [Listing and getting migrations](/migration-api/manage-migrations), polling a run, the preview, the session log, the thread, listing files, reading knowledge and the source connection, export job status and CSV downloads, listing and reading sources and templates |
+| **Writes** | 30 / minute | [Updating and archiving a migration](/migration-api/manage-migrations), [cancelling a run](/migration-api/poll-a-run#cancel-a-run), writing knowledge, pinning a source, creating or removing a source connection, editing a template or source, [requesting upload URLs](/migration-api/upload-files) |
 | **Jobs** | 15 / hour | [Starting an export](/migration-api/export-jobs) |
 | **Agent** | 30 / hour | [Starting a run](/migration-api/start-a-run), [answering questions](/migration-api/answer-questions), [submitting credentials](/migration-api/submit-credentials) |
 
@@ -135,21 +152,33 @@ upload over its lifetime:
 
 | Limit | Value |
 |---|---|
-| PDF and Word files per run | **5** |
+| Documents (PDF, Word and image files) per run | **5** |
 | Files of any kind per run | **400** |
 | Files per upload request | **25** |
+| Uploaded storage per account | **50 GB** |
 
-Only **PDF and Word** documents count toward the first limit — they go through
-document parsing, which is the expensive path. Spreadsheets and CSVs
-(`.xlsx`, `.xls`, `.csv`) do not count toward it, only toward the 400.
+Only **documents** count toward the first limit — PDF (`.pdf`), Word (`.docx`)
+and images (`.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`). They go through document
+extraction, which is the expensive path. Spreadsheets and CSVs (`.csv`, `.xlsx`,
+`.xls`, `.xlsm`, `.xltx`, `.xltm`), SQL dumps (`.sql`, `.bak`), XML exports
+(`.xml`) and ZIP archives (`.zip`) are also accepted; they don't count toward it,
+only toward the 400.
+
+<Warning>
+  Document extraction is currently unavailable. While it is, documents are
+  refused at upload with `503` and `code: "DOCUMENT_EXTRACTION_DISABLED"`, and
+  documents inside a ZIP are dropped and listed as skipped. Everything else
+  works as normal.
+</Warning>
 
 The per-request limit applies to a single
 [`POST /migrations/{id}/files`](/migration-api/upload-files) call. It is not a
 ceiling on the migration — request URLs in batches of 25 and upload as many
 times as you need, up to the 400 total.
 
-Over any of these you get a `400` naming which limit was hit and what the run
-would have totalled.
+Over a count limit you get a `400` naming which limit was hit and what the run
+would have totalled; over the storage limit, a `413` with
+`code: "storage_quota_exceeded"`.
 
 ## Plans
 
@@ -172,7 +201,10 @@ Migration **creation** is idempotent on the `external_id` you choose. Re-sending
 (and the same source) returns the **existing migration** — with a `200` instead
 of a `201` — rather than creating a second one. This makes create retries safe
 and doubles as recovery: if you lose a migration ID, re-POST with the same
-`external_id` to get it back.
+`external_id` to get it back, or look it up with
+[`GET /migrations?external_id=…`](/migration-api/manage-migrations#list-migrations).
+If that migration is archived, the re-POST answers `409` with
+`code: "migration_archived"` and its `id`.
 
 Runs are **not** keyed by an idempotency token. Instead, only **one run runs at a
 time per migration** — starting a second while one is in flight returns `409` with
@@ -182,7 +214,8 @@ capped at [3 runs in progress](#concurrent-runs).
 
 ## Polling conventions
 
-- Poll runs on an interval of ≈2s, backing off as the run ages.
+- Poll runs about every 10 seconds, backing off as the run ages — the
+  [Reads budget](#rate-limits) is sized for that.
 - Treat `awaiting_approval`, `completed`, `failed`, and `canceled` as terminal
   for a given run; stop polling.
 - Make your handling idempotent — the same terminal state can be read more than

@@ -3,7 +3,7 @@
   "info": {
     "title": "Vern Migration API",
     "version": "1.0.0",
-    "description": "Run Vern as a headless migration engine. Create a migration, upload a customer's files, run the managed agent to generate a preview, then execute and export clean data. See the Migration API guides for concepts and walkthroughs."
+    "description": "Run Vern as a headless migration engine. Create a migration, upload a customer's files, run the managed agent to generate a preview, then execute and export clean data. See the Migration API guides for concepts and walkthroughs.\n\n**Rate limits** are counted per account (company), not per key or IP, in four classes: reads 30/minute, writes 30/minute, jobs (starting an export) 15/hour, and agent calls (starting a run, answering, submitting credentials) 30/hour. Creating a migration and starting a `generate` run each also have a 30/hour cap. A `429` carries `Retry-After` plus `X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-Reset`.\n\n**Errors** are `{\"error\": \"...\"}`; some add a machine-readable `code` (e.g. `migration_archived`, `imports_in_flight`, `knowledge_too_long`, `storage_quota_exceeded`, `DOCUMENT_EXTRACTION_DISABLED`, `run_concurrency_limit`). An archived migration stays readable and exportable, but every call that changes it returns `409` with `code: migration_archived`.\n\n**Region**: accounts hosted in Australia use `https://au.app.vern.so/api/v1`. A key sent to the other region's base URL is answered `421` with `{\"error\", \"code\": \"wrong_region\", \"region\", \"base_url\", \"mcp_url\", \"app_url\"}` — switch to `base_url`."
   },
   "servers": [
     { "url": "https://app.vern.so/api/v1", "description": "US-hosted accounts" },
@@ -14,7 +14,7 @@
   ],
   "tags": [
     { "name": "Catalog", "description": "Discover the sources and templates you set up in the Vern UI." },
-    { "name": "Migrations", "description": "Create a migration workspace and upload a customer's files." },
+    { "name": "Migrations", "description": "Create, list, update and archive migration workspaces, and upload a customer's files." },
     { "name": "Runs", "description": "Drive the managed agent: generate, refine, execute, answer, and observe." },
     { "name": "Export", "description": "Download a migration's validated data as CSV." },
     {"name":"Log","description":"The settled record of what a migration did."},
@@ -44,7 +44,8 @@
             }
           },
           "401": { "$ref": "#/components/responses/Unauthorized" },
-          "429": { "$ref": "#/components/responses/RateLimited" }
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" }
         }
       }
     },
@@ -92,7 +93,8 @@
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
           "409": { "$ref": "#/components/responses/Conflict" },
-          "429": { "$ref": "#/components/responses/RateLimited" }
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" }
         }
       }
     },
@@ -117,7 +119,8 @@
             }
           },
           "401": { "$ref": "#/components/responses/Unauthorized" },
-          "429": { "$ref": "#/components/responses/RateLimited" }
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" }
         }
       }
     },
@@ -137,7 +140,8 @@
           },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
-          "429": { "$ref": "#/components/responses/RateLimited" }
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" }
         }
       },
       "patch": {
@@ -197,15 +201,55 @@
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/TemplateNotFound" },
           "409": { "$ref": "#/components/responses/TemplateLocked" },
-          "429": { "$ref": "#/components/responses/RateLimited" }
+          "422": { "$ref": "#/components/responses/KnowledgeTooLong" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" }
         }
       }
     },
     "/migrations": {
+      "get": {
+        "operationId": "listMigrations",
+        "summary": "List migrations",
+        "description": "Your account's migrations, newest first, including companies created in the Vern app. Keyset-paginated: pass `next_cursor` back as `cursor` until it is null. Look one up by its external ID with `?external_id=`. List items omit `status` (it costs several lookups each) — get a single migration for it. Archived migrations are left out unless `include_archived=true`.",
+        "tags": ["Migrations"],
+        "parameters": [
+          { "name": "external_id", "in": "query", "required": false, "description": "Exact match on the migration's external ID.", "schema": { "type": "string", "maxLength": 255, "pattern": "^[a-zA-Z0-9_-]+$" }, "example": "acme-001" },
+          { "name": "source", "in": "query", "required": false, "description": "Source name. A name matching no source returns an empty page.", "schema": { "type": "string" }, "example": "Salesforce" },
+          { "name": "include_archived", "in": "query", "required": false, "schema": { "type": "boolean", "default": false } },
+          { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 1, "maximum": 200, "default": 50 } },
+          { "name": "cursor", "in": "query", "required": false, "description": "The `next_cursor` from the previous page. Opaque.", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of migrations.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "migrations": { "type": "array", "items": { "$ref": "#/components/schemas/Migration" } },
+                    "next_cursor": { "type": ["string", "null"], "description": "Pass as `cursor` for the next page; null on the last page." }
+                  }
+                },
+                "example": { "migrations": [ { "id": "c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d", "name": "Acme Corp", "external_id": "acme-001", "source": "Salesforce", "templates": [ { "slug": "contacts", "name": "Contacts" } ], "archived": false, "created_at": "2026-06-19T15:29:40.000Z", "url": "https://app.vern.so/companies/open/c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d" } ], "next_cursor": null }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "409": {
+            "description": "The source name is ambiguous, or your account's data region isn't live yet.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
       "post": {
         "operationId": "createMigration",
         "summary": "Create a migration",
-        "description": "Create a migration workspace for one customer — a workbook with one sheet per template. Requires API-key auth specifically. `external_id` makes creation idempotent: re-sending the same one (with the same source) returns the existing migration with a 200.",
+        "description": "Create a migration workspace for one customer — a workbook with one sheet per template. Requires API-key auth specifically and an active plan. `external_id` makes creation idempotent: re-sending the same one (with the same source) returns the existing migration with a 200, unchanged — use `PATCH /migrations/{migration_id}` to change it. If that migration is archived the answer is 409 with `code: migration_archived` and its `id`.",
         "tags": ["Migrations"],
         "requestBody": {
           "required": true,
@@ -238,19 +282,114 @@
                   "migration": {
                     "id": "c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d",
                     "name": "Acme Corp",
+                    "external_id": "acme-001",
                     "source": "Salesforce",
                     "status": "awaiting_files",
-                    "templates": [ { "slug": "contacts", "name": "Contacts" } ]
+                    "templates": [ { "slug": "contacts", "name": "Contacts" } ],
+                    "archived": false,
+                    "created_at": "2026-06-19T15:29:40.000Z",
+                    "url": "https://app.vern.so/companies/open/c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d"
                   }
                 }
               }
             }
           },
+          "200": {
+            "description": "An existing migration matched `external_id` (and the same source); nothing was created and it is returned unchanged.",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "migration": { "$ref": "#/components/schemas/Migration" } } } } }
+          },
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/PlanRequired" },
           "404": { "$ref": "#/components/responses/NotFound" },
-          "409": { "$ref": "#/components/responses/Conflict" },
-          "429": { "$ref": "#/components/responses/RateLimited" }
+          "409": {
+            "description": "The `external_id` is already used by a migration under another source; the migration it names is archived (`code: migration_archived`, with its `id`); the source name is ambiguous; or your account's data region isn't live yet.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" }, "example": { "error": "This migration is archived. Restore it from the Archived page in Vern before changing it.", "code": "migration_archived", "id": "c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d" } } }
+          },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/migrations/{migration_id}": {
+      "parameters": [ { "$ref": "#/components/parameters/MigrationId" } ],
+      "get": {
+        "operationId": "getMigration",
+        "summary": "Get a migration",
+        "description": "One migration, with its `status`. Archived migrations can still be read.",
+        "tags": ["Migrations"],
+        "responses": {
+          "200": {
+            "description": "The migration.",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "migration": { "$ref": "#/components/schemas/Migration" } } } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/MigrationNotFound" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "patch": {
+        "operationId": "updateMigration",
+        "summary": "Update a migration",
+        "description": "The API version of the app's \"Edit company\" and \"Add New Sheet\". Send only the fields to change; any other field is a 400. `templates` ADDS templates: each slug without a sheet gets a new, empty one, and slugs that already have one are skipped — templates are never removed. Changing `source` or adding `templates` is refused with 409 (`code: imports_in_flight`) while an import is in progress, including a preview waiting for approval; `name` and `external_id` can always change.",
+        "tags": ["Migrations"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "minProperties": 1,
+                "additionalProperties": false,
+                "properties": {
+                  "name": { "type": "string", "description": "New display name. Must be non-blank." },
+                  "source": { "type": ["string", "null"], "description": "Source name to bind, or null for a sourceless migration." },
+                  "external_id": { "type": ["string", "null"], "maxLength": 255, "pattern": "^[a-zA-Z0-9_-]+$", "description": "A new external ID, unique among your migrations, or null to clear it." },
+                  "templates": { "type": "array", "items": { "type": "string" }, "description": "Template slugs to add." }
+                }
+              },
+              "example": { "name": "Acme Corporation", "templates": ["accounts"] }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated migration.",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "migration": { "$ref": "#/components/schemas/Migration" } } } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": {
+            "description": "No such migration, or the named source doesn't exist.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "409": {
+            "description": "The migration is archived (`code: migration_archived`), an import is in progress (`code: imports_in_flight`, with the blocking `runs`), the `external_id` is already used by another migration, or the source name is ambiguous.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ImportsInFlightError" } } }
+          },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "delete": {
+        "operationId": "archiveMigration",
+        "summary": "Archive a migration",
+        "description": "Archives the migration, like Archive in the app — nothing is deleted. It drops out of `GET /migrations` (unless `include_archived=true`), stays readable and exportable, and every call that changes it (uploads, runs, answers, credentials, knowledge, the source connection, cancelling, PATCH) returns 409 with `code: migration_archived`. Restore it from the Archived page in Vern. Refused with 409 (`code: imports_in_flight`) while an import is in progress, including a preview waiting for approval — cancel the listed runs first. Archiving an archived migration is a no-op.",
+        "tags": ["Migrations"],
+        "responses": {
+          "200": {
+            "description": "The archived migration (`archived: true`).",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "migration": { "$ref": "#/components/schemas/Migration" } } } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/MigrationNotFound" },
+          "409": {
+            "description": "An import is in progress (`code: imports_in_flight`). `runs` lists the runs to cancel or wait for.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ImportsInFlightError" }, "example": { "error": "An import is still in progress for this company. Cancel it before archiving.", "code": "imports_in_flight", "runs": [ { "id": "d4c3b2a1-9f8e-47d6-b5a4-c3d2e1f0a9b8", "status": "awaiting_approval", "updatedAt": "2026-06-19T15:40:02.000Z", "runKind": "generate" } ] } } }
+          },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" }
         }
       }
     },
@@ -259,7 +398,7 @@
       "post": {
         "operationId": "createUploads",
         "summary": "Mint signed upload URLs",
-        "description": "Request one signed upload URL per file, then PUT each file's bytes to its `signed_url`. Files are workbook-level — not mapped to templates.",
+        "description": "Request one signed upload target per file (at most 25 per request), then PUT each file's bytes to its `signed_url`, or run a resumable (TUS) upload with the `resumable` block. Files are workbook-level — not mapped to templates; if two share a name, a run reads the newest. Accepted: spreadsheets and CSV (csv, xlsx, xls, xlsm, xltx, xltm), SQL dumps (sql, bak), XML (xml) and ZIP archives. Documents (pdf, docx, png, jpg, jpeg, tif, tiff) are currently refused with 503 `DOCUMENT_EXTRACTION_DISABLED` while document extraction is unavailable. An unsupported file rejects the whole batch with 400.",
         "tags": ["Migrations"],
         "requestBody": {
           "required": true,
@@ -277,7 +416,8 @@
                       "required": ["name"],
                       "properties": {
                         "name": { "type": "string" },
-                        "content_type": { "type": "string" }
+                        "content_type": { "type": "string" },
+                        "size": { "type": "integer", "description": "Optional size in bytes. When given it counts toward the account's 50 GB storage limit, and an upload that would exceed it is refused up front with 413." }
                       }
                     }
                   }
@@ -296,14 +436,24 @@
                   "type": "object",
                   "properties": { "files": { "type": "array", "items": { "$ref": "#/components/schemas/SignedUpload" } } }
                 },
-                "example": { "files": [ { "name": "contacts.csv", "storage_path": "workbooks/b3d9.../<uuid>-contacts.csv", "signed_url": "https://storage.vern.so/object/upload/sign/...&token=...", "token": "ey...", "content_type": "text/csv" } ] }
+                "example": { "files": [ { "name": "contacts.csv", "storage_path": "workbooks/b3d9.../<uuid>-contacts.csv", "signed_url": "https://storage.vern.so/object/upload/sign/...&token=...", "token": "ey...", "content_type": "text/csv", "resumable": { "endpoint": "https://<project>.supabase.co/storage/v1/upload/resumable/sign", "bucket": "workbook-files", "object_name": "workbooks/b3d9.../<uuid>-contacts.csv", "x_signature": "ey...", "chunk_size": 6291456 } } ] }
               }
             }
           },
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
-          "429": { "$ref": "#/components/responses/RateLimited" }
+          "409": { "$ref": "#/components/responses/MigrationArchived" },
+          "413": {
+            "description": "The account is at its 50 GB storage limit for uploads, or the declared `size`s would take it over (`code: storage_quota_exceeded`).",
+            "content": { "application/json": { "schema": { "allOf": [ { "$ref": "#/components/schemas/Error" }, { "type": "object", "properties": { "usedBytes": { "type": "integer" }, "limitBytes": { "type": "integer" } } } ] } } }
+          },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" },
+          "503": {
+            "description": "A document (PDF, Word or image) was requested while document extraction is unavailable (`code: DOCUMENT_EXTRACTION_DISABLED`). Nothing was minted; resend without the documents.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" }, "example": { "error": "Document extraction (PDF, image and presentation files) is temporarily unavailable. CSV and Excel files are supported. Refused: invoice.pdf.", "code": "DOCUMENT_EXTRACTION_DISABLED" } } }
+          }
         }
       },
       "get": {
@@ -326,7 +476,8 @@
           },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
-          "429": { "$ref": "#/components/responses/RateLimited" }
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" }
         }
       }
     },
@@ -335,7 +486,7 @@
       "post": {
         "operationId": "startRun",
         "summary": "Start a run",
-        "description": "Start one managed-agent run. `generate` authors the recipe and stops at a preview; `update` edits it per `message`; `clarify` asks a read-only question; `execute` runs the approved preview for real. `generate` opens a preview run and `update`/`clarify`/`execute` resume that same run, so the `run_id` stays stable from preview through execution (a resuming call returns `status: \"running\"`). Only one run runs at a time per migration (409 with the active run_id otherwise).",
+        "description": "Start one managed-agent run. `generate` authors the recipe and stops at a preview; `update` edits it per `message`; `clarify` asks a read-only question; `execute` runs the approved preview for real. `generate` opens a preview run and `update`/`clarify`/`execute` resume that same run, so the `run_id` stays stable from preview through execution (a resuming call returns `status: \"running\"`). Only one run runs at a time per migration (409 with the active run_id otherwise). Needs an active plan.",
         "tags": ["Runs"],
         "requestBody": {
           "required": true,
@@ -374,12 +525,19 @@
           },
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/PlanRequired" },
           "404": { "$ref": "#/components/responses/NotFound" },
           "409": {
-            "description": "A run is already in progress (the body carries the active run_id), there is no preview to act on / execute, or the approved preview is no longer resumable (generate a fresh one).",
+            "description": "A run is already in progress (the body carries the active run_id), the migration has no target templates, there is no preview to act on / execute, the approved preview is no longer resumable (generate a fresh one), or the migration is archived (`code: migration_archived`).",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" }, "example": { "error": "A run is already in progress for this migration.", "run_id": "d4c3b2a1-9f8e-47d6-b5a4-c3d2e1f0a9b8" } } }
           },
-          "429": { "$ref": "#/components/responses/RunStartLimited" }
+          "422": { "$ref": "#/components/responses/KnowledgeBlocksRun" },
+          "429": { "$ref": "#/components/responses/RunStartLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" },
+          "503": {
+            "description": "`execute` only: the go-ahead could not be delivered to the waiting run. Nothing was started — retry.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
         }
       }
     },
@@ -409,7 +567,8 @@
           },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
-          "429": { "$ref": "#/components/responses/RateLimited" }
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" }
         }
       },
       "patch": {
@@ -438,7 +597,9 @@
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
-          "429": { "$ref": "#/components/responses/RateLimited" }
+          "409": { "$ref": "#/components/responses/MigrationArchived" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" }
         }
       }
     },
@@ -481,8 +642,13 @@
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
-          "409": { "$ref": "#/components/responses/Conflict" },
-          "429": { "$ref": "#/components/responses/RateLimited" }
+          "409": {
+            "description": "The run has no pending question, it is blocked for credentials (use `POST .../credentials`), there's no active question to answer yet (retry shortly), or the migration is archived (`code: migration_archived`).",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" }, "example": { "error": "This run has no pending question." } } }
+          },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" },
+          "503": { "$ref": "#/components/responses/AnswerUndelivered" }
         }
       }
     },
@@ -518,10 +684,12 @@
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
           "409": {
-            "description": "The run isn't awaiting credentials (not blocked, or blocked on a question), connection_id doesn't match, or there's no active credential request yet — retry shortly.",
+            "description": "The run isn't awaiting credentials (not blocked, or blocked on a question), connection_id doesn't match, there's no active credential request yet — retry shortly — or the migration is archived (`code: migration_archived`).",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" }, "example": { "error": "This run is not awaiting credentials." } } }
           },
-          "429": { "$ref": "#/components/responses/RateLimited" }
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" },
+          "503": { "$ref": "#/components/responses/AnswerUndelivered" }
         }
       }
     },
@@ -543,7 +711,8 @@
           },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
-          "429": { "$ref": "#/components/responses/RateLimited" }
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" }
         }
       },
       "post": {
@@ -579,7 +748,9 @@
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
-          "429": { "$ref": "#/components/responses/RateLimited" }
+          "409": { "$ref": "#/components/responses/MigrationArchived" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" }
         }
       },
       "delete": {
@@ -598,7 +769,9 @@
           },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
-          "429": { "$ref": "#/components/responses/RateLimited" }
+          "409": { "$ref": "#/components/responses/MigrationArchived" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" }
         }
       }
     },
@@ -627,9 +800,11 @@
               }
             }
           },
+          "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
-          "429": { "$ref": "#/components/responses/RateLimited" }
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" }
         }
       }
     },
@@ -662,7 +837,12 @@
           },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
-          "429": { "$ref": "#/components/responses/RateLimited" }
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" },
+          "503": {
+            "description": "The migration's history could not be loaded — a transient failure. Retry; it is never answered with an empty thread instead.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
         }
       }
     },
@@ -671,7 +851,7 @@
       "get": {
         "operationId": "streamThread",
         "summary": "Stream the thread (SSE)",
-        "description": "A Server-Sent Events stream of the same thread events. Each message is `event: <type>` + `data: <json>`. The stream ends with `event: done` and closes after ~5 minutes; reconnect with `?after=<last_sequence>` to continue.",
+        "description": "A Server-Sent Events stream of the same thread events. Each message is `event: <type>` + `data: <json>`. With no `after` it replays the whole thread before tailing. It ends with `event: done` (`{\"last_sequence\": n}`) once nothing is running and the thread is drained, or after roughly 29 minutes; reconnect with `?after=<last_sequence>` to continue. A stream-side failure is sent as `event: error`. Authentication, not-found and rate-limit failures are ordinary JSON responses, not SSE.",
         "tags": ["Runs"],
         "parameters": [
           { "name": "after", "in": "query", "required": false, "schema": { "type": "integer" } },
@@ -683,7 +863,8 @@
             "content": { "text/event-stream": { "schema": { "type": "string" } } }
           },
           "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" }
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
         }
       }
     },
@@ -707,7 +888,12 @@
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
-          "429": { "$ref": "#/components/responses/RateLimited" }
+          "409": {
+            "description": "The sheet uses compressed storage (`code: parquet_sheet_use_export_job`) — use the async export endpoints; `omit_empty` was requested but the import's per-column coverage is unavailable (`code: coverage_unavailable`); or no columns remain after `fields`/`omit_empty` (`code: no_columns_selected`).",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" }
         }
       }
     },
@@ -804,8 +990,12 @@
           "400": {"$ref":"#/components/responses/BadRequest"},
           "401": {"$ref":"#/components/responses/Unauthorized"},
           "404": {"$ref":"#/components/responses/MigrationNotFound"},
-          "409": {"$ref":"#/components/responses/KnowledgeLocked"},
+          "409": {
+            "description": "A migration is currently running and may be rewriting this document, or the migration is archived (`code: migration_archived`).",
+            "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}
+          },
           "412": {"$ref":"#/components/responses/KnowledgeStale"},
+          "422": {"$ref":"#/components/responses/KnowledgeTooLong"},
           "429": {"$ref":"#/components/responses/RateLimited"},
           "500": {"$ref":"#/components/responses/ServerError"}
         }
@@ -822,7 +1012,7 @@
       "post": {
         "tags": ["Exports"],
         "summary": "Start an export",
-        "description": "Queues an export of one or more destination sheets. One slug produces a CSV, several produce a ZIP. Poll the returned `status_url` for the download link.",
+        "description": "Queues an export of one or more destination sheets. One slug produces a CSV, several produce a ZIP. Poll the returned `status_url` for the download link. Needs an active plan. Works on archived migrations.",
         "operationId": "createExport",
         "requestBody": {
           "required": true,
@@ -861,12 +1051,13 @@
           },
           "400": {"$ref":"#/components/responses/BadRequest"},
           "401": {"$ref":"#/components/responses/Unauthorized"},
+          "403": {"$ref":"#/components/responses/PlanRequired"},
           "404": {
-            "description": "Migration not found, or an unknown template slug.",
+            "description": "Migration not found, an unknown template slug, or a template with no sheet in this migration.",
             "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}
           },
           "409": {
-            "description": "A sheet has no exportable data.",
+            "description": "`omit_empty` was requested but no completed import has per-column coverage (`code: coverage_unavailable`); no columns are left on a sheet after `fields`/`omit_empty`; or a compressed (parquet) sheet has no data to export yet.",
             "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}
           },
           "429": {"$ref":"#/components/responses/RateLimited"},
@@ -895,7 +1086,7 @@
         "operationId": "getExportJob",
         "responses": {
           "200": {
-            "description": "Job state. `download_url` is set once `status` is `completed`.",
+            "description": "Job state. `download_url` is set once `status` is `completed`, and is null again after `expires_at` (the job still answers 200).",
             "content": {"application/json":{"schema":{"$ref":"#/components/schemas/ExportJob"}}}
           },
           "401": {"$ref":"#/components/responses/Unauthorized"},
@@ -968,7 +1159,8 @@
             "description": "The source name is ambiguous, or the new name is already used by another source in your organisation.",
             "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}
           },
-          "429": { "$ref": "#/components/responses/RateLimited" }
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" }
         }
       }
     },
@@ -1013,6 +1205,7 @@
             "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}
           },
           "412": {"$ref":"#/components/responses/KnowledgeStale"},
+          "422": {"$ref":"#/components/responses/KnowledgeTooLong"},
           "429": {"$ref":"#/components/responses/RateLimited"},
           "500": {"$ref":"#/components/responses/ServerError"}
         }
@@ -1080,9 +1273,29 @@
       "Unauthorized": { "description": "API key missing, malformed, or revoked.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
       "NotFound": { "description": "The referenced resource isn't in your account.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
       "Conflict": { "description": "A uniqueness or state conflict.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-      "RateLimited": { "description": "Rate limit hit. Counted per account, not per API key. Creating a migration and starting a `generate` run are limited to 30/hour each; answering a run is limited to 30/hour; reads allow 30/minute and writes 30/minute. `Retry-After` gives the seconds until the window resets, alongside `X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-Reset`.", "headers": { "Retry-After": { "description": "Seconds until the rate-limit window resets.", "schema": { "type": "integer" } }, "X-RateLimit-Limit": { "description": "Requests allowed in the current window.", "schema": { "type": "integer" } }, "X-RateLimit-Remaining": { "description": "Requests remaining in the current window.", "schema": { "type": "integer" } }, "X-RateLimit-Reset": { "description": "Unix time (seconds) when the window resets.", "schema": { "type": "integer" } } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" }, "example": { "error": "Too many requests" } } } },
+      "RateLimited": { "description": "Rate limit hit. Counted per account (company), not per API key or IP. Each endpoint is in one class: reads 30/minute, writes 30/minute, jobs (starting an export) 15/hour, agent (starting a run, answering, submitting credentials) 30/hour. Creating a migration and starting a `generate` run also have their own 30/hour caps. A separate per-IP ceiling absorbs floods before authentication. `Retry-After` gives the seconds until the window resets, alongside `X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-Reset`.", "headers": { "Retry-After": { "description": "Seconds until the rate-limit window resets.", "schema": { "type": "integer" } }, "X-RateLimit-Limit": { "description": "Requests allowed in the current window.", "schema": { "type": "integer" } }, "X-RateLimit-Remaining": { "description": "Requests remaining in the current window.", "schema": { "type": "integer" } }, "X-RateLimit-Reset": { "description": "Unix time (seconds) when the window resets.", "schema": { "type": "integer" } } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" }, "example": { "error": "Too many requests" } } } },
       "RunStartLimited": { "description": "Either the hourly rate limit on `kind: \"generate\"` (30/hour per account) or the concurrent-run limit (3 in progress). The concurrency refusal is identifiable by `code: \"run_concurrency_limit\"` and lists the blocking runs; a plain rate limit carries only `error` plus `Retry-After`.", "content": { "application/json": { "schema": { "oneOf": [ { "$ref": "#/components/schemas/Error" }, { "$ref": "#/components/schemas/RunConcurrencyError" } ] } } } },
       "RunConcurrencyLimited": { "description": "The account already has the maximum number of runs in progress (3), counting runs that are `queued`, `running` or `blocked`. Runs in `awaiting_approval` wait on you and do not count. Wait for one to finish or cancel one, then retry.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RunConcurrencyError" }, "example": { "error": "You already have 3 imports running, which is the limit. Wait for one to finish, or stop one to start another.", "code": "run_concurrency_limit", "limit": 3, "runs": [ { "id": "run_01JD...", "status": "running", "updatedAt": "2026-10-01T09:14:22.000Z", "runKind": "generate" } ] } } } },
+      "PlanRequired": {
+        "description": "Your account has no active plan. Only endpoints that create work (creating a migration, starting a run, starting an export) require one; reads are unaffected.",
+        "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Error"},"example":{"error":"Your plan does not include data imports. Upgrade your plan to import data."}}}
+      },
+      "MigrationArchived": {
+        "description": "The migration is archived (`code: migration_archived`). Archived migrations stay readable and exportable but refuse every change. Restore it from the Archived page in Vern.",
+        "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Error"},"example":{"error":"This migration is archived. Restore it from the Archived page in Vern before changing it.","code":"migration_archived"}}}
+      },
+      "AnswerUndelivered": {
+        "description": "The reply could not be saved or delivered to the waiting run, so it is still blocked. A transient failure — retry the same request.",
+        "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Error"},"example":{"error":"Could not save the answer. Please try again."}}}
+      },
+      "KnowledgeTooLong": {
+        "description": "The new text is longer than allowed (`code: knowledge_too_long`): 10,000 characters for source and migration knowledge, 5,000 for a template description. Re-sending an unchanged value is always accepted.",
+        "content": {"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/Error"},{"type":"object","properties":{"limit":{"type":"integer","example":10000},"length":{"type":"integer"}}}]}}}
+      },
+      "KnowledgeBlocksRun": {
+        "description": "Knowledge this migration uses is over its size limit, so the run was not started (`code: knowledge_too_long`). Applies to `generate`, `update` and `execute`, not `clarify`. Shorten each listed document and retry.",
+        "content": {"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/Error"},{"type":"object","properties":{"documents":{"type":"array","items":{"$ref":"#/components/schemas/OverLimitKnowledge"}}}}]}}}
+      },
       "MigrationNotFound": {
         "description": "No migration with this id in your organisation. Returned rather than `403` so the existence of another organisation's migration is not disclosed.",
         "content": {"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}
@@ -1128,8 +1341,43 @@
     "schemas": {
       "Error": {
         "type": "object",
-        "properties": { "error": { "type": "string", "description": "A human-readable error message." } },
+        "properties": {
+          "error": { "type": "string", "description": "A human-readable error message." },
+          "code": { "type": "string", "description": "A machine-readable code, on errors whose status alone is ambiguous (e.g. migration_archived, imports_in_flight, knowledge_too_long)." }
+        },
         "required": ["error"]
+      },
+      "ImportsInFlightError": {
+        "type": "object",
+        "description": "An error body; with `code: imports_in_flight` it also lists the runs in the way.",
+        "properties": {
+          "error": { "type": "string" },
+          "code": { "type": "string", "enum": ["imports_in_flight", "migration_archived"] },
+          "runs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string" },
+                "status": { "type": "string", "description": "One of `pending`, `queued`, `running`, `blocked`, `awaiting_approval`." },
+                "updatedAt": { "type": ["string","null"], "format": "date-time" },
+                "runKind": { "type": ["string","null"] }
+              }
+            }
+          }
+        },
+        "required": ["error"]
+      },
+      "OverLimitKnowledge": {
+        "type": "object",
+        "properties": {
+          "kind": { "type": "string", "enum": ["source", "migration", "template"] },
+          "id": { "type": ["string","null"] },
+          "name": { "type": ["string","null"] },
+          "length": { "type": "integer", "description": "Length in characters." },
+          "limit": { "type": "integer", "description": "The limit for this kind of knowledge." }
+        },
+        "required": ["kind", "length", "limit"]
       },
       "RunConcurrencyError": {
         "type": "object",
@@ -1188,9 +1436,13 @@
         "properties": {
           "id": { "type": "string", "format": "uuid", "description": "The migration ID — pass it to every later call." },
           "name": { "type": "string" },
+          "external_id": { "type": ["string", "null"], "description": "Your own identifier for this customer." },
           "source": { "type": ["string", "null"] },
-          "status": { "type": "string", "enum": ["awaiting_files", "ready", "awaiting_approval", "completed"] },
-          "templates": { "type": "array", "items": { "type": "object", "properties": { "slug": { "type": "string" }, "name": { "type": "string" } } } }
+          "status": { "type": "string", "enum": ["awaiting_files", "ready", "awaiting_approval", "completed"], "description": "Omitted from `GET /migrations` list items." },
+          "templates": { "type": "array", "items": { "type": "object", "properties": { "slug": { "type": "string" }, "name": { "type": "string" } } } },
+          "archived": { "type": "boolean", "description": "Archived migrations stay readable and exportable but refuse uploads, runs and edits. Restore one from the Archived page in Vern." },
+          "created_at": { "type": "string", "format": "date-time" },
+          "url": { "type": "string", "format": "uri", "description": "Opens the company in Vern. `/companies/open/{key}` also accepts the `external_id`." }
         }
       },
       "SignedUpload": {
@@ -1200,7 +1452,18 @@
           "storage_path": { "type": "string" },
           "signed_url": { "type": "string", "description": "PUT the file's bytes here." },
           "token": { "type": "string" },
-          "content_type": { "type": "string" }
+          "content_type": { "type": "string" },
+          "resumable": {
+            "type": "object",
+            "description": "For a chunked, resumable (TUS) upload instead of one PUT: point a TUS client at `endpoint`, send `x_signature` in the `x-signature` header, use `chunk_size`-byte chunks, and set metadata `{ bucketName: bucket, objectName: object_name, contentType }`.",
+            "properties": {
+              "endpoint": { "type": "string" },
+              "bucket": { "type": "string" },
+              "object_name": { "type": "string" },
+              "x_signature": { "type": "string" },
+              "chunk_size": { "type": "integer", "example": 6291456 }
+            }
+          }
         }
       },
       "ListedFile": {

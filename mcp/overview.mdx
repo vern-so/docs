@@ -12,8 +12,14 @@ These are the same operations the [Home agent](/help-center/home/overview) uses,
 | | |
 |---|---|
 | URL | `https://app.vern.so/api/mcp` (US-hosted accounts) · `https://au.app.vern.so/api/mcp` (Australia-hosted accounts) |
-| Transport | Streamable HTTP (stateless — every call is a `POST`, answered with JSON) |
+| Transport | Streamable HTTP (stateless — every call is a `POST`, answered with JSON). `GET` and `DELETE` return `405`: there's no session to open or close and no server-sent stream. |
+| Protocol versions | `2025-06-18`, `2025-03-26`, `2024-11-05`. Another `MCP-Protocol-Version` header is refused with `400`. |
 | Auth | A Vern API key: `Authorization: Bearer ve_…` (or the `x-api-key` header) |
+| Request size | At most 1 MB per request body; larger is refused with `413`. |
+
+A missing or invalid key gets `401`. So does a key whose creator is no longer in
+the company — the assistant acts as that person, so their key stops working when
+they leave.
 
 If your account is hosted in Australia, use `https://au.app.vern.so/api/mcp` in
 the setup below. A key sent to the other region's server gets a `421` with a
@@ -77,16 +83,83 @@ Try *"What's in my Vern account?"* — the assistant starts with an overview, th
 - *"Read the knowledge on the Northwind source and tidy its structure."*
 - *"Make `external_id` required on the Events template."*
 
-## What the tools cover
+## Tools
 
-| Area | Examples |
+Tools are grouped by the access they need. **Read** tools never ask for
+confirmation. **Write** tools run straight away, except the few marked *asks*.
+**External** tools send data to a system outside Vern and **Delete** tools remove
+things; both always take a [confirmation](#confirmations).
+
+### Read
+
+| Tool | What it does |
 |---|---|
-| Overview and lookups | `get_overview`, `list_*` and `get_*` for companies, sources, templates, lists, scouts, workflows, writers and runs |
-| Knowledge | `read_knowledge`, `review_knowledge`, `update_knowledge` |
-| Changes | creating and updating companies, sources, templates, template columns, lists, scouts and workflows (needs **Write**) |
-| Runs and builds | starting list and scout runs, testing and running workflows, and `start_migration_build`, `start_writer_build`, `start_source_build` (needs **Write**) |
+| `get_overview` | Account overview — start here |
+| `get_needs_attention` | What needs attention |
+| `list_companies`, `get_company` | Companies (migrations) |
+| `list_sources`, `get_source` | Sources |
+| `list_templates`, `get_template` | Templates |
+| `list_runs`, `get_run_diagnostics` | Migration runs, and why a run failed |
+| `read_knowledge`, `review_knowledge`, `list_knowledge_findings` | Knowledge on sources, companies and templates, and review findings |
+| `get_delegation` | Progress of builds started with `start_*_build` |
+| `inspect_files` | Read attached files |
+| `list_repo_files`, `read_repo_file` | Look through a connected repository |
+| `list_lists`, `get_list`, `list_scouts`, `get_scout` | Lists and Scouts |
+| `list_workflows`, `get_workflow` | Workflows |
+| `list_writers`, `get_writer`, `list_source_builders` | Writers and source builders |
 
-Which tools a client sees depends on the key's access and on your plan — tools a key can't use aren't listed.
+### Write
+
+| Tool | What it does |
+|---|---|
+| `create_company`, `update_company` | Create and update companies |
+| `attach_files_to_company` | Add files to a company |
+| `create_source`, `update_source` | Add and update sources |
+| `create_template`, `update_template`, `update_template_column`, `archive_template` | Create, update, archive or restore templates |
+| `update_knowledge` | Replace a knowledge document — *asks* |
+| `copy_repo_files` | Bring repository files into the conversation |
+| `start_migration_build`, `start_writer_build`, `start_source_build` | Start a migration, writer or source-connector build |
+| `create_list`, `update_list`, `start_list_run` | Lists |
+| `create_scout`, `update_scout`, `start_scout_run` | Scouts |
+| `create_workflow`, `update_workflow`, `test_workflow` | Workflows — `update_workflow` *asks* when it switches a schedule on |
+| `approve_workflow` | Approve a workflow — *asks* |
+| `update_writer` | Rename a writer |
+
+### External (needs confirm)
+
+| Tool | What it does |
+|---|---|
+| `run_workflow` | Run a workflow now |
+| `run_writer` | Send rows to another system with a writer |
+
+### Delete (needs confirm)
+
+| Tool | What it does |
+|---|---|
+| `delete_company`, `delete_source`, `delete_template` | Delete a company, source or template |
+| `delete_list`, `delete_scout`, `delete_workflow`, `delete_writer` | Delete a list, scout, workflow or writer |
+
+`confirm_action` completes any pending change; it's listed whenever the key has
+**Write** or **Delete** access. `report_run_issue` (reporting a failed run to the
+Vern team) is available in [Home](/help-center/home/overview) only, not over MCP.
+
+### Which tools a key sees
+
+A client is only shown the tools its key can use; the rest aren't listed at all.
+Beyond the key's access:
+
+- **Admin-only** — writer and source-builder tools (`list_writers`,
+  `get_writer`, `list_source_builders`, `update_writer`, `delete_writer`,
+  `run_writer`, `start_writer_build`, `start_source_build`) need the key's creator
+  to be an Admin.
+- **Workflows** — workflow tools need Workflows enabled for your company.
+- **Plan** — tools that start work (`create_company`, `attach_files_to_company`,
+  `copy_repo_files`, `start_migration_build`, the `start_*_run` tools,
+  `test_workflow`, `run_workflow`, `run_writer`) need an active plan.
+- **Lists and Scouts** — list and scout tools are only offered for accounts whose
+  data is stored in the US, not Australia.
+
+Role and feature changes count straight away: every change re-checks them.
 
 ## Confirmations
 
@@ -96,7 +169,17 @@ Long builds (a migration, a writer or a source connector) run on their own after
 
 ## Limits and revoking
 
-Requests are rate-limited per connection and per company. Delete a key on the API keys page and any client using it is cut off immediately.
+Two limits apply:
+
+- **Per IP:** 240 requests a minute, before the key is checked.
+- **Per company:** each tool call counts against the same Reads, Writes, Jobs
+  and Agent budgets as the [Migration API](/migration-api/errors#rate-limits), so
+  MCP and the API share one budget. Read tools spend Reads (`review_knowledge`
+  spends Agent); create, update and delete tools spend Writes; builds, runs and
+  `test_workflow` spend Jobs. Over a budget, the tool returns an error with
+  `code: "rate_limited"` — try again shortly.
+
+Delete a key on the API keys page and any client using it is cut off immediately.
 
 ## Next
 

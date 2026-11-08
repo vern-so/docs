@@ -13,6 +13,10 @@ specific template; the [`generate`](/migration-api/start-a-run) run reads
 whatever's been uploaded. Uploading is a two-step handshake: ask for a signed URL,
 then `PUT` the bytes straight to storage.
 
+If you upload two files with the same name, both are kept and listed, but a run
+reads only the **newest** of them — re-uploading a corrected `contacts.csv`
+replaces the old one for the next `generate`.
+
 `{migration_id}` is the `id` from
 [creating a migration](/migration-api/create-a-migration).
 
@@ -30,13 +34,41 @@ Request one entry per file, declaring its name (and, ideally, content type):
 
 <ParamField body="files" type="object[]" required>
   A non-empty array of files to upload, **at most 25 per request**. Each entry is
-  `{ "name": "contacts.csv", "content_type": "text/csv" }`. `name` is required;
-  `content_type` is optional but recommended.
+  `{ "name": "contacts.csv", "content_type": "text/csv", "size": 184320 }`. `name`
+  is required; `content_type` is optional but recommended.
 
   For more than 25, call this repeatedly — a migration may hold up to 400 files,
-  of which at most 5 may be PDF or Word documents. See
+  of which at most 5 may be documents (PDF, Word or image files). See
   [File limits](/migration-api/errors#file-limits).
 </ParamField>
+
+<ParamField body="files[].size" type="integer">
+  Optional size in bytes. When you send it, it counts toward your account's
+  **50 GB** storage limit up front, so an upload that would go over is refused
+  with `413` before any URL is minted. Without it, the request is refused only
+  once the account is already at the limit.
+</ParamField>
+
+### Accepted file types
+
+The file type is read from the name's extension. One unsupported name rejects the
+**whole batch** with `400` and no URLs are minted, so retry without it.
+
+| Kind | Extensions |
+|---|---|
+| Spreadsheets and CSV | `.csv`, `.xlsx`, `.xls`, `.xlsm`, `.xltx`, `.xltm` |
+| SQL dumps | `.sql`, `.bak` |
+| XML data exports | `.xml` |
+| ZIP archives | `.zip` — expanded into individual files after upload |
+| Documents | `.pdf`, `.docx`, `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff` |
+
+<Warning>
+  Document extraction is currently unavailable. Until it's switched back on,
+  documents (PDF, Word and image files) are refused with `503` and
+  `code: "DOCUMENT_EXTRACTION_DISABLED"`, naming the refused files, and documents
+  inside a ZIP are dropped and listed as skipped. Spreadsheets, CSVs, SQL dumps
+  and XML work as normal.
+</Warning>
 
 ```bash
 curl -X POST https://app.vern.so/api/v1/migrations/c0a8012e-.../files \
@@ -59,7 +91,14 @@ curl -X POST https://app.vern.so/api/v1/migrations/c0a8012e-.../files \
       "storage_path": "workbooks/b3d9.../<uuid>-contacts.csv",
       "signed_url": "https://storage.vern.so/object/upload/sign/...&token=...",
       "token": "ey...",
-      "content_type": "text/csv"
+      "content_type": "text/csv",
+      "resumable": {
+        "endpoint": "https://<project>.supabase.co/storage/v1/upload/resumable/sign",
+        "bucket": "workbook-files",
+        "object_name": "workbooks/b3d9.../<uuid>-contacts.csv",
+        "x_signature": "ey...",
+        "chunk_size": 6291456
+      }
     }
   ]
 }
@@ -78,6 +117,14 @@ curl -X POST https://app.vern.so/api/v1/migrations/c0a8012e-.../files \
 <ResponseField name="files[].token" type="string">
   The raw upload token, if you prefer a storage SDK's `uploadToSignedUrl` helper
   over a plain `PUT`.
+</ResponseField>
+<ResponseField name="files[].resumable" type="object">
+  Everything needed for a chunked, resumable upload (the TUS protocol) instead of
+  one `PUT` — better for large files and flaky connections. Point a TUS client
+  (e.g. `tus-js-client`) at `endpoint`, send `x_signature` in the `x-signature`
+  header, use `chunk_size`-byte chunks (6 MB), and set the upload metadata to
+  `{ bucketName: bucket, objectName: object_name, contentType }`. The object lands
+  at the same `storage_path` either way.
 </ResponseField>
 
 ## Upload the bytes
@@ -123,8 +170,11 @@ landed before generating.
 | `400` | `files` missing or empty, an entry is missing `name`, an unsupported file type, more than 25 entries, or the migration would exceed 400 files / 5 documents. See [File limits](/migration-api/errors#file-limits). |
 | `401` | API key missing or invalid. |
 | `404` | No migration with that `{migration_id}` in your account. |
-| `429` | **Limited to 30 requests per minute** per account (the Writes class). Check `Retry-After`. See [Rate limits](/migration-api/errors#rate-limits). |
+| `409` | The migration is archived (`code: "migration_archived"`). Restore it in Vern first. Listing files still works. |
+| `413` | Your account is at its 50 GB storage limit, or the declared `size`s would take it over (`code: "storage_quota_exceeded"`, with `usedBytes` and `limitBytes`). Delete companies or uploaded files you no longer need in Settings → Storage. |
+| `429` | **Limited to 30 requests per minute** per account (the Writes class; listing files is a Read). Check `Retry-After`. See [Rate limits](/migration-api/errors#rate-limits). |
 | `500` | Server error (including a failure to mint the signed URL). |
+| `503` | A document (PDF, Word or image) was requested while document extraction is unavailable (`code: "DOCUMENT_EXTRACTION_DISABLED"`). Nothing was minted; resend without the documents. |
 
 ## Next
 

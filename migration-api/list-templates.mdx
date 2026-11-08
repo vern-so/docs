@@ -123,7 +123,8 @@ that slug.
       What the column is *for*: `none`, `strict`, `link`, or the legacy `ai`.
       It is a label, not a gate — every rule a column carries is enforced
       whichever value this holds. `link` additionally switches on the grid's live
-      link re-check and the nested webhook export.
+      link re-check, and tells [Writers](/help-center/send/write-to-an-api) how records
+      relate, so linked records are sent in order and connected to each other.
     </ResponseField>
     <ResponseField name="strictRule" type="string">
       A POSIX regular expression every non-blank value must match. Not anchored
