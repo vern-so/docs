@@ -1,0 +1,138 @@
+---
+title: Checkpoint migrations
+description: Import a later export of a customer you've already migrated — only the new records — as a checkpoint grouped with the first migration.
+---
+
+Customers often send a full export first, then a **delta** a few weeks later
+that overlaps it. Importing the delta as a new migration would duplicate every
+record that was already migrated. A **checkpoint** avoids that.
+
+A checkpoint is a new migration, with **its own migration ID**, files, runs and
+results, created **from** an earlier migration. The first migration and every
+checkpoint after it form a **group**. When a checkpoint skips records already
+migrated (the default), each of its imports leaves out every record whose
+source ID an earlier migration of the group already holds. Only net-new records
+are imported, and nothing that was migrated before is updated or overwritten.
+
+```http
+POST https://app.vern.so/api/v1/migrations
+```
+
+```json
+{
+  "name": "Acme Corp — December update",
+  "checkpoint_of": "c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d",
+  "external_id": "acme-001-dec"
+}
+```
+
+## How records are matched
+
+Records are matched on each template's **unique column** — the column holding
+the source system's record ID (for example a `Legacy ID`). The agent carries
+that ID through unchanged, so a record in the delta that was in an earlier
+export is recognised and left out.
+
+- "Earlier" means **every** migration of the group created before this
+  checkpoint, not only the one it was created from. Checkpoint 3 skips what the
+  first migration, checkpoint 1 and checkpoint 2 imported.
+- A record that changed between exports is still skipped: checkpoints never
+  overwrite.
+- A record with a blank source ID is always imported (there's nothing to match
+  it on).
+- A template with no unique column can't be matched. Its records are all
+  imported unless the agent finds the column that carries the source ID. The
+  run report lists such templates in `unmatchedTemplates`.
+- References to records migrated earlier (a new contact's company, say) keep
+  the source ID as usual and resolve against the earlier migrations.
+
+## Request
+
+The body is the same as [Create a migration](/migration-api/create-a-migration),
+with two more fields:
+
+<ParamField body="checkpoint_of" type="string (uuid)">
+  The ID of the migration this checkpoint is created from — the first migration
+  or any checkpoint of its group. It must be a migration of your account
+  (`404`, `code: "checkpoint_base_not_found"`, otherwise). Archived migrations
+  are allowed.
+</ParamField>
+
+<ParamField body="skip_migrated" type="boolean" default="true">
+  Leave out records an earlier migration of the group already holds. Set
+  `false` to import everything in this checkpoint while still grouping it.
+  Only valid with `checkpoint_of`.
+</ParamField>
+
+A checkpoint uses the **source and templates** of the migration it's created
+from: omit `source` and `templates`, or send the same ones (`400` otherwise).
+
+**Names stay unique.** A checkpoint needs a name of its own; a name already used
+for the same source returns `409` with `code: "name_taken"`.
+
+`external_id` idempotency works as usual. Re-sending an `external_id` with a
+different `checkpoint_of` (or one that isn't a checkpoint) returns `409` with
+`code: "external_id_conflict"`.
+
+## Response
+
+`201 Created` with the [migration object](/migration-api/manage-migrations#the-migration-object),
+which shows where it sits in its group:
+
+```json
+{
+  "migration": {
+    "id": "5d1e7c3a-2b9f-4c6d-8e0a-1f2b3c4d5e6f",
+    "name": "Acme Corp — December update",
+    "external_id": "acme-001-dec",
+    "source": "Salesforce",
+    "status": "awaiting_files",
+    "templates": [{ "slug": "contacts", "name": "Contacts" }],
+    "archived": false,
+    "created_at": "2026-12-14T09:12:03.000Z",
+    "url": "https://app.vern.so/companies/open/5d1e7c3a-2b9f-4c6d-8e0a-1f2b3c4d5e6f",
+    "checkpoint_of": "c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d",
+    "checkpoint_group": "c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d",
+    "checkpoint_seq": 1,
+    "skip_migrated": true
+  }
+}
+```
+
+Then [upload the delta](/migration-api/upload-files) and
+[start a run](/migration-api/start-a-run) as for any migration. The recipe that
+worked for the earlier migrations of the group is reused first.
+
+## What was skipped
+
+A completed run's [`report`](/migration-api/poll-a-run) on a checkpoint carries:
+
+<ResponseField name="skippedMigrated" type="integer">
+  Records left out because an earlier migration of the group already holds them.
+</ResponseField>
+<ResponseField name="skippedPerSheet" type="object[]">
+  The same per sheet: `{ templateName, sheetId, keyColumn, skipped }`.
+</ResponseField>
+<ResponseField name="unmatchedTemplates" type="string[]">
+  Templates with no source ID column to match on; all of their records were
+  imported.
+</ResponseField>
+
+`inserted` counts only the new records. A delta whose records were all migrated
+before completes with `inserted: 0`.
+
+## Listing a group
+
+```http
+GET https://app.vern.so/api/v1/migrations?checkpoint_group={any migration id of the group}
+```
+
+Returns the first migration and every checkpoint of the group.
+
+## Changing a checkpoint
+
+[`PATCH /migrations/{id}`](/migration-api/manage-migrations#update-a-migration)
+takes `skip_migrated` on a checkpoint; the change applies to runs started after
+it. A checkpoint's group and source can't be changed (`409`,
+`code: "checkpoint_source_fixed"` for the source). The first migration of a
+group can't be deleted while it has checkpoints.

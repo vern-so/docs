@@ -131,6 +131,7 @@
                 "pages": [
                   "migration-api/create-a-migration",
                   "migration-api/manage-migrations",
+                  "migration-api/checkpoints",
                   "migration-api/upload-files",
                   "migration-api/source-connection"
                 ]
