@@ -50,6 +50,8 @@ text:
 | `name_taken` | `409` | A checkpoint's name is already used by a migration with the same source. Give it its own name. |
 | `external_id_conflict` | `409` | The `external_id` belongs to a migration created with a different `checkpoint_of` (or none). |
 | `not_a_checkpoint` | `400` | `skip_migrated` was sent for a migration that isn't a checkpoint. |
+| `checkpoint_base_deleting` | `409` | The migration in `checkpoint_of` is being deleted, so no checkpoint of it can be created. |
+| `checkpoint_source_missing` | `409` | The source of the migration in `checkpoint_of` no longer exists. |
 | `checkpoint_source_fixed` | `409` | The migration is in a checkpoint group (a checkpoint, or a first migration with checkpoints), so its source can't be changed. |
 | `run_concurrency_limit` | `429` | Your account already has 3 runs in progress — see [Concurrent runs](#concurrent-runs). |
 | `instructions_too_long` | `400` | A `generate` run's `instructions` is over 200 characters. |

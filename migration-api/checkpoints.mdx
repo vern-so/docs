@@ -31,7 +31,9 @@ POST https://app.vern.so/api/v1/migrations
 Records are matched on each template's **unique column** — the column holding
 the source system's record ID (for example a `Legacy ID`). The agent carries
 that ID through unchanged, so a record in the delta that was in an earlier
-export is recognised and left out.
+export is recognised and left out. A unique column that is calculated (a
+formula) works too: it's filled in before matching. A column filled by AI
+extraction is never used for matching, because it isn't a source ID.
 
 - "Earlier" means **every** migration of the group created before this
   checkpoint, not only the one it was created from. Checkpoint 3 skips what the
@@ -42,8 +44,10 @@ export is recognised and left out.
   it on).
 - A template with no unique column can't be matched. Its records are all
   imported unless the agent finds the column that carries the source ID — and
-  that column is used only if its values are unique to each record. The run
-  report lists such templates in `unmatchedTemplates`.
+  that column is used only if its values are unique to each record, both in
+  the delta and within each earlier migration (the same ID appearing in two
+  earlier migrations is fine). The run report lists such templates in
+  `unmatchedTemplates`.
 - If an import's output has no source ID column for a template that has one,
   the import stops rather than importing everything.
 - "Already migrated" means held in an earlier migration of the group, whatever
@@ -79,6 +83,12 @@ for the same source returns `409` with `code: "name_taken"`.
 `external_id` idempotency works as usual. Re-sending an `external_id` with a
 different `checkpoint_of` (or one that isn't a checkpoint) returns `409` with
 `code: "external_id_conflict"`.
+
+Creating a checkpoint is also refused with `409` when the migration it's based
+on is being deleted (`code: "checkpoint_base_deleting"`), or when that
+migration's source no longer exists (`code: "checkpoint_source_missing"`). If
+Vern can't read the base migration, you get `500` and nothing is created — try
+again.
 
 ## Response
 
