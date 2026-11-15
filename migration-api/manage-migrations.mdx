@@ -38,7 +38,11 @@ Every endpoint here returns migrations in the same shape:
   ],
   "archived": false,
   "created_at": "2026-06-19T15:29:40.000Z",
-  "url": "https://app.vern.so/companies/open/c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d"
+  "url": "https://app.vern.so/companies/open/c0a8012e-4f1b-4d3a-9b2c-7e6f5a4b3c2d",
+  "checkpoint_of": null,
+  "checkpoint_group": null,
+  "checkpoint_seq": 0,
+  "skip_migrated": false
 }
 ```
 
@@ -73,6 +77,21 @@ Every endpoint here returns migrations in the same shape:
   Opens the company in the Vern app. `/companies/open/{key}` also accepts the
   `external_id` in place of the id.
 </ResponseField>
+<ResponseField name="checkpoint_of" type="string | null">
+  For a [checkpoint](/migration-api/checkpoints), the ID of the migration it was
+  created from; otherwise `null`.
+</ResponseField>
+<ResponseField name="checkpoint_group" type="string | null">
+  The ID of the group's first migration — its own ID for a first migration with
+  checkpoints — or `null` for a migration that isn't grouped.
+</ResponseField>
+<ResponseField name="checkpoint_seq" type="integer">
+  `0` for a first or ungrouped migration; `1`, `2`, … for checkpoints.
+</ResponseField>
+<ResponseField name="skip_migrated" type="boolean">
+  Whether this checkpoint's imports leave out records an earlier migration of
+  its group already holds.
+</ResponseField>
 
 ## List migrations
 
@@ -89,6 +108,11 @@ Returns your migrations newest first, a page at a time.
 <ParamField query="source" type="string">
   Only migrations from this source, by name. A name that matches no source
   returns an empty page, not a `404`.
+</ParamField>
+<ParamField query="checkpoint_group" type="string (uuid)">
+  Any migration ID of a [checkpoint group](/migration-api/checkpoints): returns
+  that group's first migration and every checkpoint. An unknown ID returns an
+  empty page.
 </ParamField>
 <ParamField query="include_archived" type="boolean" default="false">
   Pass `true` to include archived migrations. By default they're left out.
@@ -178,6 +202,13 @@ the fields you want to change; any other field is refused with `400`.
   Template slugs to **add**. Each one without a sheet gets a new, empty sheet;
   slugs that already have one are skipped. Templates are never removed this way,
   because removing one would drop its sheet and data.
+</ParamField>
+<ParamField body="skip_migrated" type="boolean">
+  [Checkpoints](/migration-api/checkpoints) only: whether imports started from
+  now on leave out records an earlier migration of the group already holds.
+  `400` (`code: "not_a_checkpoint"`) to turn it on for a migration that isn't a
+  checkpoint. A checkpoint's `source` can't be changed (`409`,
+  `code: "checkpoint_source_fixed"`).
 </ParamField>
 
 Changing `source` or adding `templates` is refused with `409`

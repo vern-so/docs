@@ -216,6 +216,7 @@
         "parameters": [
           { "name": "external_id", "in": "query", "required": false, "description": "Exact match on the migration's external ID.", "schema": { "type": "string", "maxLength": 255, "pattern": "^[a-zA-Z0-9_-]+$" }, "example": "acme-001" },
           { "name": "source", "in": "query", "required": false, "description": "Source name. A name matching no source returns an empty page.", "schema": { "type": "string" }, "example": "Salesforce" },
+          { "name": "checkpoint_group", "in": "query", "required": false, "schema": { "type": "string", "format": "uuid" }, "description": "Any migration ID of a checkpoint group: lists the group's first migration and every checkpoint." },
           { "name": "include_archived", "in": "query", "required": false, "schema": { "type": "boolean", "default": false } },
           { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 1, "maximum": 200, "default": 50 } },
           { "name": "cursor", "in": "query", "required": false, "description": "The `next_cursor` from the previous page. Opaque.", "schema": { "type": "string" } }
@@ -262,7 +263,9 @@
                   "name": { "type": "string", "description": "Display name for the migration (e.g. the customer's org name)." },
                   "source": { "type": "string", "description": "The source name this migration comes from. Optional — omit for a sourceless migration." },
                   "external_id": { "type": "string", "maxLength": 255, "pattern": "^[a-zA-Z0-9_-]+$", "description": "Your own identifier for this customer. Alphanumeric, hyphens, underscores. Makes creation idempotent." },
-                  "templates": { "type": "array", "items": { "type": "string" }, "description": "Template slugs to create sheets from. Omit to use every active template." }
+                  "templates": { "type": "array", "items": { "type": "string" }, "description": "Template slugs to create sheets from. Omit to use every active template. A checkpoint uses its base migration's templates: omit this or send the same slugs." },
+                  "checkpoint_of": { "type": ["string", "null"], "format": "uuid", "description": "Create this migration as a checkpoint of the migration with this ID: a new migration grouped with it, using its source and templates. Needs a name of its own. See Checkpoint migrations." },
+                  "skip_migrated": { "type": "boolean", "default": true, "description": "Checkpoints only. Leave out records an earlier migration of the group already holds, so only new records are imported." }
                 }
               },
               "example": { "name": "Acme Corp", "source": "Salesforce", "external_id": "acme-001", "templates": ["contacts"] }
@@ -346,7 +349,8 @@
                   "name": { "type": "string", "description": "New display name. Must be non-blank." },
                   "source": { "type": ["string", "null"], "description": "Source name to bind, or null for a sourceless migration." },
                   "external_id": { "type": ["string", "null"], "maxLength": 255, "pattern": "^[a-zA-Z0-9_-]+$", "description": "A new external ID, unique among your migrations, or null to clear it." },
-                  "templates": { "type": "array", "items": { "type": "string" }, "description": "Template slugs to add." }
+                  "templates": { "type": "array", "items": { "type": "string" }, "description": "Template slugs to add." },
+                  "skip_migrated": { "type": "boolean", "description": "Checkpoints only: whether imports started from now on leave out records an earlier migration of the group already holds." }
                 }
               },
               "example": { "name": "Acme Corporation", "templates": ["accounts"] }
@@ -1442,7 +1446,11 @@
           "templates": { "type": "array", "items": { "type": "object", "properties": { "slug": { "type": "string" }, "name": { "type": "string" } } } },
           "archived": { "type": "boolean", "description": "Archived migrations stay readable and exportable but refuse uploads, runs and edits. Restore one from the Archived page in Vern." },
           "created_at": { "type": "string", "format": "date-time" },
-          "url": { "type": "string", "format": "uri", "description": "Opens the company in Vern. `/companies/open/{key}` also accepts the `external_id`." }
+          "url": { "type": "string", "format": "uri", "description": "Opens the company in Vern. `/companies/open/{key}` also accepts the `external_id`." },
+          "checkpoint_of": { "type": ["string", "null"], "description": "For a checkpoint, the ID of the migration it was created from; otherwise null." },
+          "checkpoint_group": { "type": ["string", "null"], "description": "The ID of the group's first migration (its own ID for a first migration with checkpoints); null when not grouped." },
+          "checkpoint_seq": { "type": "integer", "description": "0 for a first or ungrouped migration; 1, 2, … for checkpoints." },
+          "skip_migrated": { "type": "boolean", "description": "Checkpoints: imports leave out records an earlier migration of the group already holds." }
         }
       },
       "SignedUpload": {
@@ -1500,6 +1508,10 @@
           "inserted": { "type": "integer", "description": "Total rows imported across all sheets." },
           "perSheet": { "type": "array", "items": { "type": "object", "properties": { "templateName": { "type": "string" }, "sheetId": { "type": "string" }, "rowCount": { "type": "integer" } } } },
           "invalidCellCount": { "type": "integer", "description": "Rows that still carry at least one invalid cell." },
+          "skippedMigrated": { "type": "integer", "description": "Checkpoints: records left out because an earlier migration of the group already holds them. Absent otherwise." },
+          "skippedPerSheet": { "type": "array", "items": { "type": "object", "properties": { "templateName": { "type": "string" }, "sheetId": { "type": "string" }, "keyColumn": { "type": "string" }, "skipped": { "type": "integer" }, "keyRejected": { "type": "boolean", "description": "The column named for this template doesn't identify records, so nothing was skipped." }, "priorKeysMissing": { "type": "boolean", "description": "Earlier migrations hold no values in the key column, so nothing matched." } } } },
+          "checkpointWarnings": { "type": "array", "items": { "type": "string" }, "description": "Readable reasons some sheets skipped nothing." },
+          "unmatchedTemplates": { "type": "array", "items": { "type": "string" }, "description": "Checkpoints: templates with no source ID column to match on; all of their records were imported." },
           "coverage": { "type": ["object", "null"], "description": "Optional per-column fill/distinct profile of sources vs. outputs." }
         }
       },

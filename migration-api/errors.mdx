@@ -46,6 +46,13 @@ text:
 |---|---|---|
 | `migration_archived` | `409` | The migration is [archived](/migration-api/manage-migrations#archive-a-migration). Uploads, runs, answers, credentials, knowledge, the source connection, cancelling and edits are refused; reads and exports still work. Restore it in Vern. |
 | `imports_in_flight` | `409` | Archiving a migration, or changing its source or templates, while an import is in progress. `runs` lists the runs to cancel or wait for. |
+| `checkpoint_base_not_found` | `404` | The `checkpoint_of` of a [checkpoint](/migration-api/checkpoints) isn't a migration of your account. |
+| `name_taken` | `409` | A checkpoint's name is already used by a migration with the same source. Give it its own name. |
+| `external_id_conflict` | `409` | The `external_id` belongs to a migration created with a different `checkpoint_of` (or none). |
+| `not_a_checkpoint` | `400` | `skip_migrated` was sent for a migration that isn't a checkpoint. |
+| `checkpoint_base_deleting` | `409` | The migration in `checkpoint_of` is being deleted, so no checkpoint of it can be created. |
+| `checkpoint_source_missing` | `409` | The source of the migration in `checkpoint_of` no longer exists. |
+| `checkpoint_source_fixed` | `409` | The migration is in a checkpoint group (a checkpoint, or a first migration with checkpoints), so its source can't be changed. |
 | `run_concurrency_limit` | `429` | Your account already has 3 runs in progress — see [Concurrent runs](#concurrent-runs). |
 | `instructions_too_long` | `400` | A `generate` run's `instructions` is over 200 characters. |
 | `knowledge_too_long` | `422` | Knowledge is over its limit: 10,000 characters for source and migration knowledge, 5,000 for a template description. A save refusal carries `limit` and `length`; a refused run carries `documents[]`. |
