@@ -1,12 +1,12 @@
 ---
 title: Recipe format
-description: Choose whether the import agent writes its recipes in Python or SQL.
+description: Choose whether the import agent writes its recipes in Python, SQL, or T-SQL for SQL Server.
 ---
 
 Every import builds a **recipe** — the steps that turn your customer's files
 into clean rows. **Recipe format** chooses the language that recipe is written
-in, and so what you see on a migration's **Recipe** tab. The imported data is
-identical either way.
+in, and so what you see on a migration's recipe tab and in the workbook's
+**Recipe** entry. The imported data is identical whichever you choose.
 
 Open the user menu (bottom left) and choose **Recipe format**. It's
 **Admin-only**.
@@ -14,12 +14,61 @@ Open the user menu (bottom left) and choose **Recipe format**. It's
 | Format | Choose it when |
 |---|---|
 | **Python (default)** | Suits most teams. |
-| **SQL** | The people reviewing imports read SQL. The recipe tab shows the SQL. |
+| **SQL** | The people reviewing imports read SQL. The recipe shows that SQL. |
+| **T-SQL (SQL Server)** | Your team wants to run the transformation in Microsoft SQL Server (for example in SQL Server Management Studio). The recipe is shown as T-SQL. |
 
 The setting applies to migrations started from then on. Migrations already in
 progress, and every import you've already run, keep the format they were
 written in. The page tells you how many migrations are in progress before you
 switch.
+
+## T-SQL (SQL Server)
+
+With T-SQL, the agent writes the import as SQL that Vern runs as usual, and the
+recipe you see and download is that same logic translated to T-SQL. Running the
+script in SQL Server produces the same rows the import produced.
+
+**What the script does**
+
+- It reads each source file from a table in the `[src]` schema, named after
+  the file's key (shown in the script's header).
+- It writes each output to a table in the `[dbo]` schema, named after the
+  template.
+- It creates a few small helper functions (and, if the recipe changes text to
+  upper or lower case, one helper table) in `dbo` at the start and drops them
+  at the end. These read numbers, dates and text exactly the way the import
+  did.
+
+**Before you run it**
+
+- Use **SQL Server 2022 or later**, with the database at compatibility level
+  160.
+- You need permission to create tables and functions in `dbo`.
+- Load each source file into its `[src]` table with every column as
+  `NVARCHAR(MAX)`, and load empty fields as `NULL` (with `BULK INSERT`, use
+  `KEEPNULLS`).
+
+**What matches exactly**
+
+- Text is compared, grouped and sorted exactly as the import did: case
+  matters, trailing spaces count, and your database's collation doesn't change
+  the result.
+- Numbers keep the import's precision and rounding, and dates are read with the
+  formats the recipe names.
+
+The script's header lists the few things that can differ:
+
+- Rows that tie in an ordering (such as "the first row per customer") may be
+  picked in a different order.
+- `current_date` is the day you run the script.
+- Values SQL Server can't store — infinite numbers, dates before year 1 or
+  after 9999, numbers smaller than 2.2e-308 — become `NULL` or 0.
+
+The agent writes T-SQL recipes in a portable subset of SQL. If it writes
+something SQL Server can't reproduce exactly, its check fails and it rewrites
+that step on its own before the import runs — you don't need to do anything.
+In the rare case the T-SQL version can't be prepared, the recipe shows the SQL
+it is made from, with a note saying so.
 
 ## Next
 
