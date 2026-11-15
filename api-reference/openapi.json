@@ -1509,7 +1509,8 @@
           "perSheet": { "type": "array", "items": { "type": "object", "properties": { "templateName": { "type": "string" }, "sheetId": { "type": "string" }, "rowCount": { "type": "integer" } } } },
           "invalidCellCount": { "type": "integer", "description": "Rows that still carry at least one invalid cell." },
           "skippedMigrated": { "type": "integer", "description": "Checkpoints: records left out because an earlier migration of the group already holds them. Absent otherwise." },
-          "skippedPerSheet": { "type": "array", "items": { "type": "object", "properties": { "templateName": { "type": "string" }, "sheetId": { "type": "string" }, "keyColumn": { "type": "string" }, "skipped": { "type": "integer" } } } },
+          "skippedPerSheet": { "type": "array", "items": { "type": "object", "properties": { "templateName": { "type": "string" }, "sheetId": { "type": "string" }, "keyColumn": { "type": "string" }, "skipped": { "type": "integer" }, "keyRejected": { "type": "boolean", "description": "The column named for this template doesn't identify records, so nothing was skipped." }, "priorKeysMissing": { "type": "boolean", "description": "Earlier migrations hold no values in the key column, so nothing matched." } } } },
+          "checkpointWarnings": { "type": "array", "items": { "type": "string" }, "description": "Readable reasons some sheets skipped nothing." },
           "unmatchedTemplates": { "type": "array", "items": { "type": "string" }, "description": "Checkpoints: templates with no source ID column to match on; all of their records were imported." },
           "coverage": { "type": ["object", "null"], "description": "Optional per-column fill/distinct profile of sources vs. outputs." }
         }

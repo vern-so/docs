@@ -41,8 +41,14 @@ export is recognised and left out.
 - A record with a blank source ID is always imported (there's nothing to match
   it on).
 - A template with no unique column can't be matched. Its records are all
-  imported unless the agent finds the column that carries the source ID. The
-  run report lists such templates in `unmatchedTemplates`.
+  imported unless the agent finds the column that carries the source ID — and
+  that column is used only if its values are unique to each record. The run
+  report lists such templates in `unmatchedTemplates`.
+- If an import's output has no source ID column for a template that has one,
+  the import stops rather than importing everything.
+- "Already migrated" means held in an earlier migration of the group, whatever
+  happened to it afterwards. Deleting a checkpoint removes its records from
+  what later checkpoints skip.
 - References to records migrated earlier (a new contact's company, say) keep
   the source ID as usual and resolve against the earlier migrations.
 
@@ -111,7 +117,14 @@ A completed run's [`report`](/migration-api/poll-a-run) on a checkpoint carries:
   Records left out because an earlier migration of the group already holds them.
 </ResponseField>
 <ResponseField name="skippedPerSheet" type="object[]">
-  The same per sheet: `{ templateName, sheetId, keyColumn, skipped }`.
+  The same per sheet: `{ templateName, sheetId, keyColumn, skipped,
+  keyRejected, priorKeysMissing }`. `keyRejected`: the column named for the
+  template doesn't identify records, so nothing was skipped.
+  `priorKeysMissing`: the earlier migrations hold no values in the key column,
+  so nothing matched.
+</ResponseField>
+<ResponseField name="checkpointWarnings" type="string[]">
+  Readable reasons some sheets skipped nothing. Present only when there are any.
 </ResponseField>
 <ResponseField name="unmatchedTemplates" type="string[]">
   Templates with no source ID column to match on; all of their records were
@@ -133,6 +146,7 @@ Returns the first migration and every checkpoint of the group.
 
 [`PATCH /migrations/{id}`](/migration-api/manage-migrations#update-a-migration)
 takes `skip_migrated` on a checkpoint; the change applies to runs started after
-it. A checkpoint's group and source can't be changed (`409`,
-`code: "checkpoint_source_fixed"` for the source). The first migration of a
-group can't be deleted while it has checkpoints.
+it. A group keeps one source: neither a checkpoint's source nor its first
+migration's can be changed (`409`, `code: "checkpoint_source_fixed"`), and a
+checkpoint's group is fixed once created. The first migration of a group can't
+be deleted while it has checkpoints.
