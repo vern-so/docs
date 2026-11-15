@@ -48,7 +48,7 @@ The import opens as a console with four tabs:
 | Tab | What it shows |
 |---|---|
 | **Activity** | The agent's progress, its questions, and the changes it proposes. |
-| **Recipe** | The script it's writing to transform the data (shown as **SQL** if your account uses [SQL recipes](/help-center/settings/recipe-format)). |
+| **Recipe** | The script it's writing to transform the data. If your account uses [SQL or T-SQL recipes](/help-center/settings/recipe-format), the tab is labelled **SQL** or **T-SQL** and shows that. |
 | **Uploads** | The source files, so you can see what it's reading. |
 | **Preview** | What each sheet will look like, from a dry run on the data, with invalid cells marked. |
 
@@ -116,6 +116,11 @@ both are read on every later run. Turn off **Memory** on the company to keep a
 test run from saving anything.
 
 ## After import
+
+The recipe stays with the workbook. In the workbook's sheet list, switch to the
+tab named after your company (not the source system's) and click **Recipe** at
+the bottom. It shows the script from the latest import, with **Copy** and
+**Download**, and a link back to that import.
 
 If something needs fixing — a value didn't normalize, a rule was misread —
 [spot-check and fix](/help-center/import/spot-check-and-fix) in the sheet.
